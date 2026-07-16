@@ -72,9 +72,11 @@
 
 **Заблоковано / чекає власника:** відкриті рішення **O1–O9** (`03-decisions`) — стратегія (топологія central-light, бізнес-модель, гібридний збір, open-source методології, межа «чи реальна» vs «де дешевше»). CC їх **не вирішує** — це 🧭 власника.
 
-**Активна задача зараз:** **S1 `0001` схема + DB-пул — `code-complete / unverified-live`** (`tasks/S1-*.md`). Написано `0001_init.sql` (уся §6), `db/` (пул/раннер/персист), skip-aware `test_migration`. **⚠ Не прогнано проти живого Timescale** — пісочниця без Docker/WSL/Postgres (TimescaleDB не має Windows-збірки). Верифікація — **CI job `migration`** з Timescale-сервісом (запрацює на першому пуші). S0.1/S2 — `in-review`. **Наступне:** пуш на GitHub (→ CI верифікує 0001) АБО локальний Timescale; далі S3 `detect_pass`.
+**Активна задача зараз:** — (S1 закрито). **Готово й верифіковано:** S1 `0001` схема + DB-пул + персист — **✅ 10/10 DoD проти живого Timescale в CI** (run 29495439389). S0.1/S2 — `in-review`. **Наступне: S3 `detect_pass`** — обчислення бейджів (§5/§8.4) поверх `price_snapshot`: Стадія A (заявлена) + Стадія B (30-денний MIN із сирого) → upsert `discount_event`. Схема й персист уже є.
 
-> **Середовищний блокер (частково знято):** локального Timescale немає (нема Docker/WSL; Timescale без Windows-білда). **Репо запушено:** `github.com/cavemancinema/radar-znyzhok` (приватний, гілка `main`, коміти d2c46b3…). CI `tests`-workflow тригериться на пуш → job `migration` верифікує `0001` проти timescale-сервісу. **Лишилось:** прочитати результат CI — потрібен `gh` (не встановлено) АБО звіт оператора. probe-cron — за розкладом (06:17 UTC) / вручну через Actions.
+> **Середовищний блокер — ЗНЯТО через CI.** Локального Timescale немає (нема Docker/WSL; Timescale без Windows-білда), але **CI job `migration`** (service `timescale/timescaledb:latest-pg16`) верифікує БД-код живцем на кожен пуш. Репо: `github.com/cavemancinema/radar-znyzhok` (приватний, `main`). `gh` автентифіковано (cavemancinema) → я читаю CI-логи й ітерую сам. **Патерн для всього БД-коду далі:** писати → пуш → CI верифікує → правити. probe-cron — 06:17 UTC / вручну.
+>
+> **Node20-депрекація** (annotation CI): `actions/checkout@v4`/`setup-python@v5` форсяться на Node24 — косметика, не блокер; оновлять мейнтейнери.
 
 ---
 
@@ -84,6 +86,7 @@
 
 | Дата | Режим | Що зроблено | Наступний крок |
 |---|---|---|---|
+| 2026-07-16 | **Виконавець** | **S1 ВЕРИФІКОВАНО ✅** — запуш на GitHub (приватний), `gh` авторизовано, CI job `migration` прогнав `0001` проти живого Timescale: **10/10 DoD** (hypertable/cagg/tsvector/append-only/round-trip), 0 правок. Блокер знято через CI. | **S3 `detect_pass`** (бейджі §5) поверх наявних схеми+персисту. |
 | 2026-07-16 | **Виконавець** | **S1 `0001` схема + DB-пул (code-complete).** `migrations/0001_init.sql` (уся §6: hypertable/cagg/компресія/tsvector/append-only тригер/BIGINT), `db/pool.py`+`migrate.py`+`store.py`, skip-aware `test_migration` (DoD §6.6 + round-trip RawItem). requirements+psycopg. **БЛОКЕР:** нема локального Timescale (нема Docker/WSL) → верифікація в CI (додав job `migration` з timescale-сервісом). Локально 18/18, migration skip. | **Пуш на GitHub** → CI прожене `0001` живцем (або зовн. Timescale). Потім правки за першим живим прогоном, далі S3 `detect_pass`. |
 | 2026-07-16 | **Виконавець** | **S2 адаптер Pethouse (екстрактор на касеті).** `adapters/base.py`+`pethouse.py` (selectolax), обрізана реальна касета, `test_pethouse` 9/9, `requirements.txt`, CI-гейт `tests.yml` (18/18). Reality-фідбек: картки **мультиваріантні** → RawItem/варіант, `external_ref=url#v=<варіант>` (§4.8/GAP15); вписано §3.3. S2→`in-review`. | Рев'ю S2; далі **S1 `0001` схема + DB-пул** для персисту RawItem, тоді `detect_pass`. |
 | 2026-07-16 | **Виконавець** | **Старт розробки (S0.1).** `git init`+перший коміт `d2c46b3`. `probe.py` (stdlib, сигнал-орієнтований) + тести 9/9 + CI-cron. Живий прогін 6 крамниць: **Pethouse+PetChoice працюють** (тир A, old=168/74), решта — тир C/лендинг. Реальність-фідбек у §3.3+Outcome: Pethouse редизайн, калібровано хибні anti-bot, #101 ціни cookie-стабільні. S0.1 → `in-review`. | Рев'ю S0.1 (Диригент); далі S2 адаптер Pethouse — але під **нові** селектори (line-through/price-field), не застарілі §3.3. |

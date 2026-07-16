@@ -1,6 +1,6 @@
 # Задача S1 — `0001` схема (Postgres/Timescale) + DB-пул + персист RawItem
 
-**Роль:** Виконавець (код) · **Автор:** Диригент, 2026-07-16 · **Статус:** `in-progress`
+**Роль:** Виконавець (код) · **Автор:** Диригент, 2026-07-16 · **Статус:** `done` (верифіковано CI)
 **Залежності:** S2 (`RawItem`). **Розблоковує:** `detect_pass` (S3), персист збору.
 
 ### 1. Ціль
@@ -32,6 +32,11 @@
 
 ---
 ## Outcome (Виконавець)
+
+**✅ ВЕРИФІКОВАНО проти живого TimescaleDB (CI run 29495439389, job `migration`, 2026-07-16): 10/10 DoD-перевірок PASS з першого прогону, без правок `0001`.** Postgres-лог підтвердив append-only тригер (`ERROR: price_snapshot append-only (спроба UPDATE/DELETE заблокована)`). `create_hypertable`/cagg(tz-`time_bucket`+`last()`)/компресія/`pgconn.exec_`(cagg-не-в-txn) — усе спрацювало. **S1 закрито.**
+
+---
+_Первинний запис (до верифікації):_
 
 **Статус: `code-complete / unverified-live`** (2026-07-16). Збудовано: `migrations/0001_init.sql` (уся §6-схема), `db/pool.py` (пул + `statement_timeout`/`lock_timeout`, `DATABASE_URL` з env), `db/migrate.py` (форвардний раннер, `schema_migration`), `db/store.py` (персист `RawItem`→`store_product`+`price_snapshot`), `tests/test_migration.py` (skip-aware DoD-тест), `requirements.txt` (+psycopg), `tests.yml` (job `migration` з Timescale-сервісом).
 
