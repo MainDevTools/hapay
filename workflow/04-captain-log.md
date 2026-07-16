@@ -72,7 +72,7 @@
 
 **Заблоковано / чекає власника:** відкриті рішення **O1–O9** (`03-decisions`) — стратегія (топологія central-light, бізнес-модель, гібридний збір, open-source методології, межа «чи реальна» vs «де дешевше»). CC їх **не вирішує** — це 🧭 власника.
 
-**Активна задача зараз:** — (S3 закрито). **Верифіковано живим Timescale (CI run 29496667410):** S3 `detect_pass` 3/3 (verified бейдж ref=10000/−20% + ідемпотентність) · S1 10/10. S0.1/S2 — `in-review`. **Наступне:** зробити конвеєр ЖИВИМ — колектор (adapter→persist→detect_pass) у постійну БД (Timescale Cloud) для накопичення реальної історії (розблоковує S0.3 badge-rate); АБО read-API/Mini App; АБО ще адаптери (Horoshop-клас).
+**Активна задача зараз:** — (усі S0–S5 закрито). **Уся 3-шарова архітектура §8.1 побудована й верифікована живим Timescale у CI.** Шар1: probe+collect · Шар2: schema+persist+detect_pass · Шар3: read-API+Mini App. **56 тестів** зелені (30 pure + 26 live). S0.1/S2 — `in-review`. **Наступне:** го-лайв (провізія Timescale Cloud + деплой API + Telegram-бот) — кроки оператора; АБО ще адаптери (PetChoice/Horoshop), push-бот, закриття подій.
 
 **Конвеєр повний і ЗАПУСКНИЙ:** `collect.py` (S4) зшиває сторінка →`RawItem`→`price_snapshot`→`discount_event`. CI верифікує 3 DB-сюїти живим Timescale (10/10 + 3/3 + 4/4). `collect.yml` — scheduled 2×/добу, skip без секрета.
 
@@ -90,6 +90,7 @@
 
 | Дата | Режим | Що зроблено | Наступний крок |
 |---|---|---|---|
+| 2026-07-16 | **Виконавець** | **S5 read-API + Mini App (ВЕРИФІКОВАНО).** `api/` (FastAPI: /discounts category-first+фільтр+сорт, /product/{id}/history, /categories, watchlist за initData-гейтом), `web/index.html` (Mini App: вітрина+бейджі+hotlink-фото+inline-SVG графік, Telegram SDK+тема). CI run 29498156837: initData 5/5 + API 9/9 live. **Уся §8.1 архітектура готова.** | Го-лайв (провізія БД + деплой API + бот) — оператор; або ще адаптери/push. |
 | 2026-07-16 | **Виконавець** | **S4 колектор (ВЕРИФІКОВАНО).** `collect.py` (fetch→extract→persist→detect_pass, DI-fetcher), `collect.yml` (scheduled 2×/добу). CI run 29497364326: collect 4/4 на касеті проти живого Timescale (9 снапшотів, 8 declared). Конвеєр запускний. | **Go-live:** оператор провізіонить Timescale Cloud + `DATABASE_URL` secret → реальна історія. Або read-API/Mini App, ще адаптери. |
 | 2026-07-16 | **Виконавець** | **S3 `detect_pass` (ядро §5).** `detection/core.py` (чиста логіка: Стадія A+B, 5 станів бейджа, pct ROUND_HALF_UP, OOS-виключення) — 7/7 синтетика; `detection/runner.py` (upsert `discount_event`, подія лише для реальної знижки, announce заморожено §8.4). CI-тест `detect_pass` verified+ідемпотентність. Конвеєр сторінка→RawItem→snapshot→бейдж повний. | Перевірити CI-detect_pass зелений; далі колектор→постійна БД для реальної історії, або read-API/закриття подій. |
 | 2026-07-16 | **Виконавець** | **S1 ВЕРИФІКОВАНО ✅** — запуш на GitHub (приватний), `gh` авторизовано, CI job `migration` прогнав `0001` проти живого Timescale: **10/10 DoD** (hypertable/cagg/tsvector/append-only/round-trip), 0 правок. Блокер знято через CI. | **S3 `detect_pass`** (бейджі §5) поверх наявних схеми+персисту. |

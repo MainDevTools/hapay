@@ -1,7 +1,9 @@
 # Задача S5 — read-API (FastAPI) + Telegram Mini App (§8.10.1/§9.7)
 
-**Роль:** Виконавець (код) · **Автор:** Диригент, 2026-07-16 · **Статус:** `in-progress`
+**Роль:** Виконавець (код) · **Автор:** Диригент, 2026-07-16 · **Статус:** `done` (CI: initData 5/5 + API 9/9 live)
 **Залежності:** S1 (схема), S3/S4 (discount_event). **Шар 3 (презентація).**
+
+> ✅ CI run 29498156837: initData 5/5 (pure) + read-API 9/9 (live Timescale — перелік/фільтр/історія/категорії/watchlist-гейт). **Go-live презентації:** деплой `api.main:app` на хост (Fly/Railway) + секрети `DATABASE_URL`/`BOT_TOKEN` + Mini App URL у @BotFather.
 
 ### 1. Ціль
 Тонкий **read-only API** (FastAPI): category-first перелік знижок із фільтром/сортом/пагінацією (§9.1), історія товару для графіка (§9.2), категорії. **Mini App** (статичний HTML у Telegram): вітрина з бейджами + графік. Авторизація — Telegram `initData` (HMAC), клієнт **не** має прямого доступу до БД (§8.10.1).
