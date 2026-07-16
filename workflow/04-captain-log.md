@@ -74,7 +74,7 @@
 
 **Активна задача зараз:** **S1 `0001` схема + DB-пул — `code-complete / unverified-live`** (`tasks/S1-*.md`). Написано `0001_init.sql` (уся §6), `db/` (пул/раннер/персист), skip-aware `test_migration`. **⚠ Не прогнано проти живого Timescale** — пісочниця без Docker/WSL/Postgres (TimescaleDB не має Windows-збірки). Верифікація — **CI job `migration`** з Timescale-сервісом (запрацює на першому пуші). S0.1/S2 — `in-review`. **Наступне:** пуш на GitHub (→ CI верифікує 0001) АБО локальний Timescale; далі S3 `detect_pass`.
 
-> **🔴 БЛОКЕР середовища:** немає способу підняти PostgreSQL+TimescaleDB локально (нема Docker/WSL; Timescale без Windows-білда). Верифікація БД-коду можлива лише через **GitHub Actions service-контейнер** (треба пуш на репо) або зовнішній **Timescale Cloud** (`DATABASE_URL` в env). Рішення про GitHub-репо (публічний/приватний, O8) — за оператором.
+> **Середовищний блокер (частково знято):** локального Timescale немає (нема Docker/WSL; Timescale без Windows-білда). **Репо запушено:** `github.com/cavemancinema/radar-znyzhok` (приватний, гілка `main`, коміти d2c46b3…). CI `tests`-workflow тригериться на пуш → job `migration` верифікує `0001` проти timescale-сервісу. **Лишилось:** прочитати результат CI — потрібен `gh` (не встановлено) АБО звіт оператора. probe-cron — за розкладом (06:17 UTC) / вручну через Actions.
 
 ---
 
