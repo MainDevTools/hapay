@@ -24,7 +24,7 @@
 
 ## D. Архітектура / код
 
-11. **БД — central PostgreSQL 16 + TimescaleDB** (§6): `price_snapshot` — hypertable (PK містить `seen_at`); `price_daily` — continuous aggregate; FTS — `tsvector`+GIN; append-only — тригер + `REVOKE UPDATE/DELETE`. Доступ — через пул із `statement_timeout`/`lock_timeout`; FK у Postgres чинні завжди.
+11. **БД — чистий PostgreSQL 16** (§6; ship на Neon-free, T11): `price_snapshot` — звичайна таблиця + покривний `ix_ps_prod_window`; FTS — `tsvector`+GIN; append-only — тригер + `REVOKE UPDATE/DELETE`. Доступ — через пул (`statement_timeout`/`lock_timeout`); FK чинні завжди. *(Timescale hypertable/cagg/компресія — `0002` scale-upgrade, не зараз.)*
 12. **Краул — поза транзакцією:** буфер у пам'яті → коротка write-транзакція (§8.6). Не тримати транзакцію через мережевий I/O.
 13. **Топологія — central-only** (GitHub Actions-збір → central Postgres/Timescale → Telegram Mini App); **desktop-local відкинуто (O1 закрито)** (§8.10). Шари 1–2 спільні, один краул на всіх.
 

@@ -2,9 +2,17 @@
 
 Три незалежні частини (кожну вмикаєш коли готовий; конвеєр чекає):
 
-## 0. БД — PostgreSQL 16 + TimescaleDB (спільна для всього)
-Постійна інстанція (Timescale Cloud free / self-host VPS). Візьми `DATABASE_URL`
-(формат `postgresql://user:pass@host:5432/db`). Це **секрет** — ніколи в репо/чат.
+## 0. БД — PostgreSQL 16 (Neon, free-forever)
+Схема `0001` — **чистий PostgreSQL** (Timescale не потрібен; hypertable/cagg/компресія — майбутній `0002` scale-upgrade). Тому підходить **Neon** (безкоштовно назавжди).
+
+**Neon (рекомендовано, $0):**
+1. **console.neon.tech** → Sign up → **Create project** (регіон **EU — Frankfurt**, ближче до України).
+2. Дашборд → **Connection string** → скопіюй (формат `postgresql://user:pass@ep-...neon.tech/dbname?sslmode=require`).
+   - `sslmode=require` уже в рядку Neon — залиш.
+   - Бери **звичайний** (не «pooled») рядок для колектора: міграції роблять DDL.
+3. Це **секрет** `DATABASE_URL` — ніколи в репо/чат (тільки Actions/Fly secrets).
+
+*(Альтернативи: self-host Postgres на VPS (~$5/міс) або Timescale Cloud trial. Для Neon схема вже готова — нічого не переписувати.)*
 
 ## 1. Колектор (Шар 1) — GitHub Actions, БЕЗ хостингу
 Уже налаштований (`.github/workflows/collect.yml`, 2×/добу).

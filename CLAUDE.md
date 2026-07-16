@@ -20,9 +20,9 @@
 
 **A. Гроші й дані**
 - Гроші — **`BIGINT` копійки**, ніколи float (Postgres відхиляє не-ціле на рівні типу).
-- `price_snapshot` — **append-only** (тригер `RAISE EXCEPTION` на UPDATE/DELETE + `REVOKE`); історія незмінна. Це **Timescale hypertable** — PK містить `seen_at`.
-- `reference_kop` (30-денний мінімум) — **рахувати з сирого `price_snapshot`**, не з `price_daily`-агрегату.
-- БД — **PostgreSQL 16 + TimescaleDB** (§6): `price_daily` = continuous aggregate; FTS = `tsvector`+GIN; доступ через пул (`statement_timeout`/`lock_timeout`); FK чинні завжди.
+- `price_snapshot` — **append-only** (тригер `RAISE EXCEPTION` на UPDATE/DELETE + `REVOKE`); історія незмінна. Звичайна таблиця + покривний індекс `ix_ps_prod_window`.
+- `reference_kop` (30-денний мінімум) — **рахувати з сирого `price_snapshot`** (не з агрегату).
+- БД — **чистий PostgreSQL 16** (§6, ship на **Neon** free — T11); FTS = `tsvector`+GIN; доступ через пул; FK чинні завжди. Timescale hypertable/cagg/компресія — майбутній `0002` scale-upgrade, **не** в `0001`.
 
 **B. Юридика (найтвердіше)**
 - Зберігати **лише факти**: ціна / назва / URL / час.

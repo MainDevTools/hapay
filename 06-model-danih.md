@@ -2,13 +2,15 @@
 
 СУБД — **PostgreSQL 16 + TimescaleDB**, одна **центральна** керована інстанція (central-only, рішення O1 закрито — §8.10). Підключення — через `DATABASE_URL` (секрет; правила витоку — `workflow/07-conventions.md`, ніколи не в репо). Десктоп-локальний варіант відкинуто (max-privacy-хедж закрито разом з O1). Це канонічна схема; інші розділи посилаються на таблиці за іменами полів. Конвенції: гроші — `*_kop BIGINT` (цілі копійки); час зберігання — `TIMESTAMPTZ` (UTC); цивільні дати (30-денне вікно) — `Europe/Kyiv` через `AT TIME ZONE`; BOOL — нативний `BOOLEAN`; усі config-таблиці датовані (`valid_from`/`valid_to`).
 
-> **Що змінив central Postgres/Timescale проти колишньої локальної SQLite** (провенанс — журнал §00, рішення §12.x / P-DB): (1) гроші-цілі гарантує сам тип `BIGINT` (сильніше за `STRICT`); (2) FTS5-external-content із трьома крихкими тригерами → нативний `tsvector`+GIN (мінус ціла пастка §6.3-стара); (3) `price_snapshot` — **hypertable** Timescale; (4) `price_daily` — **continuous aggregate**, не таблиця; (5) стиснення холодної історії — **нативна компресія Timescale** (замінює ручний delta-encoding §8.6); (6) міграції — форвардні, застосовуються **централізовано в CI/деплої** (зникають desktop version-skip / downgrade-guard / backup-before-migrate / `%LOCALAPPDATA%`).
+> **⚠ SHIPPED-СХЕМА = `migrations/0001_init.sql` — ЧИСТИЙ PostgreSQL (Neon-free, рішення T11).** `price_snapshot` — **звичайна таблиця** + покривний `ix_ps_prod_window`; `price_daily` **немає** (API/`detect_pass` читають сирий snapshot §5.2). **Timescale-специфіка нижче в §6.3/§6.6** (hypertable / continuous aggregate `price_daily` / компресія) — **DEFERRED `0002` scale-upgrade**, коли обсяг вимагатиме (десятки млн рядків) і буде Timescale-хост; **не в `0001`**. Читаючи DDL нижче: блоки з `create_hypertable`/`timescaledb.*`/`price_daily` cagg — це `0002`-ціль, решта = `0001`.
+>
+> **Незмінне (і в 0001, і далі):** (1) гроші-цілі гарантує тип `BIGINT`; (2) FTS — нативний `tsvector`+GIN; (3) append-only — тригер+`REVOKE`; (4) міграції форвардні в CI/деплої.
 
 ## 6.1. Інваріанти схеми
 
 - Жодних `REAL`/`NUMERIC` для грошей — лише цілі копійки `BIGINT`. Postgres **відхиляє не-цілі в цілочисловий стовпець на рівні типу** (`invalid input syntax for type bigint`) — інваріант «гроші лише цілі» гарантує движок, а не сам лише `CHECK`+конвенція. `BIGINT` (не `INTEGER`) свідомо: `INT4` max ≈ 21.47 млн грн — вузько для сум/агрегатів; `BIGINT` знімає стелю.
 - `price_snapshot` — **append-only**: `BEFORE UPDATE/DELETE`-тригер `RAISE EXCEPTION` **+** (глибина оборони) `REVOKE UPDATE, DELETE` з ролі застосунку. Історія незмінна (провенанс ст.277 — §5.2).
-- `price_snapshot` — **Timescale hypertable**, партиціонована за `seen_at`. Наслідок (обмеження Timescale): **будь-який `PRIMARY KEY`/`UNIQUE` мусить містити колонку партиціонування `seen_at`** — тому PK = `(price_snapshot_id, seen_at)`. НЕ прибирати `seen_at` з ключа (інакше `create_hypertable` впаде).
+- `price_snapshot` (0001) — **звичайна таблиця**, PK = `price_snapshot_id`; покривний `ix_ps_prod_window (store_product_id, seen_at) INCLUDE (price_now_kop, in_stock)` для статутного MIN. *(У deferred-`0002` стає **hypertable** — тоді PK мусить містити `seen_at`.)*
 - Крос-крамничного зіставлення немає: `store_product` унікальний **у межах джерела** (`UNIQUE(source_id, external_ref)`).
 - Кожна датована config має ≥1 чинний рядок на `today` (deploy-healthcheck-гейт).
 - `discount_event` ідемпотентна за `UNIQUE(store_product_id, announce_date)` — ключ upsert-у `detect_pass` (§8.4).
