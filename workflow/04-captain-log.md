@@ -59,7 +59,9 @@
 
 **Спека:** `00-index.md` … `16-reyestr-ryzykiv.md`, версія **v2.1**. Реєстр ризиків — 208 пунктів із пріоритетами P0–P3.
 
-**🟢 T11 (2026-07-16):** ship-схема — **чистий PostgreSQL (Neon-free)**, Timescale-фічі → deferred `0002`. `0001` plain PG, верифіковано DoD 9/9 + detect_pass/collect/api проти `postgres:16`. Go-live тепер **$0** через Neon (`docs/deploy.md` §0).
+**🟢 T11 (2026-07-16):** ship-схема — **чистий PostgreSQL (Neon-free)**, Timescale-фічі → deferred `0002`. `0001` plain PG, CI проти `postgres:18` (=прод-Neon).
+
+**🚀 ГО-ЛАЙВ (2026-07-16):** колектор запущено проти живого **Neon** (оператор додав `DATABASE_URL` secret). Прогін `29520811631` success 4m4s: **`колект: {items: 380, events: 311, sources: 2}`** — реальні дані Pethouse+PetChoice у БД, `0001` застосувалась чисто, 0 помилок. Cron `collect.yml` тепер збирає 2×/добу. **За ~30 днів історії → verified/pumped бейджі (S0.3 валідація).**
 
 **🔴 Велике рішення T10 (2026-07-16, O1 закрито):** двигун БД **SQLite → PostgreSQL 16 + TimescaleDB**, топологія **central-only** (desktop-local відкинуто). Ухвалено **власником проти рекомендації CC** (CC радив лишити SQLite+DAL до чисел S0.1; власник: 0 рядків = міграція безкоштовна). Канон переписано: `06` (hypertable/continuous-aggregate/компресія/`tsvector`/BIGINT/форвардні міграції), `08` (топологія ухвалена; §8.2/8.5/8.6/8.9 desktop — позначені **застарілими**, не видалені), `02`/`CLAUDE.md`/`11.5`/`00`/`15`/`16`, журнал `03-decisions` T10. **Провенанс дисенту збережено** (T10 + §00-changelog).
 
@@ -92,6 +94,7 @@
 
 | Дата | Режим | Що зроблено | Наступний крок |
 |---|---|---|---|
+| 2026-07-16 | **Виконавець** | **🚀 ГО-ЛАЙВ на Neon (free).** Neon-адаптація (`0001` plain PG, T11, v2.1) + CI на `postgres:18`. Оператор створив Neon-проект + `DATABASE_URL` secret; я запустив `collect` через `gh` → success: **380 снапшотів / 311 declared-подій** реальних даних Pethouse+PetChoice. Cron 2×/добу активний. | Чекати ~30 днів історії → verified-бейджі (S0.3); опційно деплой read-API+бот (`docs/deploy.md` §2–3), щоб бачити в Telegram. |
 | 2026-07-16 | **Виконавець** | **S6-G розширення покриття.** Розвідка нових SSR-крамниць (Foxtrot/Moyo/Citrus/E-Zoo/…): **нових чистих тир-A SSR нема** (Foxtrot=SPA, Citrus=кампанійний індекс, решта 404/JS) — ринок у client-side. Натомість **6 категорій Pethouse** (suhoi-korm/konservi/shampuni × кот/пес, ~303 варіанти vs 84) у `collect.SOURCES`. `collect()` +`delay`-параметр. | Го-лайв; push-бот; або headless для JS-крамниць (велике покриття). |
 | 2026-07-16 | **Виконавець** | **S6 адаптери + розвідка E.** ✅ **PetChoice** (miniShop2, тир A) — `test_petchoice` 5/5, у collect (2 джерела, CI 12/11). ⏸ **Horoshop — розвідку XHR завершено, вирок: headless-only.** Браузер-аналіз: MasterZoo тягне ціни зовн. Vercel-сервісом (`product-import-lilac.vercel.app`) + мерж, Petmarket теж client-side (0 цін у DOM). Чистого catalog-XHR нема → потрібен headless (§4.7, M2+). MasterZoo-Vercel-хак не будуємо (крихкий/не-генерик). §3.3/§3.6 оновлено. | Push-бот (§9.3), закриття подій, таксономія; Horoshop = headless-під-проєкт (стратегічне рішення). |
 | 2026-07-16 | **Виконавець** | **Деплой-артефакти read-API.** `Dockerfile`+`docker-entrypoint.sh`(опц.міграції)+`.dockerignore`, `fly.toml` (Fly, waw, auto-stop, health), `docs/deploy.md` (БД+collect-secret+Fly/Railway+BotFather), `.gitattributes` (*.sh eol=lf). CI job `docker`: build+smoke `/api/health` → `{"ok":true}` ✅. | Го-лайв — кроки оператора (`docs/deploy.md`): Timescale Cloud + Fly deploy + бот. |
