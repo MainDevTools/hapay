@@ -23,6 +23,8 @@ jobs:
         run: python tests/test_probe.py
       - name: Pethouse — екстрактор на касеті (selectolax)
         run: python tests/test_pethouse.py
+      - name: детекція — ядро бейджів на синтетиці (§5)
+        run: python tests/test_detection.py
 
   migration:
     # Верифікація 0001 проти ЖИВОГО Timescale (пісочниця розробки її не має — §S1).
@@ -47,3 +49,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:radar@localhost:5432/radar
         run: python tests/test_migration.py
+      - name: detect_pass — бейдж verified + ідемпотентність (§5/§8.4)
+        env:
+          DATABASE_URL: postgresql://postgres:radar@localhost:5432/radar
+        run: python tests/test_detect_pass.py
