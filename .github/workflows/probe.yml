@@ -1,0 +1,45 @@
+name: probe-surface
+
+# S0.1: щоденний монітор поверхні крамниць + ліквідність (§3.9).
+# Накопичує probe_results/*.jsonl у репо → база для S0.3 (badge-rate за ~3–4 тижні).
+# Секрети НЕ потрібні: probe читає публічні сторінки, БД не пише (§8.10.1 — probe без API).
+
+on:
+  schedule:
+    - cron: "17 6 * * *"      # щодня 06:17 UTC (не top-of-hour; поза DST-смугою 01–03, §8.2)
+  workflow_dispatch: {}        # ручний запуск
+
+permissions:
+  contents: write              # щоб закомітити probe_results назад
+
+concurrency:                   # без перекриття прогонів (§8.2)
+  group: probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"   # runner-стабільна; probe — stdlib-only, залежностей нема
+
+      - name: Тести парсера (golden, офлайн)
+        run: python tests/test_probe.py
+
+      - name: Probe (живі крамниці)
+        run: python probe.py
+
+      - name: Commit результату
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add probe_results/
+          if git diff --cached --quiet; then
+            echo "нема нових даних probe"
+          else
+            git commit -m "probe: поверхня крамниць $(date -u +%F)"
+            git push
+          fi

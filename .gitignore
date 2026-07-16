@@ -1,0 +1,67 @@
+# .gitignore — «Радар знижок»
+# Оборона №1 проти витоку. Правила: workflow/07-conventions.md.
+# Пам'ятай: .gitignore НЕ прибирає вже-відстежувані файли — не додавай зайве з самого початку.
+
+# ── Секрети / креденшели (НІКОЛИ) ──────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*_secret*
+*secret_*
+*credential*
+service-account*.json
+secrets/
+
+# ── Дані збору / БД (не в git) ─────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+*.db-journal
+data/
+dumps/
+*.dump
+
+# ── Кеш чужого контенту / байти фото (юр-інваріант B) ──────────
+cache/
+scraped/
+images_cache/
+*.html.raw
+*.raw
+
+# ── VCR-касети: комітяться ЛИШЕ очищені (07-conventions §8). ────
+#     Сирий захват — не в git:
+tests/cassettes/raw/
+*.cassette.raw
+
+# ── Python ─────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ── IDE / ОС ───────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Логи ───────────────────────────────────────────────────────
+*.log
+logs/

@@ -1,0 +1,36 @@
+<!doctype html>
+<!--
+  СИНТЕТИЧНА фікстура (НЕ байти реальної крамниці — юр-інваріант B §7.4 / git-безпека §8).
+  Відтворює ДВА стилі розмітки знижки, що їх probe.analyze() має ловити:
+   (1) Tailwind line-through + price-field (стиль Pethouse після редизайну 2026-07);
+   (2) клас product-price-old (стиль PetChoice).
+  Мета — golden-тест сигнальної логіки, а не збережений твір.
+-->
+<html lang="uk"><head><meta charset="utf-8"><title>Акції — тестова фікстура</title>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"ItemList"}</script>
+</head><body>
+
+<!-- знижена картка №1: Tailwind line-through (Pethouse-подібний) -->
+<div class="card">
+  <a href="/ua/shop/koshkam/suhoi-korm/korm-super-premium-1234/">Корм A 4 кг</a>
+  <div class="text-gray text-[12px]/4">425 грн/кг</div>
+  <div class="text-gray line-through whitespace-nowrap">2 000,00</div>
+  <div class="bg-red text-white">-15%</div>
+  <div class="price-field flex items-end"><span>1 700,00</span><span>₴</span></div>
+</div>
+
+<!-- знижена картка №2: клас product-price-old (PetChoice-подібний) -->
+<div class="product">
+  <a href="/korm-dlya-sobak-5678.html">Корм B 12 кг</a>
+  <div class="product-price-old">500,00</div>
+  <div class="badge">-25%</div>
+  <span class="product-price">375,00 грн</span>
+</div>
+
+<!-- НЕзнижена картка (не має рахуватись як знижка) -->
+<div class="product">
+  <a href="/korm-dlya-kotiv-9999.html">Корм C 2 кг</a>
+  <span class="product-price">299,00 грн</span>
+</div>
+
+</body></html>
