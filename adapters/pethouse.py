@@ -11,8 +11,11 @@
 """
 from __future__ import annotations
 import re
+from urllib.parse import urljoin
 from selectolax.parser import HTMLParser
 from .base import RawItem, parse_price_to_kop, canon_ref, slugify
+
+BASE = "https://pethouse.ua/"
 
 
 class PethouseAdapter:
@@ -27,9 +30,10 @@ class PethouseAdapter:
             link = card.css_first('a[href*="/ua/shop/"]')
             if link is None:
                 continue
-            url = link.attributes.get("href") or ""
-            if not url:
+            href = link.attributes.get("href") or ""
+            if not href:
                 continue
+            url = urljoin(BASE, href)          # абсолютний URL для посилання (href відносний)
             img = card.css_first("img")
             title = ((img.attributes.get("alt") if img else "") or "").strip()
             image_url = (img.attributes.get("src") if img else None) or None
@@ -63,7 +67,7 @@ class PethouseAdapter:
                 low = (row.text() or "").lower()
                 in_stock = not ("немає" in low or "нет в наличии" in low)
 
-                ext = canon_ref(url) + (("#v=" + slugify(variant)) if variant else "")
+                ext = canon_ref(href) + (("#v=" + slugify(variant)) if variant else "")  # ключ зі ВІДНОСНОГО — стабільний
                 if ext in seen:
                     continue
                 seen.add(ext)

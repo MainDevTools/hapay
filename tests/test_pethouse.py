@@ -68,6 +68,13 @@ def test_all_refs_are_per_variant():
         assert "#v=" in i.external_ref
 
 
+def test_urls_absolute():
+    """URL — абсолютні (для посилань «відкрити в крамниці»); external_ref — зі ВІДНОСНОГО (стабільний ключ)."""
+    for i in _items():
+        assert i.url.startswith("https://pethouse.ua/"), i.url
+        assert i.external_ref.startswith("/ua/shop/"), i.external_ref
+
+
 # ---- парсер копійок (§4.8) ----
 
 def test_parse_price():
