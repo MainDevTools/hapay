@@ -74,7 +74,9 @@
 
 **Активна задача зараз:** — (S3 закрито). **Верифіковано живим Timescale (CI run 29496667410):** S3 `detect_pass` 3/3 (verified бейдж ref=10000/−20% + ідемпотентність) · S1 10/10. S0.1/S2 — `in-review`. **Наступне:** зробити конвеєр ЖИВИМ — колектор (adapter→persist→detect_pass) у постійну БД (Timescale Cloud) для накопичення реальної історії (розблоковує S0.3 badge-rate); АБО read-API/Mini App; АБО ще адаптери (Horoshop-клас).
 
-**Конвеєр тепер повний:** сторінка →(S2 екстрактор)→ `RawItem` →(S1 персист)→ `price_snapshot` →(S3 detect_pass)→ `discount_event` (бейдж). Усі ланки з тестами; БД-ланки верифікуються живим Timescale у CI.
+**Конвеєр повний і ЗАПУСКНИЙ:** `collect.py` (S4) зшиває сторінка →`RawItem`→`price_snapshot`→`discount_event`. CI верифікує 3 DB-сюїти живим Timescale (10/10 + 3/3 + 4/4). `collect.yml` — scheduled 2×/добу, skip без секрета.
+
+**⏭ GO-LIVE (крок оператора):** провізія **Timescale Cloud** (free) → додати `DATABASE_URL` як **Actions secret** (Settings→Secrets→Actions) → `collect.yml` починає писати реальні ціни Pethouse → за ~30 днів реальні verified-бейджі (закриває S0.3 badge-rate). Секрет — оператор (я креденшели не вводжу).
 
 > **Середовищний блокер — ЗНЯТО через CI.** Локального Timescale немає (нема Docker/WSL; Timescale без Windows-білда), але **CI job `migration`** (service `timescale/timescaledb:latest-pg16`) верифікує БД-код живцем на кожен пуш. Репо: `github.com/cavemancinema/radar-znyzhok` (приватний, `main`). `gh` автентифіковано (cavemancinema) → я читаю CI-логи й ітерую сам. **Патерн для всього БД-коду далі:** писати → пуш → CI верифікує → правити. probe-cron — 06:17 UTC / вручну.
 >
@@ -88,6 +90,7 @@
 
 | Дата | Режим | Що зроблено | Наступний крок |
 |---|---|---|---|
+| 2026-07-16 | **Виконавець** | **S4 колектор (ВЕРИФІКОВАНО).** `collect.py` (fetch→extract→persist→detect_pass, DI-fetcher), `collect.yml` (scheduled 2×/добу). CI run 29497364326: collect 4/4 на касеті проти живого Timescale (9 снапшотів, 8 declared). Конвеєр запускний. | **Go-live:** оператор провізіонить Timescale Cloud + `DATABASE_URL` secret → реальна історія. Або read-API/Mini App, ще адаптери. |
 | 2026-07-16 | **Виконавець** | **S3 `detect_pass` (ядро §5).** `detection/core.py` (чиста логіка: Стадія A+B, 5 станів бейджа, pct ROUND_HALF_UP, OOS-виключення) — 7/7 синтетика; `detection/runner.py` (upsert `discount_event`, подія лише для реальної знижки, announce заморожено §8.4). CI-тест `detect_pass` verified+ідемпотентність. Конвеєр сторінка→RawItem→snapshot→бейдж повний. | Перевірити CI-detect_pass зелений; далі колектор→постійна БД для реальної історії, або read-API/закриття подій. |
 | 2026-07-16 | **Виконавець** | **S1 ВЕРИФІКОВАНО ✅** — запуш на GitHub (приватний), `gh` авторизовано, CI job `migration` прогнав `0001` проти живого Timescale: **10/10 DoD** (hypertable/cagg/tsvector/append-only/round-trip), 0 правок. Блокер знято через CI. | **S3 `detect_pass`** (бейджі §5) поверх наявних схеми+персисту. |
 | 2026-07-16 | **Виконавець** | **S1 `0001` схема + DB-пул (code-complete).** `migrations/0001_init.sql` (уся §6: hypertable/cagg/компресія/tsvector/append-only тригер/BIGINT), `db/pool.py`+`migrate.py`+`store.py`, skip-aware `test_migration` (DoD §6.6 + round-trip RawItem). requirements+psycopg. **БЛОКЕР:** нема локального Timescale (нема Docker/WSL) → верифікація в CI (додав job `migration` з timescale-сервісом). Локально 18/18, migration skip. | **Пуш на GitHub** → CI прожене `0001` живцем (або зовн. Timescale). Потім правки за першим живим прогоном, далі S3 `detect_pass`. |
