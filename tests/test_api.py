@@ -34,7 +34,7 @@ def main():
               encoding="utf-8") as f:
         cassette = f.read()
     with psycopg.connect(URL, autocommit=True) as conn:
-        collect(conn, SOURCES, fetch=lambda u: cassette)
+        collect(conn, SOURCES, fetch=lambda u: cassette, delay=0)
         cat = conn.execute("SELECT category_id FROM category WHERE slug='uncategorized'").fetchone()[0]
 
     client = TestClient(app)

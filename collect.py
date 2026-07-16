@@ -28,7 +28,14 @@ POLITE_DELAY = 3.0          # §10.2 — пауза між запитами до
 SOURCES = [
     {"name": "Pethouse", "base_url": "https://pethouse.ua", "platform": "custom",
      "fetch_tier": "A", "adapter": PethouseAdapter(), "category_slug": "uncategorized",
-     "discount_urls": ["https://pethouse.ua/ua/shop/koshkam/suhoi-korm/akcii/"]},
+     "discount_urls": [   # per-category discovery (§3.3); підтверджено пробою 2026-07-16
+         "https://pethouse.ua/ua/shop/koshkam/suhoi-korm/akcii/",
+         "https://pethouse.ua/ua/shop/sobakam/suhoi-korm/akcii/",
+         "https://pethouse.ua/ua/shop/koshkam/konservi/akcii/",
+         "https://pethouse.ua/ua/shop/sobakam/konservi/akcii/",
+         "https://pethouse.ua/ua/shop/koshkam/shampuni/akcii/",
+         "https://pethouse.ua/ua/shop/sobakam/shampuni/akcii/",
+     ]},
     {"name": "PetChoice", "base_url": "https://petchoice.ua", "platform": "custom",
      "fetch_tier": "A", "adapter": PetChoiceAdapter(), "category_slug": "uncategorized",
      "discount_urls": ["https://petchoice.ua/discounts"]},
@@ -46,7 +53,7 @@ def _category_id(conn, slug: str) -> int:
     return conn.execute("SELECT category_id FROM category WHERE slug = %s", (slug,)).fetchone()[0]
 
 
-def collect(conn, sources, fetch=default_fetch) -> dict:
+def collect(conn, sources, fetch=default_fetch, delay=POLITE_DELAY) -> dict:
     """Discovery-прохід по джерелах + detect_pass. Повертає {items, events, sources}."""
     total_items = 0
     for src in sources:
@@ -61,8 +68,8 @@ def collect(conn, sources, fetch=default_fetch) -> dict:
 
         items, seen = [], set()
         for i, url in enumerate(src["discount_urls"]):
-            if i:
-                time.sleep(POLITE_DELAY)                 # ввічливість між сторінками хоста
+            if i and delay:
+                time.sleep(delay)                        # ввічливість між сторінками хоста
             for it in src["adapter"].extract(fetch(url)):
                 if it.external_ref in seen:              # дедуп між сторінками (§10.1)
                     continue

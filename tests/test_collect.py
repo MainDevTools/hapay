@@ -33,8 +33,8 @@ def main():
 
     checks, failed = [], 0
     with psycopg.connect(URL, autocommit=True) as conn:
-        stats = collect(conn, SOURCES, fetch=fetch)
-        checks.append(("collect items = 12 (Pethouse 9 + PetChoice 3)", stats["items"] == 12, stats))
+        stats = collect(conn, SOURCES, fetch=fetch, delay=0)
+        checks.append(("collect items = 12 (Pethouse 9 dedup + PetChoice 3)", stats["items"] == 12, stats))
 
         snaps = conn.execute("SELECT count(*) FROM price_snapshot").fetchone()[0]
         checks.append(("price_snapshot = 12", snaps == 12, snaps))
