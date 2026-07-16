@@ -72,7 +72,7 @@
 
 **Заблоковано / чекає власника:** відкриті рішення **O1–O9** (`03-decisions`) — стратегія (топологія central-light, бізнес-модель, гібридний збір, open-source методології, межа «чи реальна» vs «де дешевше»). CC їх **не вирішує** — це 🧭 власника.
 
-**Активна задача зараз:** **S3 `detect_pass` — `in-review`** (`tasks/S3-*.md`). `detection/core.py` (чиста логіка §5, 7/7 синтетика) + `detection/runner.py` (upsert `discount_event`, announce заморожено). Живий `detect_pass` (verified+ідемпотентність) — у CI job `migration`. **Верифіковано раніше:** S1 (10/10 DoD, run 29495439389). S0.1/S2 — `in-review`. **Наступне:** переконатись, що CI-detect_pass зелений; далі — колектор у постійну БД (Timescale Cloud) для накопичення реальної історії, АБО закриття подій / read-API / Mini App.
+**Активна задача зараз:** — (S3 закрито). **Верифіковано живим Timescale (CI run 29496667410):** S3 `detect_pass` 3/3 (verified бейдж ref=10000/−20% + ідемпотентність) · S1 10/10. S0.1/S2 — `in-review`. **Наступне:** зробити конвеєр ЖИВИМ — колектор (adapter→persist→detect_pass) у постійну БД (Timescale Cloud) для накопичення реальної історії (розблоковує S0.3 badge-rate); АБО read-API/Mini App; АБО ще адаптери (Horoshop-клас).
 
 **Конвеєр тепер повний:** сторінка →(S2 екстрактор)→ `RawItem` →(S1 персист)→ `price_snapshot` →(S3 detect_pass)→ `discount_event` (бейдж). Усі ланки з тестами; БД-ланки верифікуються живим Timescale у CI.
 
