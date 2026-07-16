@@ -7,75 +7,151 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root{
-    --bg:#fff; --fg:#111; --muted:#777; --card:#f6f7f9; --line:#e3e6ea; --accent:#2f7;
-    --green:#1a8f3c; --green-bg:#e7f6ec; --yellow:#a8760a; --yellow-bg:#fdf3df;
-    --grey:#6b7280; --grey-bg:#eef0f3;
+    --bg:#f4f5f7; --surface:#fff; --fg:#14161a; --muted:#6b7280; --faint:#9aa0a6;
+    --line:#e6e8ec; --shadow:0 1px 2px rgba(20,22,26,.04), 0 4px 16px rgba(20,22,26,.05);
+    --accent:#1a8f3c;
+    --green:#16833a; --green-bg:#e6f6ec; --green-line:#bfe6cd;
+    --amber:#a26708; --amber-bg:#fcf1da; --amber-line:#f0d9a8;
+    --grey:#5f6672; --grey-bg:#eceef1;
+    --red:#d23b3b; --sale:#e23b3b; --sale-fg:#fff;
+    --radius:15px; --radius-s:10px;
   }
   @media (prefers-color-scheme: dark){
-    :root{ --bg:#17181a; --fg:#f2f3f5; --muted:#9aa0a6; --card:#212226; --line:#303236;
-           --green:#4ecb71; --green-bg:#173224; --yellow:#e0b64a; --yellow-bg:#332a12;
-           --grey:#9aa0a6; --grey-bg:#26282c; }
+    :root{
+      --bg:#101114; --surface:#191b1f; --fg:#f0f2f5; --muted:#9aa0a6; --faint:#727782;
+      --line:#2a2d33; --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.28);
+      --accent:#4ecb71;
+      --green:#57cf7a; --green-bg:#132a1d; --green-line:#1f4a30;
+      --amber:#e3ba5f; --amber-bg:#2c2410; --amber-line:#4a3d18;
+      --grey:#9aa0a6; --grey-bg:#24272c;
+      --red:#f26a6a; --sale:#e85555; --sale-fg:#fff;
+    }
   }
+  :root[data-theme="light"]{color-scheme:light}
+  :root[data-theme="dark"]{color-scheme:dark}
   *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
   body{margin:0;background:var(--bg);color:var(--fg);
-    font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-  header{position:sticky;top:0;background:var(--bg);padding:10px 14px 8px;border-bottom:1px solid var(--line);z-index:5}
-  h1{margin:0 0 8px;font-size:18px}
-  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  select{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px}
-  .search{width:100%;margin-top:8px;background:var(--card);color:var(--fg);border:1px solid var(--line);
-    border-radius:10px;padding:9px 12px;font-size:14px}
-  .morewrap{text-align:center;padding:2px 12px 34px}
-  .morebtn{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:10px;
-    padding:10px 22px;font-size:14px;cursor:pointer}
-  .chips{display:flex;gap:6px;overflow-x:auto;padding:8px 14px;scrollbar-width:none}
+    font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+    -webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  .app{max-width:540px;margin:0 auto;position:relative}
+
+  /* header */
+  header{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 86%,transparent);
+    backdrop-filter:saturate(1.4) blur(12px);-webkit-backdrop-filter:saturate(1.4) blur(12px);
+    padding:12px 16px 10px;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:baseline;gap:8px;margin:0 0 10px}
+  .brand h1{margin:0;font-size:19px;font-weight:750;letter-spacing:-.02em}
+  .brand .sub{color:var(--faint);font-size:12px;font-weight:500}
+  .controls{display:flex;gap:8px}
+  select{flex:1;min-width:0;appearance:none;background:var(--surface);color:var(--fg);
+    border:1px solid var(--line);border-radius:var(--radius-s);padding:9px 30px 9px 11px;font-size:13px;
+    font-weight:550;cursor:pointer;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239aa0a6' stroke-width='2.5'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat;background-position:right 10px center}
+  .searchwrap{position:relative;margin-top:8px}
+  .searchwrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint)}
+  .search{width:100%;background:var(--surface);color:var(--fg);border:1px solid var(--line);
+    border-radius:var(--radius-s);padding:10px 12px 10px 38px;font-size:14px}
+  .search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+
+  /* chips */
+  .chips{display:flex;gap:7px;overflow-x:auto;padding:11px 16px 3px;scrollbar-width:none}
   .chips::-webkit-scrollbar{display:none}
-  .chip{white-space:nowrap;border:1px solid var(--line);background:var(--card);color:var(--fg);
-    border-radius:16px;padding:5px 11px;font-size:13px;cursor:pointer}
+  .chip{white-space:nowrap;border:1px solid var(--line);background:var(--surface);color:var(--muted);
+    border-radius:999px;padding:6px 13px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+  .chip:active{transform:scale(.96)}
   .chip.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
-  main{padding:6px 12px 40px}
-  .card{display:flex;gap:11px;background:var(--card);border:1px solid var(--line);
-    border-radius:12px;padding:10px;margin:8px 0;cursor:pointer}
-  .thumb{width:66px;height:66px;flex:0 0 66px;border-radius:8px;background:var(--grey-bg);
-    object-fit:contain}
-  .body{flex:1;min-width:0}
-  .title{font-weight:600;font-size:14px;margin:0 0 3px;
+
+  main{padding:8px 14px 8px}
+
+  /* card */
+  .card{display:flex;gap:12px;background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--radius);padding:12px;margin:10px 0;box-shadow:var(--shadow);
+    cursor:pointer;transition:transform .12s ease, box-shadow .12s ease}
+  .card:active{transform:scale(.985)}
+  @media (hover:hover){ .card:hover{box-shadow:0 2px 4px rgba(20,22,26,.06),0 10px 26px rgba(20,22,26,.09)} }
+  .thumb{position:relative;width:78px;height:78px;flex:0 0 78px}
+  .thumb img{width:100%;height:100%;border-radius:var(--radius-s);object-fit:contain;
+    background:var(--bg);border:1px solid var(--line)}
+  .thumb .ph{width:100%;height:100%;border-radius:var(--radius-s);background:var(--bg);
+    display:flex;align-items:center;justify-content:center;font-size:26px;opacity:.4}
+  .off{position:absolute;top:-7px;left:-7px;background:var(--sale);color:var(--sale-fg);
+    font-size:11px;font-weight:750;padding:3px 7px;border-radius:8px;letter-spacing:-.01em;
+    box-shadow:0 2px 6px rgba(226,59,59,.35)}
+  .body{flex:1;min-width:0;display:flex;flex-direction:column}
+  .title{font-weight:640;font-size:14px;line-height:1.3;margin:0 0 3px;letter-spacing:-.01em;
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .store{color:var(--muted);font-size:12px}
-  .prices{margin-top:4px}
-  .now{font-weight:700;font-size:16px}
-  .old{color:var(--muted);text-decoration:line-through;margin-left:6px;font-size:13px}
-  .badge{display:inline-block;margin-top:6px;font-size:12px;font-weight:600;padding:3px 8px;border-radius:7px}
-  .b-verified,.b-verified_provisional{color:var(--green);background:var(--green-bg)}
-  .b-pumped{color:var(--yellow);background:var(--yellow-bg)}
+  .meta{color:var(--faint);font-size:12px;font-weight:500;margin-bottom:auto}
+  .meta b{color:var(--muted);font-weight:600}
+  .prices{display:flex;align-items:baseline;gap:8px;margin:7px 0 8px}
+  .now{font-weight:750;font-size:18px;letter-spacing:-.02em}
+  .old{color:var(--faint);text-decoration:line-through;font-size:13px}
+  .unit{color:var(--faint);font-size:11.5px;margin-left:auto;white-space:nowrap}
+  .badge{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;font-size:12px;
+    font-weight:650;padding:4px 9px;border-radius:8px;border:1px solid transparent;line-height:1}
+  .b-verified,.b-verified_provisional{color:var(--green);background:var(--green-bg);border-color:var(--green-line)}
+  .b-pumped{color:var(--amber);background:var(--amber-bg);border-color:var(--amber-line)}
   .b-declared,.b-insufficient_history{color:var(--grey);background:var(--grey-bg)}
-  .empty,.loading{color:var(--muted);text-align:center;padding:40px 20px}
+  .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+  /* states */
+  .skel{display:flex;gap:12px;background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--radius);padding:12px;margin:10px 0}
+  .skel .s-img{width:78px;height:78px;flex:0 0 78px;border-radius:var(--radius-s)}
+  .skel .s-body{flex:1;display:flex;flex-direction:column;gap:8px;padding-top:4px}
+  .sk{background:linear-gradient(90deg,var(--line) 25%,color-mix(in srgb,var(--line) 40%,transparent) 50%,var(--line) 75%);
+    background-size:200% 100%;animation:sh 1.3s infinite;border-radius:6px}
+  @keyframes sh{to{background-position:-200% 0}}
+  .empty{text-align:center;padding:56px 24px;color:var(--muted)}
+  .empty .ic{font-size:40px;opacity:.5;margin-bottom:10px}
+  .empty .t{font-weight:650;color:var(--fg);margin-bottom:4px}
+  .morewrap{text-align:center;padding:4px 12px 36px}
+  .morebtn{background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:var(--radius-s);
+    padding:11px 24px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:var(--shadow)}
+  .morebtn:active{transform:scale(.97)}
+
   /* history sheet */
-  .sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:20}
-  .sheet-bg.on{display:block}
-  .sheet{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-radius:16px 16px 0 0;
-    padding:16px 16px 28px;z-index:21;transform:translateY(100%);transition:transform .2s;max-height:80vh;overflow:auto}
+  .sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;
+    transition:opacity .22s;z-index:20}
+  .sheet-bg.on{opacity:1;pointer-events:auto}
+  .sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:540px;background:var(--surface);
+    border-radius:20px 20px 0 0;padding:8px 18px calc(28px + env(safe-area-inset-bottom));z-index:21;
+    transform:translateY(101%);transition:transform .28s cubic-bezier(.22,1,.36,1);
+    max-height:86vh;overflow:auto;box-shadow:0 -8px 40px rgba(0,0,0,.25)}
   .sheet.on{transform:none}
-  .prov{color:var(--muted);font-size:12px;margin-top:10px}
-  svg{width:100%;height:150px;display:block;margin-top:8px}
+  .grip{width:38px;height:4px;border-radius:2px;background:var(--line);margin:6px auto 14px}
+  .sheet .title{-webkit-line-clamp:3;font-size:16px;font-weight:700}
+  .prov{color:var(--muted);font-size:12.5px;line-height:1.5;margin-top:12px}
+  .prov b{color:var(--fg)}
+  svg.chart{width:100%;height:158px;display:block;margin-top:12px;overflow:visible}
+  .cta{display:block;text-align:center;margin-top:16px;background:var(--accent);color:#fff;
+    font-weight:650;padding:13px;border-radius:12px;text-decoration:none}
+  .cta:active{opacity:.9}
 </style>
 </head>
 <body>
+<div class="app">
 <header>
-  <h1>Радар знижок</h1>
-  <div class="row">
+  <div class="brand"><h1>Радар знижок</h1><span class="sub">справжні vs накачані</span></div>
+  <div class="controls">
     <select id="cat"><option value="">Усі категорії</option></select>
     <select id="sort">
-      <option value="verified">За підтвердженою знижкою</option>
-      <option value="discount">За заявленою знижкою</option>
+      <option value="verified">Спершу підтверджені</option>
+      <option value="discount">Спершу за знижкою</option>
       <option value="new">Найновіші</option>
     </select>
   </div>
-  <input id="search" class="search" placeholder="🔍 Пошук за назвою…" autocomplete="off">
+  <div class="searchwrap">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input id="search" class="search" placeholder="Пошук за назвою…" autocomplete="off">
+  </div>
 </header>
 <div class="chips" id="chips"></div>
-<main id="list"><div class="loading">Завантаження…</div></main>
+<main id="list"></main>
 <div id="morewrap" class="morewrap" hidden><button id="moreBtn" class="morebtn">Показати ще</button></div>
+</div><!-- /.app -->
 
 <div class="sheet-bg" id="sheetBg"></div>
 <div class="sheet" id="sheet"></div>
@@ -87,19 +163,22 @@ if (tg) { tg.ready(); tg.expand(); }
 const BADGES = [
   {k:'', label:'Усі'},
   {k:'verified', label:'✓ Підтверджені'},
-  {k:'verified_provisional', label:'✓⁻ Попередні'},
+  {k:'verified_provisional', label:'✓ Попередні'},
   {k:'pumped', label:'⚠ Накачані'},
-  {k:'declared', label:'▷ Заявлені'},
+  {k:'declared', label:'Заявлені'},
 ];
 const BADGE_TEXT = {
-  verified:'✓ підтверджено історією', verified_provisional:'✓⁻ попередньо підтверджено',
-  pumped:'⚠ знижка від завищеної ціни', declared:'▷ заявлено крамницею',
-  insufficient_history:'○ недостатньо історії',
+  verified:'підтверджено історією', verified_provisional:'попередньо підтверджено',
+  pumped:'знижка від завищеної', declared:'заявлено крамницею',
+  insufficient_history:'недостатньо історії',
 };
-let badge = '', sort = 'verified', cat = '', query = '', page = 0;
+let badge='', sort='verified', cat='', query='', page=0;
 
 const grn = k => (k==null?'—':(k/100).toLocaleString('uk-UA',{minimumFractionDigits:2,maximumFractionDigits:2})+' ₴');
-const el = (h)=>{const d=document.createElement('div');d.innerHTML=h;return d.firstElementChild;};
+const el = h => { const d=document.createElement('div'); d.innerHTML=h.trim(); return d.firstElementChild; };
+const esc = s => (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function pct(d){ if(d.old_declared_kop && d.current_kop < d.old_declared_kop)
+  return Math.round((1 - d.current_kop/d.old_declared_kop)*100); return null; }
 
 async function api(path){
   const r = await fetch(path, {headers: tg && tg.initData ? {'X-Init-Data': tg.initData} : {}});
@@ -109,96 +188,124 @@ async function api(path){
 
 function renderChips(){
   const c = document.getElementById('chips'); c.innerHTML='';
-  BADGES.forEach(b=>{
-    const chip = el(`<div class="chip ${b.k===badge?'on':''}">${b.label}</div>`);
-    chip.onclick = ()=>{ badge=b.k; renderChips(); load(); };
-    c.appendChild(chip);
-  });
+  BADGES.forEach(b=>{ const chip=el(`<div class="chip ${b.k===badge?'on':''}">${b.label}</div>`);
+    chip.onclick=()=>{ badge=b.k; renderChips(); load(); }; c.appendChild(chip); });
 }
 
 function card(d){
+  const off = pct(d);
+  const bt = BADGE_TEXT[d.badge_state]||d.badge_state;
   const c = el(`<div class="card">
-    ${d.image_url?`<img class="thumb" src="${d.image_url}" loading="lazy" onerror="this.style.visibility='hidden'">`:`<div class="thumb"></div>`}
+    <div class="thumb">
+      ${d.image_url?`<img src="${esc(d.image_url)}" loading="lazy" alt="${esc(d.title)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'ph',textContent:'🐾'}))">`:`<div class="ph">🐾</div>`}
+      ${off?`<span class="off">−${off}%</span>`:''}
+    </div>
     <div class="body">
-      <p class="title">${d.title||''}</p>
-      <div class="store">${d.store||''}</div>
-      <div class="prices"><span class="now">${grn(d.current_kop)}</span>${d.old_declared_kop?`<span class="old">${grn(d.old_declared_kop)}</span>`:''}</div>
-      <span class="badge b-${d.badge_state}">${BADGE_TEXT[d.badge_state]||d.badge_state}</span>
+      <p class="title">${esc(d.title)}</p>
+      <div class="meta"><b>${esc(d.store||'')}</b>${d.variant_note?' · '+esc(d.variant_note):''}</div>
+      <div class="prices">
+        <span class="now">${grn(d.current_kop)}</span>
+        ${d.old_declared_kop?`<span class="old">${grn(d.old_declared_kop)}</span>`:''}
+      </div>
+      <span class="badge b-${d.badge_state}"><span class="dot"></span>${bt}</span>
     </div></div>`);
-  c.onclick = ()=>openHistory(d);
+  c.onclick=()=>openHistory(d);
   return c;
 }
 
+function skeleton(n){
+  const list=document.getElementById('list'); list.innerHTML='';
+  for(let i=0;i<n;i++) list.appendChild(el(
+    `<div class="skel"><div class="s-img sk"></div><div class="s-body">
+      <div class="sk" style="height:13px;width:80%"></div><div class="sk" style="height:11px;width:45%"></div>
+      <div class="sk" style="height:18px;width:55%;margin-top:6px"></div>
+      <div class="sk" style="height:20px;width:40%;border-radius:8px"></div></div></div>`));
+}
 function setMore(show){ document.getElementById('morewrap').hidden = !show; }
 
 async function load(reset=true){
-  const list = document.getElementById('list');
-  if(reset){ page=0; list.innerHTML='<div class="loading">Завантаження…</div>'; }
+  const list=document.getElementById('list');
+  if(reset){ page=0; skeleton(6); }
   try{
-    const p = new URLSearchParams({sort, page});
-    if(badge) p.set('badge',badge); if(cat) p.set('category',cat); if(query) p.set('q',query);
-    const data = await api('/api/discounts?'+p.toString());
+    const p=new URLSearchParams({sort,page});
+    if(badge)p.set('badge',badge); if(cat)p.set('category',cat); if(query)p.set('q',query);
+    const data=await api('/api/discounts?'+p.toString());
     if(reset) list.innerHTML='';
     if(!data.length){
-      if(reset) list.innerHTML='<div class="empty">'+(query?'Нічого не знайдено.':'Поки порожньо — колектор ще накопичує.')+'</div>';
+      if(reset) list.innerHTML=`<div class="empty"><div class="ic">${query?'🔍':'🐾'}</div>
+        <div class="t">${query?'Нічого не знайдено':'Поки порожньо'}</div>
+        <div>${query?'Спробуй іншу назву.':'Колектор ще накопичує знижки.'}</div></div>`;
       setMore(false); return;
     }
     data.forEach(d=>list.appendChild(card(d)));
-    setMore(data.length===50);       // повна сторінка → ймовірно є ще
+    setMore(data.length===50);
   }catch(e){
-    if(reset) list.innerHTML='<div class="empty">Помилка завантаження ('+e.message+')</div>';
+    if(reset) list.innerHTML=`<div class="empty"><div class="ic">⚠️</div><div class="t">Помилка завантаження</div><div>${e.message}</div></div>`;
     setMore(false);
   }
 }
 function loadMore(){ page++; load(false); }
 
 function sparkline(points){
-  if(points.length<2) return '<div class="prov">Замало точок для графіка.</div>';
-  const xs=points.map((_,i)=>i), ys=points.map(p=>p.min_kop);
-  const minY=Math.min(...ys), maxY=Math.max(...ys), W=320,H=150,pad=6;
-  const sx=i=>pad+(W-2*pad)*i/(xs.length-1);
+  if(points.length<2) return '<div class="prov">Замало точок для графіка — історія ще накопичується.</div>';
+  const ys=points.map(p=>p.min_kop), minY=Math.min(...ys), maxY=Math.max(...ys);
+  const W=320,H=158,pad=8;
+  const sx=i=>pad+(W-2*pad)*i/(points.length-1);
   const sy=v=>maxY===minY?H/2:pad+(H-2*pad)*(1-(v-minY)/(maxY-minY));
-  const path=points.map((p,i)=>`${i?'L':'M'}${sx(i).toFixed(1)} ${sy(p.min_kop).toFixed(1)}`).join(' ');
+  const line=points.map((p,i)=>`${i?'L':'M'}${sx(i).toFixed(1)} ${sy(p.min_kop).toFixed(1)}`).join(' ');
+  const area=`M${pad} ${H-pad} `+points.map((p,i)=>`L${sx(i).toFixed(1)} ${sy(p.min_kop).toFixed(1)}`).join(' ')+` L${W-pad} ${H-pad} Z`;
   const refY=sy(minY);
-  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
-    <line x1="0" y1="${refY}" x2="${W}" y2="${refY}" stroke="var(--green)" stroke-dasharray="4 4" opacity=".6"/>
-    <path d="${path}" fill="none" stroke="var(--fg)" stroke-width="2"/>
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="var(--accent)" stop-opacity=".22"/>
+      <stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
+    <path d="${area}" fill="url(#g)"/>
+    <line x1="0" y1="${refY}" x2="${W}" y2="${refY}" stroke="var(--green)" stroke-dasharray="3 4" opacity=".55"/>
+    <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+    ${points.map((p,i)=>`<circle cx="${sx(i).toFixed(1)}" cy="${sy(p.min_kop).toFixed(1)}" r="${points.length<12?3:0}" fill="var(--accent)"/>`).join('')}
   </svg>`;
 }
 
 async function openHistory(d){
   const bg=document.getElementById('sheetBg'), sh=document.getElementById('sheet');
-  sh.innerHTML=`<p class="title">${d.title||''}</p><div class="prov">Завантаження історії…</div>`;
+  const off=pct(d), bt=BADGE_TEXT[d.badge_state]||d.badge_state;
+  sh.innerHTML=`<div class="grip"></div><p class="title">${esc(d.title)}</p><div class="prov">Завантаження історії…</div>`;
   bg.classList.add('on'); sh.classList.add('on');
-  bg.onclick=()=>{bg.classList.remove('on');sh.classList.remove('on');};
+  bg.onclick=()=>{ bg.classList.remove('on'); sh.classList.remove('on'); };
   try{
-    const hist = await api(`/api/product/${d.store_product_id}/history`);
-    const ref = d.reference_kop!=null ? `За нашими спостереженнями ціна за 30 днів не була нижчою за <b>${grn(d.reference_kop)}</b>.`
-      : 'Історія ще накопичується.';
-    sh.innerHTML=`<p class="title">${d.title||''}</p>
-      <div class="prices"><span class="now">${grn(d.current_kop)}</span>${d.old_declared_kop?`<span class="old">${grn(d.old_declared_kop)}</span>`:''}
-        <span class="badge b-${d.badge_state}">${BADGE_TEXT[d.badge_state]||d.badge_state}</span></div>
+    const hist=await api(`/api/product/${d.store_product_id}/history`);
+    const ref=d.reference_kop!=null
+      ? `За нашими спостереженнями ціна за 30 днів <b>не була нижчою за ${grn(d.reference_kop)}</b>.`
+      : 'Історія ще накопичується — статутну базу за 30 днів рахуємо з часом.';
+    sh.innerHTML=`<div class="grip"></div>
+      <p class="title">${esc(d.title)}</p>
+      <div class="meta" style="margin:2px 0 8px"><b>${esc(d.store||'')}</b>${d.variant_note?' · '+esc(d.variant_note):''}</div>
+      <div class="prices">
+        <span class="now">${grn(d.current_kop)}</span>
+        ${d.old_declared_kop?`<span class="old">${grn(d.old_declared_kop)}</span>`:''}
+        ${off?`<span class="off" style="position:static;box-shadow:none">−${off}%</span>`:''}
+      </div>
+      <span class="badge b-${d.badge_state}"><span class="dot"></span>${bt}</span>
       ${sparkline(hist)}
-      <div class="prov">${ref} Заміри Шару 1; ${hist.length} діб історії. Джерело: ${d.store||''}.</div>
-      <div class="prov"><a href="${d.url}" target="_blank" style="color:var(--green)">Відкрити в крамниці →</a></div>`;
+      <div class="prov">${ref} Заміри Шару 1; ${hist.length} діб історії.</div>
+      <a class="cta" href="${esc(d.url)}" target="_blank" rel="noopener">Відкрити в крамниці →</a>`;
   }catch(e){ sh.innerHTML+='<div class="prov">Не вдалося завантажити історію.</div>'; }
 }
 
 async function loadCats(){
   try{
-    const cats = await api('/api/categories');
-    const sel = document.getElementById('cat');
-    cats.forEach(c=>{ const o=document.createElement('option'); o.value=c.slug; o.textContent=`${c.name} (${c.n})`; sel.appendChild(o); });
+    const cats=await api('/api/categories');
+    const sel=document.getElementById('cat');
+    cats.forEach(c=>{ const o=document.createElement('option'); o.value=c.slug;
+      o.textContent=`${c.name} (${c.n})`; sel.appendChild(o); });
   }catch(e){}
 }
-document.getElementById('cat').onchange=(e)=>{ cat=e.target.value; load(); };
-document.getElementById('sort').onchange=(e)=>{ sort=e.target.value; load(); };
+document.getElementById('cat').onchange=e=>{ cat=e.target.value; load(); };
+document.getElementById('sort').onchange=e=>{ sort=e.target.value; load(); };
 document.getElementById('moreBtn').onclick=loadMore;
 let searchT;
-document.getElementById('search').oninput=(e)=>{
-  clearTimeout(searchT);
-  searchT=setTimeout(()=>{ query=e.target.value.trim(); load(); }, 300);   // debounce
-};
+document.getElementById('search').oninput=e=>{ clearTimeout(searchT);
+  searchT=setTimeout(()=>{ query=e.target.value.trim(); load(); }, 300); };
 renderChips(); loadCats(); load();
 </script>
 </body>
