@@ -1,0 +1,25 @@
+name: tests
+
+# CI-гейт (#28): golden-тести парсерів на кожен push/PR. Офлайн (касети/фікстури), без мережі.
+
+on:
+  push: {}
+  pull_request: {}
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Залежності
+        run: pip install -r requirements.txt
+      - name: probe — сигнальний парсер (stdlib)
+        run: python tests/test_probe.py
+      - name: Pethouse — екстрактор на касеті (selectolax)
+        run: python tests/test_pethouse.py
