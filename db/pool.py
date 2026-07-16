@@ -15,10 +15,18 @@ try:
 except ImportError:
     pass
 
-# server-side таймаути на кожне з'єднання (мс)
-_CONN_OPTS = "-c statement_timeout=30000 -c lock_timeout=10000"
-
 _pool: ConnectionPool | None = None
+
+
+def _configure(conn) -> None:
+    """Таймаути per-connection (аналог інваріанта 11). Через `SET`, а НЕ startup-`options`:
+    PgBouncer-пулер Neon (`-pooler`) не приймає `options` → конект висне. Best-effort."""
+    try:
+        conn.execute("SET statement_timeout = '30s'")
+        conn.execute("SET lock_timeout = '10s'")
+        conn.commit()
+    except Exception:
+        pass
 
 
 def dsn() -> str:
@@ -35,7 +43,7 @@ def get_pool() -> ConnectionPool:
     global _pool
     if _pool is None:
         _pool = ConnectionPool(dsn(), min_size=1, max_size=8, open=True,
-                               kwargs={"options": _CONN_OPTS})
+                               configure=_configure)
     return _pool
 
 
