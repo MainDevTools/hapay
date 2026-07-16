@@ -25,6 +25,8 @@ jobs:
         run: python tests/test_pethouse.py
       - name: детекція — ядро бейджів на синтетиці (§5)
         run: python tests/test_detection.py
+      - name: initData — верифікація Telegram (§8.10.1)
+        run: python tests/test_initdata.py
 
   migration:
     # Верифікація 0001 проти ЖИВОГО Timescale (пісочниця розробки її не має — §S1).
@@ -57,3 +59,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:radar@localhost:5432/radar
         run: python tests/test_collect.py
+      - name: read-API — перелік/історія/watchlist (§8.10.1)
+        env:
+          DATABASE_URL: postgresql://postgres:radar@localhost:5432/radar
+        run: python tests/test_api.py

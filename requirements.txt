@@ -2,3 +2,6 @@
 selectolax>=0.4,<0.5     # швидкий HTML-парс (lexbor); CSS-селектори для каскаду §4
 psycopg[binary]>=3.2     # драйвер PostgreSQL/TimescaleDB (§6)
 psycopg_pool>=3.2        # пул з'єднань (statement_timeout/lock_timeout)
+fastapi>=0.115           # read-API (§8.10.1)
+uvicorn>=0.30            # ASGI-сервер для деплою read-API
+httpx>=0.27              # потрібен FastAPI TestClient (тести API)

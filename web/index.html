@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Радар знижок</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root{
+    --bg:#fff; --fg:#111; --muted:#777; --card:#f6f7f9; --line:#e3e6ea; --accent:#2f7;
+    --green:#1a8f3c; --green-bg:#e7f6ec; --yellow:#a8760a; --yellow-bg:#fdf3df;
+    --grey:#6b7280; --grey-bg:#eef0f3;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#17181a; --fg:#f2f3f5; --muted:#9aa0a6; --card:#212226; --line:#303236;
+           --green:#4ecb71; --green-bg:#173224; --yellow:#e0b64a; --yellow-bg:#332a12;
+           --grey:#9aa0a6; --grey-bg:#26282c; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  header{position:sticky;top:0;background:var(--bg);padding:10px 14px 8px;border-bottom:1px solid var(--line);z-index:5}
+  h1{margin:0 0 8px;font-size:18px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  select{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px}
+  .chips{display:flex;gap:6px;overflow-x:auto;padding:8px 14px;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{white-space:nowrap;border:1px solid var(--line);background:var(--card);color:var(--fg);
+    border-radius:16px;padding:5px 11px;font-size:13px;cursor:pointer}
+  .chip.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+  main{padding:6px 12px 40px}
+  .card{display:flex;gap:11px;background:var(--card);border:1px solid var(--line);
+    border-radius:12px;padding:10px;margin:8px 0;cursor:pointer}
+  .thumb{width:66px;height:66px;flex:0 0 66px;border-radius:8px;background:var(--grey-bg);
+    object-fit:contain}
+  .body{flex:1;min-width:0}
+  .title{font-weight:600;font-size:14px;margin:0 0 3px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .store{color:var(--muted);font-size:12px}
+  .prices{margin-top:4px}
+  .now{font-weight:700;font-size:16px}
+  .old{color:var(--muted);text-decoration:line-through;margin-left:6px;font-size:13px}
+  .badge{display:inline-block;margin-top:6px;font-size:12px;font-weight:600;padding:3px 8px;border-radius:7px}
+  .b-verified,.b-verified_provisional{color:var(--green);background:var(--green-bg)}
+  .b-pumped{color:var(--yellow);background:var(--yellow-bg)}
+  .b-declared,.b-insufficient_history{color:var(--grey);background:var(--grey-bg)}
+  .empty,.loading{color:var(--muted);text-align:center;padding:40px 20px}
+  /* history sheet */
+  .sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:20}
+  .sheet-bg.on{display:block}
+  .sheet{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-radius:16px 16px 0 0;
+    padding:16px 16px 28px;z-index:21;transform:translateY(100%);transition:transform .2s;max-height:80vh;overflow:auto}
+  .sheet.on{transform:none}
+  .prov{color:var(--muted);font-size:12px;margin-top:10px}
+  svg{width:100%;height:150px;display:block;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Радар знижок</h1>
+  <div class="row">
+    <select id="sort">
+      <option value="verified">За підтвердженою знижкою</option>
+      <option value="discount">За заявленою знижкою</option>
+      <option value="new">Найновіші</option>
+    </select>
+  </div>
+</header>
+<div class="chips" id="chips"></div>
+<main id="list"><div class="loading">Завантаження…</div></main>
+
+<div class="sheet-bg" id="sheetBg"></div>
+<div class="sheet" id="sheet"></div>
+
+<script>
+const tg = window.Telegram && window.Telegram.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+
+const BADGES = [
+  {k:'', label:'Усі'},
+  {k:'verified', label:'✓ Підтверджені'},
+  {k:'verified_provisional', label:'✓⁻ Попередні'},
+  {k:'pumped', label:'⚠ Накачані'},
+  {k:'declared', label:'▷ Заявлені'},
+];
+const BADGE_TEXT = {
+  verified:'✓ підтверджено історією', verified_provisional:'✓⁻ попередньо підтверджено',
+  pumped:'⚠ знижка від завищеної ціни', declared:'▷ заявлено крамницею',
+  insufficient_history:'○ недостатньо історії',
+};
+let badge = '', sort = 'verified';
+
+const grn = k => (k==null?'—':(k/100).toLocaleString('uk-UA',{minimumFractionDigits:2,maximumFractionDigits:2})+' ₴');
+const el = (h)=>{const d=document.createElement('div');d.innerHTML=h;return d.firstElementChild;};
+
+async function api(path){
+  const r = await fetch(path, {headers: tg && tg.initData ? {'X-Init-Data': tg.initData} : {}});
+  if(!r.ok) throw new Error(r.status);
+  return r.json();
+}
+
+function renderChips(){
+  const c = document.getElementById('chips'); c.innerHTML='';
+  BADGES.forEach(b=>{
+    const chip = el(`<div class="chip ${b.k===badge?'on':''}">${b.label}</div>`);
+    chip.onclick = ()=>{ badge=b.k; renderChips(); load(); };
+    c.appendChild(chip);
+  });
+}
+
+function card(d){
+  const c = el(`<div class="card">
+    ${d.image_url?`<img class="thumb" src="${d.image_url}" loading="lazy" onerror="this.style.visibility='hidden'">`:`<div class="thumb"></div>`}
+    <div class="body">
+      <p class="title">${d.title||''}</p>
+      <div class="store">${d.store||''}</div>
+      <div class="prices"><span class="now">${grn(d.current_kop)}</span>${d.old_declared_kop?`<span class="old">${grn(d.old_declared_kop)}</span>`:''}</div>
+      <span class="badge b-${d.badge_state}">${BADGE_TEXT[d.badge_state]||d.badge_state}</span>
+    </div></div>`);
+  c.onclick = ()=>openHistory(d);
+  return c;
+}
+
+async function load(){
+  const list = document.getElementById('list');
+  list.innerHTML = '<div class="loading">Завантаження…</div>';
+  try{
+    const q = new URLSearchParams({sort}); if(badge) q.set('badge',badge);
+    const data = await api('/api/discounts?'+q.toString());
+    if(!data.length){ list.innerHTML='<div class="empty">Поки порожньо. Колектор ще накопичує історію.</div>'; return; }
+    list.innerHTML=''; data.forEach(d=>list.appendChild(card(d)));
+  }catch(e){ list.innerHTML='<div class="empty">Помилка завантаження ('+e.message+')</div>'; }
+}
+
+function sparkline(points){
+  if(points.length<2) return '<div class="prov">Замало точок для графіка.</div>';
+  const xs=points.map((_,i)=>i), ys=points.map(p=>p.min_kop);
+  const minY=Math.min(...ys), maxY=Math.max(...ys), W=320,H=150,pad=6;
+  const sx=i=>pad+(W-2*pad)*i/(xs.length-1);
+  const sy=v=>maxY===minY?H/2:pad+(H-2*pad)*(1-(v-minY)/(maxY-minY));
+  const path=points.map((p,i)=>`${i?'L':'M'}${sx(i).toFixed(1)} ${sy(p.min_kop).toFixed(1)}`).join(' ');
+  const refY=sy(minY);
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <line x1="0" y1="${refY}" x2="${W}" y2="${refY}" stroke="var(--green)" stroke-dasharray="4 4" opacity=".6"/>
+    <path d="${path}" fill="none" stroke="var(--fg)" stroke-width="2"/>
+  </svg>`;
+}
+
+async function openHistory(d){
+  const bg=document.getElementById('sheetBg'), sh=document.getElementById('sheet');
+  sh.innerHTML=`<p class="title">${d.title||''}</p><div class="prov">Завантаження історії…</div>`;
+  bg.classList.add('on'); sh.classList.add('on');
+  bg.onclick=()=>{bg.classList.remove('on');sh.classList.remove('on');};
+  try{
+    const hist = await api(`/api/product/${d.store_product_id}/history`);
+    const ref = d.reference_kop!=null ? `За нашими спостереженнями ціна за 30 днів не була нижчою за <b>${grn(d.reference_kop)}</b>.`
+      : 'Історія ще накопичується.';
+    sh.innerHTML=`<p class="title">${d.title||''}</p>
+      <div class="prices"><span class="now">${grn(d.current_kop)}</span>${d.old_declared_kop?`<span class="old">${grn(d.old_declared_kop)}</span>`:''}
+        <span class="badge b-${d.badge_state}">${BADGE_TEXT[d.badge_state]||d.badge_state}</span></div>
+      ${sparkline(hist)}
+      <div class="prov">${ref} Заміри Шару 1; ${hist.length} діб історії. Джерело: ${d.store||''}.</div>
+      <div class="prov"><a href="${d.url}" target="_blank" style="color:var(--green)">Відкрити в крамниці →</a></div>`;
+  }catch(e){ sh.innerHTML+='<div class="prov">Не вдалося завантажити історію.</div>'; }
+}
+
+document.getElementById('sort').onchange=(e)=>{ sort=e.target.value; load(); };
+renderChips(); load();
+</script>
+</body>
+</html>
