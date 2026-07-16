@@ -23,3 +23,27 @@ jobs:
         run: python tests/test_probe.py
       - name: Pethouse — екстрактор на касеті (selectolax)
         run: python tests/test_pethouse.py
+
+  migration:
+    # Верифікація 0001 проти ЖИВОГО Timescale (пісочниця розробки її не має — §S1).
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: timescale/timescaledb:latest-pg16
+        env:
+          POSTGRES_PASSWORD: radar
+          POSTGRES_DB: radar
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: 0001 міграція + DoD §6.6 (round-trip RawItem, append-only)
+        env:
+          DATABASE_URL: postgresql://postgres:radar@localhost:5432/radar
+        run: python tests/test_migration.py

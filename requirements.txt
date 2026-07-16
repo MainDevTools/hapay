@@ -1,2 +1,4 @@
-# Рантайм-залежності екстракторів (§8.3). probe.py — stdlib-only, цього не потребує.
-selectolax>=0.4,<0.5   # швидкий HTML-парс (lexbor); CSS-селектори для каскаду §4
+# Рантайм-залежності (§8.3). probe.py — stdlib-only, цього не потребує.
+selectolax>=0.4,<0.5     # швидкий HTML-парс (lexbor); CSS-селектори для каскаду §4
+psycopg[binary]>=3.2     # драйвер PostgreSQL/TimescaleDB (§6)
+psycopg_pool>=3.2        # пул з'єднань (statement_timeout/lock_timeout)
