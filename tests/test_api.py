@@ -62,6 +62,14 @@ def main():
     only = client.get("/api/discounts?category=koty-suhyi-korm").json()
     checks.append(("фільтр за категорією повертає товари", len(only) >= 1, len(only)))
 
+    # пошук за назвою
+    srch = client.get("/api/discounts?q=Royal").json()
+    checks.append(("пошук q=Royal", len(srch) >= 1 and all("Royal" in d["title"] for d in srch), len(srch)))
+    checks.append(("пошук неіснуючого → порожньо", client.get("/api/discounts?q=zzz-нема").json() == [], None))
+
+    # пагінація: 8 подій < 50 → page=1 порожня
+    checks.append(("пагінація page=1 порожня", client.get("/api/discounts?page=1").json() == [], None))
+
     # watchlist без initData → 401
     checks.append(("watchlist без initData → 401", client.get("/api/watchlist").status_code == 401, None))
 

@@ -55,9 +55,9 @@ def categories(conn=Depends(get_conn)):
 
 
 @app.get("/api/discounts")
-def discounts(category: str | None = None, badge: str | None = None,
+def discounts(category: str | None = None, badge: str | None = None, q: str | None = None,
               sort: str = "verified", page: int = Query(0, ge=0), conn=Depends(get_conn)):
-    return qdb.list_discounts(conn, category, badge, sort, limit=50, offset=page * 50)
+    return qdb.list_discounts(conn, category, badge, sort, limit=50, offset=page * 50, q=q)
 
 
 @app.get("/api/product/{store_product_id}/history")

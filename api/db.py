@@ -13,13 +13,15 @@ _SORTS = {
 }
 
 
-def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, offset=0):
+def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, offset=0, q=None):
     where = ["de.ended_at IS NULL"]
     params: list = []
     if category:
         where.append("c.slug = %s"); params.append(category)
     if badge:
         where.append("de.badge_state = %s"); params.append(badge)
+    if q:                                   # пошук за назвою (ILIKE — прощає часткові; §9.1)
+        where.append("sp.title ILIKE %s"); params.append(f"%{q.strip()}%")
     order = _SORTS.get(sort, _SORTS["verified"])
     sql = f"""
         SELECT de.discount_event_id, sp.store_product_id, sp.title, sp.url, sp.image_url,
