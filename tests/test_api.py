@@ -55,7 +55,12 @@ def main():
     checks.append(("історія товару ≥1 доба", len(hist) >= 1 and "min_kop" in hist[0], hist))
 
     cats = client.get("/api/categories").json()
-    checks.append(("категорії містять uncategorized", any(c["slug"] == "uncategorized" for c in cats), None))
+    checks.append(("категорії з активними знижками (koty-suhyi-korm)",
+                   any(c["slug"] == "koty-suhyi-korm" and c["n"] > 0 for c in cats), cats))
+
+    # фільтр за категорією
+    only = client.get("/api/discounts?category=koty-suhyi-korm").json()
+    checks.append(("фільтр за категорією повертає товари", len(only) >= 1, len(only)))
 
     # watchlist без initData → 401
     checks.append(("watchlist без initData → 401", client.get("/api/watchlist").status_code == 401, None))

@@ -18,7 +18,7 @@ if not URL:
 
 import psycopg                                   # noqa: E402
 from db import migrate                            # noqa: E402
-from db.store import upsert_source, persist_items  # noqa: E402
+from db.store import upsert_source, persist_items, load_categories  # noqa: E402
 from adapters.pethouse import PethouseAdapter     # noqa: E402
 
 _TABLES = ("alert_log", "watchlist", "discount_event", "price_snapshot", "scan_run",
@@ -60,14 +60,18 @@ def main():
         checks.append(("detection_config чинний на today", cfg >= 1, cfg))
 
         # round-trip: RawItem (S2) → store_product + price_snapshot
-        cat = conn.execute("SELECT category_id FROM category WHERE slug='uncategorized'").fetchone()[0]
+        cats = load_categories(conn)
         sid = upsert_source(conn, "Pethouse", "https://pethouse.ua",
                             adapter_kind="ssr", platform="custom", fetch_tier="A")
         with open(os.path.join(os.path.dirname(__file__), "cassettes", "pethouse_akcii.html"),
                   encoding="utf-8") as f:
             items = PethouseAdapter().extract(f.read())
-        n = persist_items(conn, sid, cat, items, source_method="css")
+        n = persist_items(conn, sid, items, cats, source_method="css")
         checks.append(("персист снапшотів = 9", n == 9, n))
+
+        cat_ok = conn.execute("SELECT c.slug FROM store_product sp JOIN category c USING (category_id) "
+                              "WHERE sp.external_ref LIKE '%royal-canin-sterilised%' LIMIT 1").fetchone()
+        checks.append(("категорія за URL = koty-suhyi-korm", cat_ok == ("koty-suhyi-korm",), cat_ok))
 
         got = conn.execute(
             "SELECT ps.price_now_kop, ps.price_old_kop FROM price_snapshot ps "

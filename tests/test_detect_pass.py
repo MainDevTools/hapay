@@ -16,7 +16,7 @@ if not URL:
 import psycopg                                    # noqa: E402
 from db import migrate                            # noqa: E402
 from db.store import upsert_source                # noqa: E402
-from detection.runner import detect_pass          # noqa: E402
+from detection.runner import detect_pass, close_absent  # noqa: E402
 from tests.test_migration import reset            # noqa: E402  (перевикористовуємо teardown)
 
 
@@ -55,6 +55,24 @@ def main():
         detect_pass(conn)
         cnt = conn.execute("SELECT count(*) FROM discount_event WHERE store_product_id=%s", (spid,)).fetchone()[0]
         checks.append(("повторний detect_pass без дублів", cnt == 1, cnt))
+
+        # закриття зниклих (§5.5): товар, чиї снапшоти старші за grace, → ended_at
+        gone = conn.execute(
+            "INSERT INTO store_product (source_id, external_ref, url, title, category_id) "
+            "VALUES (%s,'gone#v=1','https://test.example/gone','Зниклий',%s) RETURNING store_product_id",
+            (sid, cat)).fetchone()[0]
+        conn.execute(
+            "INSERT INTO price_snapshot (store_product_id, price_now_kop, price_old_kop, in_stock, source_method, seen_at) "
+            "VALUES (%s, 5000, 6000, true, 'test', now() - make_interval(hours => 40))", (gone,))
+        detect_pass(conn)                                   # заведе declared-подію для зниклого
+        closed = close_absent(conn, grace_hours=26)
+        checks.append(("close_absent закрив ≥1", closed >= 1, closed))
+        gone_closed = conn.execute("SELECT ended_at IS NOT NULL FROM discount_event "
+                                   "WHERE store_product_id=%s", (gone,)).fetchone()
+        checks.append(("зниклий товар закрито", gone_closed == (True,), gone_closed))
+        fresh_open = conn.execute("SELECT count(*) FROM discount_event "
+                                  "WHERE store_product_id=%s AND ended_at IS NULL", (spid,)).fetchone()[0]
+        checks.append(("свіжий товар лишився відкритим", fresh_open == 1, fresh_open))
 
     for name, ok, val in checks:
         print(f"{'PASS' if ok else 'FAIL'}  {name}" + ("" if ok else f"  -> {val!r}"))

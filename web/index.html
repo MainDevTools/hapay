@@ -59,6 +59,7 @@
 <header>
   <h1>Радар знижок</h1>
   <div class="row">
+    <select id="cat"><option value="">Усі категорії</option></select>
     <select id="sort">
       <option value="verified">За підтвердженою знижкою</option>
       <option value="discount">За заявленою знижкою</option>
@@ -88,7 +89,7 @@ const BADGE_TEXT = {
   pumped:'⚠ знижка від завищеної ціни', declared:'▷ заявлено крамницею',
   insufficient_history:'○ недостатньо історії',
 };
-let badge = '', sort = 'verified';
+let badge = '', sort = 'verified', cat = '';
 
 const grn = k => (k==null?'—':(k/100).toLocaleString('uk-UA',{minimumFractionDigits:2,maximumFractionDigits:2})+' ₴');
 const el = (h)=>{const d=document.createElement('div');d.innerHTML=h;return d.firstElementChild;};
@@ -125,7 +126,7 @@ async function load(){
   const list = document.getElementById('list');
   list.innerHTML = '<div class="loading">Завантаження…</div>';
   try{
-    const q = new URLSearchParams({sort}); if(badge) q.set('badge',badge);
+    const q = new URLSearchParams({sort}); if(badge) q.set('badge',badge); if(cat) q.set('category',cat);
     const data = await api('/api/discounts?'+q.toString());
     if(!data.length){ list.innerHTML='<div class="empty">Поки порожньо. Колектор ще накопичує історію.</div>'; return; }
     list.innerHTML=''; data.forEach(d=>list.appendChild(card(d)));
@@ -164,8 +165,16 @@ async function openHistory(d){
   }catch(e){ sh.innerHTML+='<div class="prov">Не вдалося завантажити історію.</div>'; }
 }
 
+async function loadCats(){
+  try{
+    const cats = await api('/api/categories');
+    const sel = document.getElementById('cat');
+    cats.forEach(c=>{ const o=document.createElement('option'); o.value=c.slug; o.textContent=`${c.name} (${c.n})`; sel.appendChild(o); });
+  }catch(e){}
+}
+document.getElementById('cat').onchange=(e)=>{ cat=e.target.value; load(); };
 document.getElementById('sort').onchange=(e)=>{ sort=e.target.value; load(); };
-renderChips(); load();
+renderChips(); loadCats(); load();
 </script>
 </body>
 </html>

@@ -75,3 +75,18 @@ def detect_pass(conn, now_day: date | None = None) -> int:
              badge.reference_kop, badge.verified_pct, badge.badge_state))
         n += 1
     return n
+
+
+def close_absent(conn, grace_hours: int = 26) -> int:
+    """Закрити (`ended_at`) відкриті події товарів, які зникли з discovery (§8.4/§5.5):
+    немає жодного снапшота за останні grace_hours (за замовч. трохи більше доби — товар
+    відсутній у ≥2 денних сканах). Проксі discovery-відсутності для discovery-only колектора."""
+    cur = conn.execute(
+        """UPDATE discount_event de SET ended_at = now()
+           WHERE de.ended_at IS NULL
+             AND NOT EXISTS (
+               SELECT 1 FROM price_snapshot ps
+               WHERE ps.store_product_id = de.store_product_id
+                 AND ps.seen_at > now() - make_interval(hours => %s))""",
+        (grace_hours,))
+    return cur.rowcount

@@ -17,8 +17,8 @@ import urllib.request
 from adapters.pethouse import PethouseAdapter
 from adapters.petchoice import PetChoiceAdapter
 from db import migrate
-from db.store import upsert_source, persist_items
-from detection.runner import detect_pass
+from db.store import upsert_source, persist_items, load_categories
+from detection.runner import detect_pass, close_absent
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
@@ -49,19 +49,15 @@ def default_fetch(url: str) -> str:
         return r.read().decode("utf-8", "replace")
 
 
-def _category_id(conn, slug: str) -> int:
-    return conn.execute("SELECT category_id FROM category WHERE slug = %s", (slug,)).fetchone()[0]
-
-
 def collect(conn, sources, fetch=default_fetch, delay=POLITE_DELAY) -> dict:
-    """Discovery-прохід по джерелах + detect_pass. Повертає {items, events, sources}."""
+    """Discovery-прохід + detect_pass + закриття зниклих. Повертає {items, events, closed, sources}."""
+    categories = load_categories(conn)          # slug→id; категорія на товар — за URL (§2.6)
     total_items = 0
     for src in sources:
         source_id = upsert_source(conn, src["name"], src["base_url"], adapter_kind="ssr",
                                   platform=src.get("platform"),
                                   discount_url=src["discount_urls"][0],
                                   fetch_tier=src.get("fetch_tier"))
-        category_id = _category_id(conn, src["category_slug"])
         scan_run_id = conn.execute(
             "INSERT INTO scan_run (source_id, surface, status) VALUES (%s,'discovery','ok') "
             "RETURNING scan_run_id", (source_id,)).fetchone()[0]
@@ -76,14 +72,15 @@ def collect(conn, sources, fetch=default_fetch, delay=POLITE_DELAY) -> dict:
                 seen.add(it.external_ref)
                 items.append(it)
 
-        n = persist_items(conn, source_id, category_id, items,
+        n = persist_items(conn, source_id, items, categories,
                           source_method="css", scan_run_id=scan_run_id)
         conn.execute("UPDATE scan_run SET finished_at = now(), items_seen = %s WHERE scan_run_id = %s",
                      (n, scan_run_id))
         total_items += n
 
     events = detect_pass(conn)                            # бейджі після збору (§8.4)
-    return {"items": total_items, "events": events, "sources": len(sources)}
+    closed = close_absent(conn)                           # закрити зниклі з акцій (§5.5)
+    return {"items": total_items, "events": events, "closed": closed, "sources": len(sources)}
 
 
 def main():

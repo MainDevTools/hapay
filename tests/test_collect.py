@@ -46,6 +46,10 @@ def main():
                           "FROM discount_event").fetchone()
         checks.append(("11 подій, усі declared (8 PH + 3 PC)", ev == (11, 11), ev))
 
+        ncats = conn.execute("SELECT count(DISTINCT sp.category_id) FROM store_product sp "
+                             "JOIN category c USING (category_id) WHERE c.slug <> 'uncategorized'").fetchone()[0]
+        checks.append(("товари розкладені по ≥2 реальних категоріях", ncats >= 2, ncats))
+
     for name, ok, val in checks:
         print(f"{'PASS' if ok else 'FAIL'}  {name}" + ("" if ok else f"  -> {val!r}"))
         failed += 0 if ok else 1

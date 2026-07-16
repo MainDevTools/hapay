@@ -52,8 +52,15 @@ def product_history(conn, store_product_id: int, days: int = 90):
 
 
 def categories(conn):
+    """Лише категорії з активними знижками (+ лічильник) — для селектора §9.1."""
     with conn.cursor(row_factory=dict_row) as cur:
-        return cur.execute("SELECT slug, name FROM category ORDER BY name").fetchall()
+        return cur.execute(
+            "SELECT c.slug, c.name, count(*) AS n "
+            "FROM category c "
+            "JOIN store_product sp ON sp.category_id = c.category_id "
+            "JOIN discount_event de ON de.store_product_id = sp.store_product_id "
+            "WHERE de.ended_at IS NULL "
+            "GROUP BY c.slug, c.name ORDER BY n DESC").fetchall()
 
 
 def add_watchlist(conn, tg_user_id: int, kind: str, ref_id: int | None, query_text: str | None):

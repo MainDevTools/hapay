@@ -6,6 +6,13 @@ detect_pass/бейджі — поза скоупом (S3).
 """
 from __future__ import annotations
 from adapters.base import RawItem
+from taxonomy import categorize
+
+
+def load_categories(conn) -> dict[str, int]:
+    """slug → category_id (включно з 'uncategorized' і сідами 0002)."""
+    return {slug: cid for slug, cid in
+            conn.execute("SELECT slug, category_id FROM category").fetchall()}
 
 
 def upsert_source(conn, name: str, base_url: str, *, adapter_kind: str = "ssr",
@@ -21,11 +28,13 @@ def upsert_source(conn, name: str, base_url: str, *, adapter_kind: str = "ssr",
     return row[0]
 
 
-def persist_items(conn, source_id: int, category_id: int, items: list[RawItem], *,
+def persist_items(conn, source_id: int, items: list[RawItem], categories: dict[str, int], *,
                   source_method: str = "css", scan_run_id: int | None = None) -> int:
-    """Upsert товарів + insert снапшотів. Повертає к-сть записаних снапшотів."""
+    """Upsert товарів (категорія за URL, §2.6) + insert снапшотів. Повертає к-сть снапшотів."""
+    fallback = categories.get("uncategorized")
     n = 0
     for it in items:
+        category_id = categories.get(categorize(it.url), fallback)
         sp = conn.execute(
             """INSERT INTO store_product
                  (source_id, external_ref, url, title, image_url, category_id,
@@ -34,7 +43,7 @@ def persist_items(conn, source_id: int, category_id: int, items: list[RawItem], 
                ON CONFLICT (source_id, external_ref) DO UPDATE
                  SET url = EXCLUDED.url, title = EXCLUDED.title,
                      image_url = EXCLUDED.image_url, variant_note = EXCLUDED.variant_note,
-                     last_seen_at = now()
+                     category_id = EXCLUDED.category_id, last_seen_at = now()
                RETURNING store_product_id""",
             (source_id, it.external_ref, it.url, it.title, it.image_url, category_id,
              it.variant_note, False),
