@@ -23,6 +23,8 @@ jobs:
         run: python tests/test_probe.py
       - name: Pethouse — екстрактор на касеті (selectolax)
         run: python tests/test_pethouse.py
+      - name: PetChoice — екстрактор на касеті (miniShop2)
+        run: python tests/test_petchoice.py
       - name: детекція — ядро бейджів на синтетиці (§5)
         run: python tests/test_detection.py
       - name: initData — верифікація Telegram (§8.10.1)

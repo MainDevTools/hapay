@@ -25,25 +25,26 @@ def main():
         reset(conn)
     migrate.apply(URL)
 
-    with open(os.path.join(os.path.dirname(__file__), "cassettes", "pethouse_akcii.html"),
-              encoding="utf-8") as f:
-        cassette = f.read()
+    def _read(name):
+        with open(os.path.join(os.path.dirname(__file__), "cassettes", name), encoding="utf-8") as f:
+            return f.read()
+    cas_ph, cas_pc = _read("pethouse_akcii.html"), _read("petchoice_akcii.html")
+    fetch = lambda url: cas_pc if "petchoice" in url else cas_ph   # DI: касета за URL, без HTTP
 
     checks, failed = [], 0
     with psycopg.connect(URL, autocommit=True) as conn:
-        stats = collect(conn, SOURCES, fetch=lambda url: cassette)   # DI: касета замість HTTP
-        checks.append(("collect items = 9", stats["items"] == 9, stats))
+        stats = collect(conn, SOURCES, fetch=fetch)
+        checks.append(("collect items = 12 (Pethouse 9 + PetChoice 3)", stats["items"] == 12, stats))
 
         snaps = conn.execute("SELECT count(*) FROM price_snapshot").fetchone()[0]
-        checks.append(("price_snapshot = 9", snaps == 9, snaps))
+        checks.append(("price_snapshot = 12", snaps == 12, snaps))
 
-        sr = conn.execute("SELECT surface, items_seen FROM scan_run "
-                          "ORDER BY scan_run_id DESC LIMIT 1").fetchone()
-        checks.append(("scan_run discovery, items_seen=9", sr == ("discovery", 9), sr))
+        sr = conn.execute("SELECT count(*), count(*) FILTER (WHERE surface='discovery') FROM scan_run").fetchone()
+        checks.append(("2 discovery scan_run", sr == (2, 2), sr))
 
         ev = conn.execute("SELECT count(*), count(*) FILTER (WHERE badge_state='declared') "
                           "FROM discount_event").fetchone()
-        checks.append(("8 подій, усі declared (одиночний прогін)", ev == (8, 8), ev))
+        checks.append(("11 подій, усі declared (8 PH + 3 PC)", ev == (11, 11), ev))
 
     for name, ok, val in checks:
         print(f"{'PASS' if ok else 'FAIL'}  {name}" + ("" if ok else f"  -> {val!r}"))

@@ -15,6 +15,7 @@ import time
 import urllib.request
 
 from adapters.pethouse import PethouseAdapter
+from adapters.petchoice import PetChoiceAdapter
 from db import migrate
 from db.store import upsert_source, persist_items
 from detection.runner import detect_pass
@@ -23,11 +24,14 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 POLITE_DELAY = 3.0          # §10.2 — пауза між запитами до одного хоста
 
-# Реєстр джерел. Поки одне (Pethouse, discovery per-category §3.3); категорія — uncategorized.
+# Реєстр джерел (discovery §3.3, тир A). Категорія — uncategorized (реальна таксономія — далі).
 SOURCES = [
     {"name": "Pethouse", "base_url": "https://pethouse.ua", "platform": "custom",
      "fetch_tier": "A", "adapter": PethouseAdapter(), "category_slug": "uncategorized",
      "discount_urls": ["https://pethouse.ua/ua/shop/koshkam/suhoi-korm/akcii/"]},
+    {"name": "PetChoice", "base_url": "https://petchoice.ua", "platform": "custom",
+     "fetch_tier": "A", "adapter": PetChoiceAdapter(), "category_slug": "uncategorized",
+     "discount_urls": ["https://petchoice.ua/discounts"]},
 ]
 
 
