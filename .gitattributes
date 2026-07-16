@@ -1,0 +1,3 @@
+# Нормалізація рядків. Shell-скрипти — ЗАВЖДИ LF (інакше shebang ламається в Docker/Linux).
+* text=auto
+*.sh text eol=lf
