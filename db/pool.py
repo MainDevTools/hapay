@@ -7,6 +7,14 @@ from __future__ import annotations
 import os
 from psycopg_pool import ConnectionPool
 
+# Локальний .env (gitignored) → DATABASE_URL без ручного env щоразу.
+# У CI/проді змінна вже в середовищі → load_dotenv її НЕ перезаписує (no-op).
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # server-side таймаути на кожне з'єднання (мс)
 _CONN_OPTS = "-c statement_timeout=30000 -c lock_timeout=10000"
 
