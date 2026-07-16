@@ -1,8 +1,8 @@
--- 0001_init.sql — уся v2.0-схема (§6). PostgreSQL 16 + TimescaleDB, central-only.
--- Раннер (db/migrate.py) виконує це в одній транзакції й пише рядок у schema_migration.
--- Порядок §6.6: extension → таблиці → hypertable → індекси → тригери → компресія → cagg → сіди.
-
-CREATE EXTENSION IF NOT EXISTS timescaledb;
+-- 0001_init.sql — уся v2.1-схема (§6), ЧИСТИЙ PostgreSQL (Neon-сумісний, free-forever).
+-- Timescale-фічі (hypertable / continuous aggregate / компресія) — SCALE-upgrade, винесено в
+-- 0002_timescale.sql (застосовується, коли обсяг цього вимагатиме; §6.6). MVP-валідація їх не потребує:
+-- price_snapshot — звичайна таблиця з покривним індексом; графік читає сирі точки (§9.2).
+-- Раннер (db/migrate.py) виконує це у simple-protocol (працює і для plain PG).
 
 -- ─────────────────────────── §6.2 Джерела та таксономія ───────────────────────────
 CREATE TABLE source (
@@ -99,8 +99,9 @@ CREATE TABLE scan_run (
   http_note     TEXT
 );
 
+-- price_snapshot — APPEND-ONLY факт ціни (звичайна таблиця; hypertable → 0002 scale-upgrade)
 CREATE TABLE price_snapshot (
-  price_snapshot_id BIGINT GENERATED ALWAYS AS IDENTITY,
+  price_snapshot_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   store_product_id  BIGINT NOT NULL REFERENCES store_product(store_product_id),
   price_now_kop     BIGINT NOT NULL CHECK (price_now_kop >= 0),
   price_old_kop     BIGINT CHECK (price_old_kop IS NULL OR price_old_kop >= 0),
@@ -108,15 +109,13 @@ CREATE TABLE price_snapshot (
   source_method     TEXT,
   seen_at           TIMESTAMPTZ NOT NULL,
   scan_run_id       BIGINT REFERENCES scan_run(scan_run_id),
-  is_backfill       BOOLEAN NOT NULL DEFAULT FALSE,
-  PRIMARY KEY (price_snapshot_id, seen_at)         -- seen_at обов'язково в ключі (hypertable, §6.1)
+  is_backfill       BOOLEAN NOT NULL DEFAULT FALSE
 );
-SELECT create_hypertable('price_snapshot', 'seen_at', chunk_time_interval => INTERVAL '7 days');
-
+-- покривний індекс для статутного MIN за 30 днів (§5.2): index-only scan
 CREATE INDEX ix_ps_prod_window ON price_snapshot (store_product_id, seen_at)
   INCLUDE (price_now_kop, in_stock);
 
--- append-only (§6.1): блокуємо мутації тригером (REVOKE — окремий деплой-крок §8.10.1)
+-- append-only (§6.1): тригер блокує мутації (+ REVOKE — деплой-крок §8.10.1)
 CREATE FUNCTION trg_ps_append_only() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   RAISE EXCEPTION 'price_snapshot append-only (спроба % заблокована)', TG_OP;
@@ -125,32 +124,6 @@ CREATE TRIGGER trg_ps_no_update BEFORE UPDATE ON price_snapshot
   FOR EACH ROW EXECUTE FUNCTION trg_ps_append_only();
 CREATE TRIGGER trg_ps_no_delete BEFORE DELETE ON price_snapshot
   FOR EACH ROW EXECUTE FUNCTION trg_ps_append_only();
-
--- нативна компресія холодної історії (замінює delta-encoding §8.6)
-ALTER TABLE price_snapshot SET (
-  timescaledb.compress,
-  timescaledb.compress_segmentby = 'store_product_id',
-  timescaledb.compress_orderby   = 'seen_at DESC'
-);
-SELECT add_compression_policy('price_snapshot', INTERVAL '30 days');
-
--- price_daily — continuous aggregate (лише для графіка §9.2; статутне читає сирий §5.2)
-CREATE MATERIALIZED VIEW price_daily
-  WITH (timescaledb.continuous) AS
-  SELECT
-    store_product_id,
-    time_bucket('1 day', seen_at, 'Europe/Kyiv') AS day_kyiv,
-    min(price_now_kop) AS min_kop,
-    max(price_now_kop) AS max_kop,
-    last(price_now_kop, seen_at) AS close_kop,
-    count(*) AS n_points
-  FROM price_snapshot
-  WHERE in_stock                                   -- OOS не входять (§5.5)
-  GROUP BY store_product_id, day_kyiv
-  WITH NO DATA;
-SELECT add_continuous_aggregate_policy('price_daily',
-  start_offset => INTERVAL '35 days', end_offset => INTERVAL '1 hour',
-  schedule_interval => INTERVAL '1 hour');
 
 -- ─────────────────────────── §6.4 Подія знижки ───────────────────────────
 CREATE TABLE discount_event (
@@ -219,7 +192,7 @@ CREATE TABLE app_config (
   valid_to      TIMESTAMPTZ
 );
 
--- ─────────────────────────── Сіди (config-дефолти; таксономію/крамниці — bootstrap §8.10.1) ───────────────────────────
+-- ─────────────────────────── Сіди (config-дефолти; таксономію — bootstrap §8.10.1) ───────────────────────────
 INSERT INTO category (name, slug) VALUES ('Uncategorized', 'uncategorized');
 
 INSERT INTO detection_config (valid_from) VALUES ('2026-01-01T00:00:00Z');

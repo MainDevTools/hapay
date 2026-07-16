@@ -45,16 +45,12 @@ def main():
     checks.append(("міграція застосована", applied == [1], applied))
 
     with psycopg.connect(URL, autocommit=True) as conn:
-        ext = conn.execute("SELECT extversion FROM pg_extension WHERE extname='timescaledb'").fetchone()
-        checks.append(("timescaledb встановлено", ext is not None, ext))
+        ps = conn.execute("SELECT count(*) FROM information_schema.tables "
+                          "WHERE table_name='price_snapshot'").fetchone()[0]
+        checks.append(("price_snapshot таблиця є", ps == 1, ps))
 
-        hyper = conn.execute("SELECT count(*) FROM timescaledb_information.hypertables "
-                             "WHERE hypertable_name='price_snapshot'").fetchone()[0]
-        checks.append(("price_snapshot — hypertable", hyper == 1, hyper))
-
-        cagg = conn.execute("SELECT count(*) FROM timescaledb_information.continuous_aggregates "
-                            "WHERE view_name='price_daily'").fetchone()[0]
-        checks.append(("price_daily — continuous aggregate", cagg == 1, cagg))
+        cov = conn.execute("SELECT count(*) FROM pg_indexes WHERE indexname='ix_ps_prod_window'").fetchone()[0]
+        checks.append(("покривний індекс ix_ps_prod_window", cov == 1, cov))
 
         gin = conn.execute("SELECT count(*) FROM pg_indexes WHERE indexname='ix_sp_fts'").fetchone()[0]
         checks.append(("tsvector GIN ix_sp_fts", gin == 1, gin))

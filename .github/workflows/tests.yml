@@ -31,11 +31,11 @@ jobs:
         run: python tests/test_initdata.py
 
   migration:
-    # Верифікація 0001 проти ЖИВОГО Timescale (пісочниця розробки її не має — §S1).
+    # Верифікація 0001 проти живого PostgreSQL (ціль — Neon, plain PG; Timescale-фічі → 0002).
     runs-on: ubuntu-latest
     services:
       db:
-        image: timescale/timescaledb:latest-pg16
+        image: postgres:16
         env:
           POSTGRES_PASSWORD: radar
           POSTGRES_DB: radar
