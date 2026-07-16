@@ -53,3 +53,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:radar@localhost:5432/radar
         run: python tests/test_detect_pass.py
+      - name: collect — конвеєр fetch→persist→detect_pass на касеті (§8.1)
+        env:
+          DATABASE_URL: postgresql://postgres:radar@localhost:5432/radar
+        run: python tests/test_collect.py

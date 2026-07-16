@@ -1,0 +1,31 @@
+name: collect
+
+# Колектор Шару 1 (§8.1/§8.2-central): fetch discovery → extract → persist → detect_pass.
+# Пише в ПОСТІЙНУ БД (Timescale Cloud) через секрет DATABASE_URL. Поки секрет не заданий —
+# collect.py чисто пропускається (scheduled не червонить). Це і є накопичення реальної історії.
+
+on:
+  schedule:
+    - cron: "23 5,17 * * *"      # 2×/добу (discovery-каденс §10.1); UTC, поза DST-смугою (§8.2)
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:                      # без перекриття прогонів (§8.2)
+  group: collect
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: collect (fetch → persist → detect_pass)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python collect.py
