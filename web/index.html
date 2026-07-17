@@ -89,12 +89,12 @@
   .now{font-weight:750;font-size:18px;letter-spacing:-.02em}
   .old{color:var(--faint);text-decoration:line-through;font-size:13px}
   .unit{color:var(--faint);font-size:11.5px;margin-left:auto;white-space:nowrap}
+  /* Колір НЕ кодує стан (T12): зелень/бурштин були останнім вердиктом у видимому шарі —
+     «схвалено» / «увага, погано». Усі стани однаково нейтральні; розрізняють СЛОВА. */
   .badge{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;font-size:12px;
-    font-weight:650;padding:4px 9px;border-radius:8px;border:1px solid transparent;line-height:1.3}
+    font-weight:650;padding:4px 9px;border-radius:8px;border:1px solid transparent;line-height:1.3;
+    color:var(--grey);background:var(--grey-bg)}
   .badge .dot{flex:0 0 auto}          /* мітки довші за ✓/⚠ — крапка не має стискатись при переносі */
-  .b-verified,.b-verified_provisional{color:var(--green);background:var(--green-bg);border-color:var(--green-line)}
-  .b-pumped{color:var(--amber);background:var(--amber-bg);border-color:var(--amber-line)}
-  .b-declared,.b-insufficient_history{color:var(--grey);background:var(--grey-bg)}
   .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
 
   /* states */
@@ -217,7 +217,7 @@ function card(d){
         <span class="now">${grn(d.current_kop)}</span>
         ${d.old_declared_kop?`<span class="old">${grn(d.old_declared_kop)}</span>`:''}
       </div>
-      <span class="badge b-${d.badge_state}"><span class="dot"></span>${bt}</span>
+      <span class="badge"><span class="dot"></span>${bt}</span>
     </div></div>`);
   c.onclick=()=>openHistory(d);
   return c;
@@ -328,7 +328,7 @@ async function openHistory(d){
         ${d.old_declared_kop?`<span class="old">${grn(d.old_declared_kop)}</span>`:''}
         ${off?`<span class="off" style="position:static;box-shadow:none">−${off}%</span>`:''}
       </div>
-      <span class="badge b-${d.badge_state}"><span class="dot"></span>${bt}</span>
+      <span class="badge"><span class="dot"></span>${bt}</span>
       ${sparkline(hist, d.reference_kop, W)}
       <div class="prov">${ref} ${basis}</div>
       <a class="cta" href="${esc(d.url)}" target="_blank" rel="noopener">Відкрити в крамниці →</a>`;
