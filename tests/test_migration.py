@@ -1,38 +1,25 @@
-"""Інтеграційний тест 0001 проти ЖИВОГО Postgres/TimescaleDB (DoD §6.6).
+"""Інтеграційний тест 0001 проти ЖИВОГО Postgres (DoD §6.6).
 
-Skip-aware: без DATABASE_URL — пропуск (не провал), бо пісочниця без Docker/Timescale.
-Верифікується в CI (service-контейнер timescaledb, .github/workflows/tests.yml).
+Skip-aware: без TEST_DATABASE_URL — пропуск (не провал), бо пісочниця без Docker.
+Верифікується в CI (service-контейнер postgres, .github/workflows/tests.yml).
 
-Запуск локально:
-  $env:DATABASE_URL='postgresql://postgres:pass@localhost:5432/radar'; python tests/test_migration.py
+Запуск локально (ОКРЕМА тестова база, не прод!):
+  $env:TEST_DATABASE_URL='postgresql://postgres:pass@localhost:5432/radar_test'
+  python tests/test_migration.py
 """
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-URL = os.environ.get("DATABASE_URL")
-if not URL:
-    print("SKIP test_migration: DATABASE_URL не задано (нема живого Timescale).")
-    sys.exit(0)
+from tests.dbguard import reset, test_dsn, _TABLES  # noqa: E402,F401  (reset реекспорт — сумісність)
+
+URL = test_dsn("test_migration")
 
 import psycopg                                   # noqa: E402
 from db import migrate                            # noqa: E402
 from db.store import upsert_source, persist_items, load_categories  # noqa: E402
 from adapters.pethouse import PethouseAdapter     # noqa: E402
-
-_TABLES = ("alert_log", "watchlist", "discount_event", "price_snapshot", "scan_run",
-           "http_cache", "canary", "store_product", "source_category_map",
-           "category", "source", "detection_config", "app_config", "schema_migration")
-
-
-def reset(conn):
-    stmts = ["DROP MATERIALIZED VIEW IF EXISTS price_daily CASCADE;"]
-    stmts += [f"DROP TABLE IF EXISTS {t} CASCADE;" for t in _TABLES]
-    stmts.append("DROP FUNCTION IF EXISTS trg_ps_append_only() CASCADE;")
-    res = conn.pgconn.exec_("".join(stmts).encode())
-    if res.error_message:
-        pass  # IF EXISTS — безпечно
 
 
 def main():

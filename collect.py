@@ -49,50 +49,97 @@ def default_fetch(url: str) -> str:
         return r.read().decode("utf-8", "replace")
 
 
-def collect(conn, sources, fetch=default_fetch, delay=POLITE_DELAY) -> dict:
-    """Discovery-прохід + detect_pass + закриття зниклих. Повертає {items, events, closed, sources}."""
-    categories = load_categories(conn)          # slug→id; категорія на товар — за URL (§2.6)
-    total_items = 0
-    for src in sources:
-        source_id = upsert_source(conn, src["name"], src["base_url"], adapter_kind="ssr",
-                                  platform=src.get("platform"),
-                                  discount_url=src["discount_urls"][0],
-                                  fetch_tier=src.get("fetch_tier"))
-        scan_run_id = conn.execute(
-            "INSERT INTO scan_run (source_id, surface, status) VALUES (%s,'discovery','ok') "
-            "RETURNING scan_run_id", (source_id,)).fetchone()[0]
+def _collect_source(conn, src, categories, fetch, delay) -> dict:
+    """Один прохід по джерелу. НЕ кидає: падіння однієї крамниці не має валити решту
+    (на 10-50 крамницях це був би щоденний обвал). Повертає звіт для виклику.
 
-        items, seen = [], set()
-        for i, url in enumerate(src["discount_urls"]):
-            if i and delay:
-                time.sleep(delay)                        # ввічливість між сторінками хоста
-            for it in src["adapter"].extract(fetch(url)):
-                if it.external_ref in seen:              # дедуп між сторінками (§10.1)
-                    continue
-                seen.add(it.external_ref)
-                items.append(it)
+    `scan_run` створюється песимістично зі status='failed' і стає 'ok' лише в кінці:
+    якщо процес помре посеред проходу, у БД лишиться чесне 'failed', а не бадьора
+    брехня. Раніше рядок писався одразу як 'ok' — і провал виглядав успіхом (T13).
+    """
+    name = src["name"]
+    source_id = upsert_source(conn, name, src["base_url"], adapter_kind="ssr",
+                              platform=src.get("platform"),
+                              discount_url=src["discount_urls"][0],
+                              fetch_tier=src.get("fetch_tier"))
+    scan_run_id = conn.execute(
+        "INSERT INTO scan_run (source_id, surface, status) VALUES (%s,'discovery','failed') "
+        "RETURNING scan_run_id", (source_id,)).fetchone()[0]
 
+    items, seen, errors = [], set(), []
+    for i, url in enumerate(src["discount_urls"]):
+        if i and delay:
+            time.sleep(delay)                            # ввічливість між сторінками хоста
+        try:
+            got = src["adapter"].extract(fetch(url))
+        except Exception as e:                           # мережа/парсер — інші URL мають шанс
+            errors.append(f"{url}: {type(e).__name__}: {e}")
+            continue
+        for it in got:
+            if it.external_ref in seen:                  # дедуп між сторінками (§10.1)
+                continue
+            seen.add(it.external_ref)
+            items.append(it)
+
+    try:
         n = persist_items(conn, source_id, items, categories,
                           source_method="css", scan_run_id=scan_run_id)
-        conn.execute("UPDATE scan_run SET finished_at = now(), items_seen = %s WHERE scan_run_id = %s",
-                     (n, scan_run_id))
-        total_items += n
+    except Exception as e:
+        errors.append(f"persist: {type(e).__name__}: {e}")
+        n = 0
+
+    ok_urls = len(src["discount_urls"]) - len(errors)
+    status = "failed" if ok_urls == 0 else ("partial" if errors else "ok")
+    conn.execute("UPDATE scan_run SET finished_at = now(), items_seen = %s, status = %s "
+                 "WHERE scan_run_id = %s", (n, status, scan_run_id))
+    return {"source": name, "items": n, "status": status, "errors": errors}
+
+
+def collect(conn, sources, fetch=default_fetch, delay=POLITE_DELAY) -> dict:
+    """Discovery-прохід + detect_pass + закриття зниклих.
+
+    `problems` — джерела, які впали АБО віддали нуль. Нуль підозрілий сам по собі:
+    відрізнити «акцій справді нема» від «селектор помер» з одного проходу не можна,
+    тому кажемо про це вголос, а не ховаємо за status='ok'.
+    """
+    categories = load_categories(conn)          # slug→id; категорія на товар — за URL (§2.6)
+    per_source = []
+    for src in sources:
+        try:
+            per_source.append(_collect_source(conn, src, categories, fetch, delay))
+        except Exception as e:                  # остання сітка: джерело не валить прохід
+            per_source.append({"source": src["name"], "items": 0, "status": "failed",
+                               "errors": [f"{type(e).__name__}: {e}"]})
 
     events = detect_pass(conn)                            # бейджі після збору (§8.4)
     closed = close_absent(conn)                           # закрити зниклі з акцій (§5.5)
-    return {"items": total_items, "events": events, "closed": closed, "sources": len(sources)}
+    return {"items": sum(r["items"] for r in per_source), "events": events, "closed": closed,
+            "sources": len(sources), "per_source": per_source,
+            "problems": [r for r in per_source if r["status"] != "ok" or r["items"] == 0]}
 
 
 def main():
     url = os.environ.get("DATABASE_URL")
     if not url:
-        print("SKIP collect: DATABASE_URL не задано (потрібна ПОСТІЙНА БД — Timescale Cloud + Actions secret).")
+        print("SKIP collect: DATABASE_URL не задано (потрібна ПОСТІЙНА БД — Neon + Actions secret).")
         return
     import psycopg
     migrate.apply(url)
     with psycopg.connect(url, autocommit=True) as conn:
         stats = collect(conn, SOURCES)
-    print(f"колект: {stats}")
+
+    for r in stats["per_source"]:
+        print(f"  {r['source']:12} {r['items']:>4} позицій  [{r['status']}]")
+        for e in r["errors"]:
+            print(f"      ! {e}")
+    print(f"колект: items={stats['items']} events={stats['events']} closed={stats['closed']}")
+
+    # Мовчазний нуль — головний спосіб, у який збір гниє непоміченим: cron «зелений»,
+    # даних нема. Краще червоний прогін і хибна тривога, ніж тиша (T13).
+    if stats["problems"]:
+        print("\nПРОВАЛ: джерела без даних або з помилками — "
+              + ", ".join(f"{r['source']}({r['items']}, {r['status']})" for r in stats["problems"]))
+        sys.exit(1)
 
 
 if __name__ == "__main__":

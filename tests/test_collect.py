@@ -9,15 +9,12 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-URL = os.environ.get("DATABASE_URL")
-if not URL:
-    print("SKIP test_collect: DATABASE_URL не задано.")
-    sys.exit(0)
+from tests.dbguard import reset, test_dsn         # noqa: E402
+URL = test_dsn("test_collect")                    # РУЙНІВНИЙ: нижче reset() дропає все
 
 import psycopg                                    # noqa: E402
 from db import migrate                            # noqa: E402
 from collect import collect, SOURCES              # noqa: E402
-from tests.test_migration import reset            # noqa: E402
 
 
 def main():
@@ -49,6 +46,34 @@ def main():
         ncats = conn.execute("SELECT count(DISTINCT sp.category_id) FROM store_product sp "
                              "JOIN category c USING (category_id) WHERE c.slug <> 'uncategorized'").fetchone()[0]
         checks.append(("товари розкладені по ≥2 реальних категоріях", ncats >= 2, ncats))
+
+        # ── ізоляція джерел і чесний статус (T13) ────────────────────────────────
+        # Було: виняток на одній крамниці вбивав увесь прохід разом із detect_pass,
+        # а scan_run писався як 'ok' ще до роботи — провал виглядав успіхом.
+        def boom(url):
+            if "petchoice" in url:
+                raise RuntimeError("імітація: крамниця лягла")
+            return cas_ph
+
+        st2 = collect(conn, SOURCES, fetch=boom, delay=0)
+        ph = next(r for r in st2["per_source"] if r["source"] == "Pethouse")
+        pc = next(r for r in st2["per_source"] if r["source"] == "PetChoice")
+        checks.append(("падіння PetChoice НЕ завалило Pethouse",
+                       ph["items"] == 9 and ph["status"] == "ok", (ph, pc)))
+        checks.append(("PetChoice → failed, 0 позицій", pc["status"] == "failed" and pc["items"] == 0, pc))
+        checks.append(("detect_pass відпрацював попри падіння джерела", st2["events"] >= 0, st2["events"]))
+        checks.append(("проблемне джерело потрапило в problems",
+                       [r["source"] for r in st2["problems"]] == ["PetChoice"], st2["problems"]))
+        dbst = conn.execute("SELECT sr.status, sr.items_seen FROM scan_run sr "
+                            "JOIN source s USING (source_id) WHERE s.name='PetChoice' "
+                            "ORDER BY sr.scan_run_id DESC LIMIT 1").fetchone()
+        checks.append(("scan_run у БД каже 'failed', а не 'ok' при нулі", dbst == ("failed", 0), dbst))
+
+        # нуль без винятку (селектор помер / чужий HTML) — теж проблема, не тиша
+        st3 = collect(conn, SOURCES, fetch=lambda u: cas_ph, delay=0)   # PetChoice дістає чужий HTML
+        pc3 = next(r for r in st3["per_source"] if r["source"] == "PetChoice")
+        checks.append(("мовчазний нуль (без винятку) видно в problems",
+                       pc3["items"] == 0 and any(r["source"] == "PetChoice" for r in st3["problems"]), pc3))
 
     for name, ok, val in checks:
         print(f"{'PASS' if ok else 'FAIL'}  {name}" + ("" if ok else f"  -> {val!r}"))

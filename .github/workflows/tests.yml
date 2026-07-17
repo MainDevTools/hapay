@@ -34,7 +34,12 @@ jobs:
 
   migration:
     # Верифікація 0001 проти живого PostgreSQL 18 (= версія прод-Neon; Timescale-фічі → 0002).
+    # УВАГА: ці тести РУЙНІВНІ (reset() дропає всі таблиці) → лише TEST_DATABASE_URL.
+    # DATABASE_URL тут не задаємо НІКОЛИ: саме через спільну назву змінної ми
+    # знесли живу базу 2026-07-17 (T13).
     runs-on: ubuntu-latest
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:radar@localhost:5432/radar
     services:
       db:
         image: postgres:18
@@ -51,21 +56,15 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
+      - name: запобіжник — руйнівний тест НЕ бере прод-URL (T13)
+        run: python tests/test_dbguard.py
       - name: 0001 міграція + DoD §6.6 (round-trip RawItem, append-only)
-        env:
-          DATABASE_URL: postgresql://postgres:radar@localhost:5432/radar
         run: python tests/test_migration.py
       - name: detect_pass — бейдж verified + ідемпотентність (§5/§8.4)
-        env:
-          DATABASE_URL: postgresql://postgres:radar@localhost:5432/radar
         run: python tests/test_detect_pass.py
       - name: collect — конвеєр fetch→persist→detect_pass на касеті (§8.1)
-        env:
-          DATABASE_URL: postgresql://postgres:radar@localhost:5432/radar
         run: python tests/test_collect.py
       - name: read-API — перелік/історія/watchlist (§8.10.1)
-        env:
-          DATABASE_URL: postgresql://postgres:radar@localhost:5432/radar
         run: python tests/test_api.py
 
   docker:

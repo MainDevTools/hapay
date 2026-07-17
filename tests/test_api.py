@@ -9,18 +9,16 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-URL = os.environ.get("DATABASE_URL")
-if not URL:
-    print("SKIP test_api: DATABASE_URL не задано.")
-    sys.exit(0)
+from tests.dbguard import reset, test_dsn               # noqa: E402
+URL = test_dsn("test_api")                              # РУЙНІВНИЙ: нижче reset() дропає все
 
-os.environ["BOT_TOKEN"] = "123456:TEST-token"          # до імпорту app (читається на імпорті)
+os.environ["BOT_TOKEN"] = "123456:TEST-token"           # до імпорту app (читається на імпорті)
+os.environ["DATABASE_URL"] = URL                        # api/db.py ходить у ТЕСТОВУ базу, не в прод
 
 import psycopg                                          # noqa: E402
 from fastapi.testclient import TestClient               # noqa: E402
 from db import migrate                                  # noqa: E402
 from collect import collect, SOURCES                    # noqa: E402
-from tests.test_migration import reset                  # noqa: E402
 from api.main import app                                # noqa: E402
 from api.initdata import build_init_data                # noqa: E402
 

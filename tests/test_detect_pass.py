@@ -8,16 +8,13 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-URL = os.environ.get("DATABASE_URL")
-if not URL:
-    print("SKIP test_detect_pass: DATABASE_URL не задано.")
-    sys.exit(0)
+from tests.dbguard import reset, test_dsn         # noqa: E402
+URL = test_dsn("test_detect_pass")                # РУЙНІВНИЙ: нижче reset() дропає все
 
 import psycopg                                    # noqa: E402
 from db import migrate                            # noqa: E402
 from db.store import upsert_source                # noqa: E402
 from detection.runner import detect_pass, close_absent  # noqa: E402
-from tests.test_migration import reset            # noqa: E402  (перевикористовуємо teardown)
 
 
 def main():
