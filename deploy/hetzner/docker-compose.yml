@@ -1,0 +1,44 @@
+# Радар знижок — API + Caddy на Hetzner (CX22, Ubuntu 24.04).
+#
+# Postgres тут НЕМАЄ свідомо: база лишається на Neon заради point-in-time restore.
+# 2026-07-17 ми знищили історію цін (T13), і єдине, що дає шанс її повернути, — PITR
+# керованої бази. Своя база на цьому ж сервері означала б, що страхівка залежить від
+# того, чи я не помилився в backup.sh. Не той обмін.
+#
+# Секрети — ЛИШЕ з /etc/radar/radar.env (chmod 600, поза git). Ніколи в цей файл.
+
+services:
+  api:
+    image: ghcr.io/${GHCR_OWNER}/radar-znyzhok:${TAG:-latest}
+    restart: unless-stopped
+    env_file: /etc/radar/radar.env      # DATABASE_URL, BOT_TOKEN
+    environment:
+      RUN_MIGRATIONS: "0"               # міграції — окремим свідомим кроком, не на кожен рестарт
+    expose: ["8080"]                    # НЕ ports: назовні дивиться тільки Caddy
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/api/health',timeout=5).status==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging:                            # інакше логи тихо зʼїдять 40 ГБ диска
+      driver: json-file
+      options: {max-size: "10m", max-file: "5"}
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data                # сертифікати Let's Encrypt — не губити при рестарті
+      - caddy_config:/config
+    depends_on: [api]
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+
+volumes:
+  caddy_data:
+  caddy_config:

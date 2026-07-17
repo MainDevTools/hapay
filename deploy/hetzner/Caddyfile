@@ -1,0 +1,35 @@
+# Caddy сам отримує й оновлює сертифікат Let's Encrypt — тому домен, а не голий IP:
+# сертифікат видають на імʼя. Плюс домен дає змінити хост, не ламаючи вже встановлені
+# застосунки (інакше — оновлення в сторі й цикл рев'ю Apple заради зміни адреси).
+#
+# {$RADAR_DOMAIN} підставляється з /etc/radar/radar.env
+
+{$RADAR_DOMAIN} {
+	encode gzip zstd
+
+	# Mini App вантажиться в iframe Telegram — інакше порожній екран.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Content-Security-Policy "frame-ancestors https://web.telegram.org https://*.telegram.org"
+		-Server
+	}
+
+	reverse_proxy api:8080 {
+		health_uri /api/health
+		health_interval 30s
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 10mb
+			roll_keep 5
+		}
+		# initData містить дані користувача Telegram — у логах їм не місце (§7.7)
+		format filter {
+			request>headers>X-Init-Data delete
+			request>headers>Cookie delete
+		}
+	}
+}
