@@ -90,7 +90,8 @@
   .old{color:var(--faint);text-decoration:line-through;font-size:13px}
   .unit{color:var(--faint);font-size:11.5px;margin-left:auto;white-space:nowrap}
   .badge{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;font-size:12px;
-    font-weight:650;padding:4px 9px;border-radius:8px;border:1px solid transparent;line-height:1}
+    font-weight:650;padding:4px 9px;border-radius:8px;border:1px solid transparent;line-height:1.3}
+  .badge .dot{flex:0 0 auto}          /* мітки довші за ✓/⚠ — крапка не має стискатись при переносі */
   .b-verified,.b-verified_provisional{color:var(--green);background:var(--green-bg);border-color:var(--green-line)}
   .b-pumped{color:var(--amber);background:var(--amber-bg);border-color:var(--amber-line)}
   .b-declared,.b-insufficient_history{color:var(--grey);background:var(--grey-bg)}
@@ -134,12 +135,13 @@
 <body>
 <div class="app">
 <header>
-  <div class="brand"><h1>Радар знижок</h1><span class="sub">справжні vs накачані</span></div>
+  <div class="brand"><h1>Радар знижок</h1><span class="sub">знижки проти історії цін</span></div>
   <div class="controls">
     <select id="cat"><option value="">Усі категорії</option></select>
+    <!-- «наш мінімум» (verified_pct) vs «заявлена» (declared_pct) — різницю називаємо прямо (T12) -->
     <select id="sort">
-      <option value="verified">Спершу підтверджені</option>
-      <option value="discount">Спершу за знижкою</option>
+      <option value="verified">Наше зниження</option>
+      <option value="discount">Заявлена знижка</option>
       <option value="new">Найновіші</option>
     </select>
   </div>
@@ -160,17 +162,23 @@
 const tg = window.Telegram && window.Telegram.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
 
+/* Видимі мітки — ВИМІРИ, не вердикт (T12/§5.4.1). Внутрішній енум (`pumped`) лишається як є.
+   Символи теж: ✓/⚠ оцінювали («схвалено»/«увага, погано»), ↓/≥ описують ВИМІРЯНЕ відношення.
+   «нашого» — не ввічливість, а юр-суть: ми не знаємо статутний мінімум, лише свої виміри (§7.5.1). */
 const BADGES = [
   {k:'', label:'Усі'},
-  {k:'verified', label:'✓ Підтверджені'},
-  {k:'verified_provisional', label:'✓ Попередні'},
-  {k:'pumped', label:'⚠ Накачані'},
-  {k:'declared', label:'Заявлені'},
+  {k:'verified', label:'↓ Нижче за 30 днів'},
+  {k:'verified_provisional', label:'↓ Нижче · мало даних'},
+  {k:'pumped', label:'≥ Не нижче'},
+  {k:'declared', label:'Ще не перевірено'},
 ];
+// Коротко (пігулка на картці) — повне твердження з provenance дає шторка (§5.4.2).
 const BADGE_TEXT = {
-  verified:'підтверджено історією', verified_provisional:'попередньо підтверджено',
-  pumped:'знижка від завищеної', declared:'заявлено крамницею',
-  insufficient_history:'недостатньо історії',
+  verified:'нижче нашого мінімуму',
+  verified_provisional:'нижче мінімуму · даних мало',
+  pumped:'не нижче нашого мінімуму',
+  declared:'заявлено · ще не перевірено',
+  insufficient_history:'історії ще мало',
 };
 let badge='', sort='verified', cat='', query='', page=0;
 
