@@ -29,6 +29,8 @@ jobs:
         run: python tests/test_detection.py
       - name: initData — верифікація Telegram (§8.10.1)
         run: python tests/test_initdata.py
+      - name: розпаковка тіла — gzip/deflate (8.8x трафіку)
+        run: python tests/test_fetch.py
       - name: таксономія — категоризація за URL (§2.6)
         run: python tests/test_taxonomy.py
 
