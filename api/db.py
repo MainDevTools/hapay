@@ -41,10 +41,15 @@ def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, o
 
 
 def product_history(conn, store_product_id: int, days: int = 90):
-    """Денні точки для графіка (§9.2) — із СИРОГО price_snapshot (in_stock), надійніше за cagg на свіжих даних."""
+    """Денні точки для графіка (§9.2) — із СИРОГО price_snapshot (in_stock), надійніше за cagg на свіжих даних.
+
+    `n` — скільки вимірів за добу: provenance для §5.4 (показуємо основу, а не лише лінію).
+    Доби без вимірів у вибірці ВІДСУТНІ — графік мусить це показати як розрив (T12).
+    """
     sql = """
         SELECT (seen_at AT TIME ZONE 'Europe/Kyiv')::date AS day,
-               min(price_now_kop) AS min_kop, max(price_now_kop) AS max_kop
+               min(price_now_kop) AS min_kop, max(price_now_kop) AS max_kop,
+               count(*) AS n
         FROM price_snapshot
         WHERE store_product_id = %s AND in_stock
           AND seen_at > now() - make_interval(days => %s)

@@ -179,6 +179,8 @@ const el = h => { const d=document.createElement('div'); d.innerHTML=h.trim(); r
 const esc = s => (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function pct(d){ if(d.old_declared_kop && d.current_kop < d.old_declared_kop)
   return Math.round((1 - d.current_kop/d.old_declared_kop)*100); return null; }
+const plu = (n,a,b,c) => { const m=n%100, k=n%10;
+  return n+' '+(m>=11&&m<=14 ? c : k===1 ? a : k>=2&&k<=4 ? b : c); };
 
 async function api(path){
   const r = await fetch(path, {headers: tg && tg.initData ? {'X-Init-Data': tg.initData} : {}});
@@ -246,23 +248,50 @@ async function load(reset=true){
 }
 function loadMore(){ page++; load(false); }
 
-function sparkline(points){
-  if(points.length<2) return '<div class="prov">Замало точок для графіка — історія ще накопичується.</div>';
-  const ys=points.map(p=>p.min_kop), minY=Math.min(...ys), maxY=Math.max(...ys);
-  const W=320,H=158,pad=8;
-  const sx=i=>pad+(W-2*pad)*i/(points.length-1);
+/* Графік = головне твердження продукту (T12), тому малюємо РІВНО те, що виміряли:
+   сходинки (не інтерполяція — вона вигадує ціни, яких не існувало), вісь X за реальними
+   датами (щоб прогалини було видно), точки завжди, пунктир там, де вимірів не було. */
+function sparkline(points, refKop, W){
+  if(points.length<2) return '<div class="prov">Замало вимірів для графіка — історія ще накопичується.</div>';
+  const DAY=86400000, H=158, pad=8;
+  const xs=points.map(p=>Date.parse(p.day)), ys=points.map(p=>p.min_kop);
+  const t0=xs[0], tN=xs[xs.length-1], span=Math.max(tN-t0, DAY);
+  let minY=Math.min(...ys), maxY=Math.max(...ys);
+  if(refKop!=null){ minY=Math.min(minY,refKop); maxY=Math.max(maxY,refKop); }   // база завжди в кадрі
+  const X=i=>pad+(W-2*pad)*(xs[i]-t0)/span;
   const sy=v=>maxY===minY?H/2:pad+(H-2*pad)*(1-(v-minY)/(maxY-minY));
-  const line=points.map((p,i)=>`${i?'L':'M'}${sx(i).toFixed(1)} ${sy(p.min_kop).toFixed(1)}`).join(' ');
-  const area=`M${pad} ${H-pad} `+points.map((p,i)=>`L${sx(i).toFixed(1)} ${sy(p.min_kop).toFixed(1)}`).join(' ')+` L${W-pad} ${H-pad} Z`;
-  const refY=sy(minY);
+  const Y=i=>sy(ys[i]);
+  const f=n=>n.toFixed(1);
+
+  let solid='', dashed='', area=`M${f(X(0))} ${H-pad} L${f(X(0))} ${f(Y(0))}`;
+  for(let i=1;i<points.length;i++){
+    const seg=`M${f(X(i-1))} ${f(Y(i-1))} L${f(X(i))} ${f(Y(i-1))} L${f(X(i))} ${f(Y(i))}`;
+    if(xs[i]-xs[i-1] > 1.5*DAY) dashed+=seg+' '; else solid+=seg+' ';   // доба без вимірів → не стверджуємо
+    area+=` L${f(X(i))} ${f(Y(i-1))} L${f(X(i))} ${f(Y(i))}`;
+  }
+  area+=` L${f(X(points.length-1))} ${H-pad} Z`;
+
+  const tRef=Math.max(t0, tN-30*DAY);                        // початок статутного 30-денного вікна
+  const xRef=pad+(W-2*pad)*(tRef-t0)/span;
+  // база — НЕЙТРАЛЬНА (не зелена): зелень читалась би як вердикт «добре», а видимий шар не оцінює (T12).
+  // Плюс --green ≈ --accent, тож зелена база злилася б із лінією ціни.
+  const ref = refKop==null ? '' :
+    `<line x1="${f(xRef)}" y1="${f(sy(refKop))}" x2="${W-pad}" y2="${f(sy(refKop))}" stroke="var(--muted)"
+       stroke-dasharray="3 4" stroke-width="1.5" opacity=".9" vector-effect="non-scaling-stroke"/>` +
+    (tRef>t0 ? `<line x1="${f(xRef)}" y1="${pad}" x2="${f(xRef)}" y2="${H-pad}" stroke="var(--line)"
+       stroke-dasharray="2 3" stroke-width="1" vector-effect="non-scaling-stroke"/>` : '');
+
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
     <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="var(--accent)" stop-opacity=".22"/>
       <stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
     <path d="${area}" fill="url(#g)"/>
-    <line x1="0" y1="${refY}" x2="${W}" y2="${refY}" stroke="var(--green)" stroke-dasharray="3 4" opacity=".55"/>
-    <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
-    ${points.map((p,i)=>`<circle cx="${sx(i).toFixed(1)}" cy="${sy(p.min_kop).toFixed(1)}" r="${points.length<12?3:0}" fill="var(--accent)"/>`).join('')}
+    ${ref}
+    <path d="${solid}" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linejoin="round"
+      stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+    <path d="${dashed}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="4 4"
+      opacity=".45" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    ${points.map((p,i)=>`<circle cx="${f(X(i))}" cy="${f(Y(i))}" r="${points.length>40?1.6:2.8}" fill="var(--accent)"/>`).join('')}
   </svg>`;
 }
 
@@ -273,10 +302,16 @@ async function openHistory(d){
   bg.classList.add('on'); sh.classList.add('on');
   bg.onclick=()=>{ bg.classList.remove('on'); sh.classList.remove('on'); };
   try{
+    const W=Math.max(260, (sh.clientWidth||360)-36);   // viewBox = реальні пікселі → без спотворення
     const hist=await api(`/api/product/${d.store_product_id}/history`);
     const ref=d.reference_kop!=null
-      ? `За нашими спостереженнями ціна за 30 днів <b>не була нижчою за ${grn(d.reference_kop)}</b>.`
+      ? `За нашими спостереженнями ціна за 30 днів <b>не була нижчою за ${grn(d.reference_kop)}</b> — сірий пунктир.`
       : 'Історія ще накопичується — статутну базу за 30 днів рахуємо з часом.';
+    const meas=hist.reduce((a,p)=>a+(p.n||0),0);
+    const days=hist.length>1 ? Math.round((Date.parse(hist[hist.length-1].day)-Date.parse(hist[0].day))/86400000)+1 : hist.length;
+    const basis=hist.length ? `Основа: <b>${plu(meas,'вимір','виміри','вимірів')}</b> у ${hist.length} з ${plu(days,'доби','діб','діб')}.
+      Лінія тримає останній вимір до наступного; пунктир — проміжки без вимірів.
+      <b>Між вимірами ціна могла змінюватись — ми цього не фіксували.</b>` : '';
     sh.innerHTML=`<div class="grip"></div>
       <p class="title">${esc(d.title)}</p>
       <div class="meta" style="margin:2px 0 8px"><b>${esc(d.store||'')}</b>${d.variant_note?' · '+esc(d.variant_note):''}</div>
@@ -286,8 +321,8 @@ async function openHistory(d){
         ${off?`<span class="off" style="position:static;box-shadow:none">−${off}%</span>`:''}
       </div>
       <span class="badge b-${d.badge_state}"><span class="dot"></span>${bt}</span>
-      ${sparkline(hist)}
-      <div class="prov">${ref} Заміри Шару 1; ${hist.length} діб історії.</div>
+      ${sparkline(hist, d.reference_kop, W)}
+      <div class="prov">${ref} ${basis}</div>
       <a class="cta" href="${esc(d.url)}" target="_blank" rel="noopener">Відкрити в крамниці →</a>`;
   }catch(e){ sh.innerHTML+='<div class="prov">Не вдалося завантажити історію.</div>'; }
 }
