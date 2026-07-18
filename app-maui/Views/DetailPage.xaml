@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Hapay.Views.DetailPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:Hapay.ViewModels"
+    xmlns:conv="clr-namespace:Hapay.Converters"
+    x:DataType="vm:DetailViewModel"
+    Title="{Binding Item.Store}">
+
+    <ContentPage.Resources>
+        <conv:StringNotEmptyConverter x:Key="NotEmpty" />
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="12">
+
+            <Image Source="{Binding Item.ImageUrl}" Aspect="AspectFit" HeightRequest="200" />
+
+            <Label Text="{Binding Item.Title}" FontSize="18" FontAttributes="Bold" />
+            <Label Text="{Binding Item.VariantNote}" TextColor="Gray"
+                   IsVisible="{Binding Item.VariantNote, Converter={StaticResource NotEmpty}}" />
+
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="10">
+                <Label Grid.Column="0" Text="{Binding Item.CurrentGrn}" FontSize="24"
+                       FontAttributes="Bold" VerticalOptions="End" />
+                <Label Grid.Column="1" Text="{Binding Item.OldGrn}" FontSize="15" TextColor="Gray"
+                       TextDecorations="Strikethrough" VerticalOptions="End"
+                       IsVisible="{Binding Item.HasOld}" />
+                <Border Grid.Column="3" BackgroundColor="#E23B3B" Padding="7,3" StrokeThickness="0"
+                        StrokeShape="RoundRectangle 7" IsVisible="{Binding Item.HasPct}" VerticalOptions="End">
+                    <Label Text="{Binding Item.PctText}" TextColor="White" FontAttributes="Bold" FontSize="12" />
+                </Border>
+            </Grid>
+
+            <Label Text="Історія ціни" FontAttributes="Bold" TextColor="Gray" Margin="0,12,0,0" />
+            <ActivityIndicator IsRunning="{Binding LoadingHistory}" IsVisible="{Binding LoadingHistory}"
+                               HorizontalOptions="Start" />
+            <Label Text="{Binding HistoryNote}" TextColor="Gray"
+                   IsVisible="{Binding HistoryNote, Converter={StaticResource NotEmpty}}" />
+            <GraphicsView x:Name="Chart" HeightRequest="180" />
+
+            <Button Text="Відкрити в крамниці" Command="{Binding OpenStoreCommand}"
+                    Margin="0,12,0,0" HeightRequest="48" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

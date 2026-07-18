@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Hapay.Views.HomePage"
+    x:Name="Page"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:Hapay.ViewModels"
+    xmlns:models="clr-namespace:Hapay.Models"
+    xmlns:conv="clr-namespace:Hapay.Converters"
+    x:DataType="vm:HomeViewModel"
+    Title="Хапай">
+
+    <ContentPage.Resources>
+        <conv:StringNotEmptyConverter x:Key="NotEmpty" />
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*" Padding="0">
+
+        <!-- панель: пошук + категорія + сорт -->
+        <VerticalStackLayout Grid.Row="0" Padding="12,8" Spacing="8">
+            <SearchBar Placeholder="Пошук за назвою…" Text="{Binding SearchText}" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                <Picker Grid.Column="0"
+                        ItemsSource="{Binding Categories}"
+                        ItemDisplayBinding="{Binding Display}"
+                        SelectedItem="{Binding SelectedCategory}" />
+                <Picker Grid.Column="1"
+                        ItemsSource="{Binding SortOptions}"
+                        ItemDisplayBinding="{Binding Label}"
+                        SelectedItem="{Binding SelectedSort}" />
+            </Grid>
+            <Label Text="{Binding ErrorMessage}" TextColor="#E23B3B"
+                   IsVisible="{Binding ErrorMessage, Converter={StaticResource NotEmpty}}" />
+        </VerticalStackLayout>
+
+        <!-- стрічка -->
+        <RefreshView Grid.Row="1" IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefreshCommand}">
+            <CollectionView ItemsSource="{Binding Items}"
+                            RemainingItemsThreshold="5"
+                            RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}">
+
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="32" Spacing="8" VerticalOptions="Center">
+                        <Label Text="Нічого не знайдено" HorizontalOptions="Center"
+                               FontAttributes="Bold" IsVisible="{Binding ShowEmpty}" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:Discount">
+                        <Grid Padding="12,6">
+                            <Border StrokeThickness="0" BackgroundColor="{AppThemeBinding Light=White, Dark=#191B1F}"
+                                    StrokeShape="RoundRectangle 15" Padding="10">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding Source={x:Reference Page}, Path=BindingContext.GoToDetailCommand}"
+                                        CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="74,*" ColumnSpacing="12">
+                                    <Image Grid.Column="0" Source="{Binding ImageUrl}" Aspect="AspectFit"
+                                           WidthRequest="74" HeightRequest="74" />
+                                    <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                        <Label Text="{Binding Title}" MaxLines="2" LineBreakMode="TailTruncation"
+                                               FontAttributes="Bold" />
+                                        <Label Text="{Binding SubTitle}" FontSize="12" TextColor="Gray" />
+                                        <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
+                                            <Label Grid.Column="0" Text="{Binding CurrentGrn}"
+                                                   FontAttributes="Bold" FontSize="17" VerticalOptions="End" />
+                                            <Label Grid.Column="1" Text="{Binding OldGrn}" FontSize="13"
+                                                   TextColor="Gray" TextDecorations="Strikethrough"
+                                                   VerticalOptions="End" IsVisible="{Binding HasOld}" />
+                                            <Border Grid.Column="3" BackgroundColor="#E23B3B" Padding="7,3"
+                                                    StrokeThickness="0" StrokeShape="RoundRectangle 7"
+                                                    IsVisible="{Binding HasPct}" VerticalOptions="End">
+                                                <Label Text="{Binding PctText}" TextColor="White"
+                                                       FontAttributes="Bold" FontSize="12" />
+                                            </Border>
+                                        </Grid>
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+
+                <CollectionView.Footer>
+                    <ActivityIndicator IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}"
+                                       Margin="0,16" HorizontalOptions="Center" />
+                </CollectionView.Footer>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+</ContentPage>
