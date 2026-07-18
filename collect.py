@@ -44,7 +44,9 @@ SOURCES = [
      "discount_urls": ["https://petchoice.ua/discounts"]},
     # Allo: каталог client-side, але акційні лендинги SSR (розвідка 2026-07-18).
     # hub_discovery: спершу хаб → adapter.discover() → лендинги (*-action/).
-    {"name": "Allo", "base_url": "https://allo.ua", "platform": "nuxt",
+    # platform: 'custom' — власна платформа Allo (Nuxt це фронтенд, а CHECK у §6
+    # дозволяє лише horoshop/opencart/woocommerce/magento/bitrix/custom)
+    {"name": "Allo", "base_url": "https://allo.ua", "platform": "custom",
      "fetch_tier": "A", "adapter": AlloAdapter(), "category_slug": "uncategorized",
      "hub_discovery": True, "max_pages": 20,
      "discount_urls": [ALLO_HUB]},
