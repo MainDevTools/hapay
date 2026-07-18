@@ -34,7 +34,7 @@ log "1/7 Оновлення системи + автооновлення безп
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get upgrade -y -qq
-apt-get install -y -qq ca-certificates curl gnupg ufw fail2ban unattended-upgrades openssl
+apt-get install -y -qq ca-certificates curl gnupg git ufw fail2ban unattended-upgrades openssl
 # без цього сервер тихо гниє незакритими дірками
 dpkg-reconfigure -f noninteractive unattended-upgrades
 
