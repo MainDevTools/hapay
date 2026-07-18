@@ -9,7 +9,7 @@ ThemeData hapayTheme(Brightness b) {
     useMaterial3: true,
     colorScheme: scheme,
     scaffoldBackgroundColor: b == Brightness.dark ? const Color(0xFF101114) : const Color(0xFFF4F5F7),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(   // Flutter 3.27+ очікує ...ThemeData тут; CardTheme = компіл-помилка
       elevation: 0,
       color: b == Brightness.dark ? const Color(0xFF191B1F) : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),

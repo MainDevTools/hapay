@@ -101,13 +101,19 @@ class _DetailScreenState extends State<DetailScreen> {
                   textAlign: TextAlign.center, style: TextStyle(color: t.hintColor)),
             );
           }
-          // сходинки, не інтерполяція: між вимірами ціна могла бути іншою — не вигадуємо (§5.4.2)
+          // сходинки, не інтерполяція, І РОЗРИВ на добах без вимірів: між ними ціна могла бути
+          // іншою — не вигадуємо суцільну лінію (T12/§5.4.2; бекенд пропускає порожні доби навмисно).
           final x0 = pts.first.day.millisecondsSinceEpoch.toDouble();
-          final spots = <FlSpot>[];
-          for (var i = 0; i < pts.length; i++) {
-            final x = (pts[i].day.millisecondsSinceEpoch.toDouble() - x0) / 86400000.0;
+          double xOf(int i) => (pts[i].day.millisecondsSinceEpoch.toDouble() - x0) / 86400000.0;
+          final spots = <FlSpot>[FlSpot(xOf(0), pts[0].minKop / 100.0)];
+          for (var i = 1; i < pts.length; i++) {
+            final x = xOf(i);
             final y = pts[i].minKop / 100.0;
-            if (i > 0) spots.add(FlSpot(x, pts[i - 1].minKop / 100.0)); // горизонталь до нового виміру
+            if (x - xOf(i - 1) > 1.5) {
+              spots.add(FlSpot.nullSpot); // прогалина ≥2 діб → розрив лінії, не горизонталь
+            } else {
+              spots.add(FlSpot(x, pts[i - 1].minKop / 100.0)); // сходинка лише між суміжними днями
+            }
             spots.add(FlSpot(x, y));
           }
           return LineChart(LineChartData(

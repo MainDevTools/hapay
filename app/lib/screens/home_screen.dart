@@ -26,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _loading = false;
   bool _more = true;
   String? _error;
+  int _gen = 0; // покоління запиту: зміна фільтра інвалідує in-flight відповіді (проти гонки)
 
   @override
   void initState() {
@@ -53,21 +54,27 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _reload() async {
+    final gen = ++_gen; // нове покоління → будь-який in-flight _loadMore стає застарілим
     setState(() {
       _page = 0;
       _more = true;
       _error = null;
       _items.clear();
+      _loading = true;
     });
-    await _loadMore();
+    await _fetch(gen); // НЕ через _loadMore: свіжий reload не має блокуватись прапором _loading
   }
 
   Future<void> _loadMore() async {
     if (_loading || !_more) return;
     setState(() => _loading = true);
+    await _fetch(_gen);
+  }
+
+  Future<void> _fetch(int gen) async {
     try {
       final batch = await _api.discounts(category: _cat, q: _q, sort: _sort, page: _page);
-      if (!mounted) return;
+      if (!mounted || gen != _gen) return; // фільтр змінився під час запиту → відповідь застаріла
       setState(() {
         _items.addAll(batch);
         _more = batch.length >= 50;
@@ -75,9 +82,10 @@ class _HomeScreenState extends State<HomeScreen> {
         _error = null;
       });
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (!mounted || gen != _gen) return;
+      setState(() => _error = '$e');
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && gen == _gen) setState(() => _loading = false);
     }
   }
 
@@ -160,7 +168,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildBody() {
     if (_items.isEmpty && _loading) {
-      return const Center(child: CircularProgressIndicator());
+      // ListView (не Center): інакше RefreshIndicator не має що скролити
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: const [SizedBox(height: 160), Center(child: CircularProgressIndicator())],
+      );
     }
     if (_items.isEmpty && _error != null) {
       return _message(Icons.cloud_off, 'Не вдалося завантажити', _error!, retry: true);
@@ -193,6 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _message(IconData icon, String title, String sub, {bool retry = false}) => ListView(
+        physics: const AlwaysScrollableScrollPhysics(), // щоб pull-to-refresh працював і тут
         children: [
           const SizedBox(height: 120),
           Icon(icon, size: 48, color: Theme.of(context).hintColor),
