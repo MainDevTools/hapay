@@ -1,0 +1,16 @@
+# Flutter/Dart build artifacts — генеруються, не комітяться
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+*.iml
+.idea/
+# platform-папки генерує `flutter create` на машині розробника
+android/
+ios/
+web/
+windows/
+linux/
+macos/
+# lockfile лишаємо в git (відтворюваність), тому pubspec.lock НЕ ігноруємо
