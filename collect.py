@@ -9,7 +9,9 @@ CI-тест підставляє касету через параметр `fetch
 Секрет `DATABASE_URL` — лише з env (Actions secret); ніколи в репо (git-безпека §8).
 """
 from __future__ import annotations
+import dataclasses
 import gzip
+import json
 import os
 import sys
 import time
@@ -54,7 +56,7 @@ SOURCES = [
     # іншої точки (напр. GH Actions → POST на наш ingest-API) або зміна політики Allo.
     {"name": "Allo", "base_url": "https://allo.ua", "platform": "custom",
      "fetch_tier": "A", "adapter": AlloAdapter(), "category_slug": "uncategorized",
-     "hub_discovery": True, "max_pages": 20, "enabled": False,
+     "hub_discovery": True, "max_pages": 20, "enabled": False, "satellite": True,
      "discount_urls": [ALLO_HUB]},
 ]
 
@@ -92,25 +94,13 @@ def default_fetch(url: str) -> str:
         return decode_body(r.read(), r.headers.get("Content-Encoding"))
 
 
-def _collect_source(conn, src, categories, fetch, delay) -> dict:
-    """Один прохід по джерелу. НЕ кидає: падіння однієї крамниці не має валити решту
-    (на 10-50 крамницях це був би щоденний обвал). Повертає звіт для виклику.
+def _extract_source(src, fetch, delay) -> tuple[list, list[str], int]:
+    """Спільне ядро: fetch+extract усіх сторінок джерела → (items, errors, к-сть_сторінок).
+    БЕЗ БД і БЕЗ POST — ним користуються і серверний персист, і сателітний передавач.
 
-    `scan_run` створюється песимістично зі status='failed' і стає 'ok' лише в кінці:
-    якщо процес помре посеред проходу, у БД лишиться чесне 'failed', а не бадьора
-    брехня. Раніше рядок писався одразу як 'ok' — і провал виглядав успіхом (T13).
+    Дворівневий discovery (Allo-клас): discount_urls[0] — ХАБ, adapter.discover(хаб)
+    віддає справжні лендинги. Падіння хаба = 0 сторінок (нема звідки брати товари).
     """
-    name = src["name"]
-    source_id = upsert_source(conn, name, src["base_url"], adapter_kind="ssr",
-                              platform=src.get("platform"),
-                              discount_url=src["discount_urls"][0],
-                              fetch_tier=src.get("fetch_tier"))
-    scan_run_id = conn.execute(
-        "INSERT INTO scan_run (source_id, surface, status) VALUES (%s,'discovery','failed') "
-        "RETURNING scan_run_id", (source_id,)).fetchone()[0]
-
-    # Дворівневий discovery (Allo-клас): discount_urls[0] — ХАБ, адаптер.discover(хаб)
-    # віддає справжні сторінки-лендинги. Падіння хаба = failed одразу (сторінок нема звідки взяти).
     urls = list(src["discount_urls"])
     errors: list[str] = []
     if src.get("hub_discovery"):
@@ -138,6 +128,25 @@ def _collect_source(conn, src, categories, fetch, delay) -> dict:
                 continue
             seen.add(it.external_ref)
             items.append(it)
+    return items, errors, len(urls)
+
+
+def _collect_source(conn, src, categories, fetch, delay) -> dict:
+    """Один прохід по джерелу з ПЕРСИСТОМ у БД (серверний режим). НЕ кидає.
+
+    `scan_run` створюється песимістично зі status='failed' і стає 'ok' лише в кінці:
+    смерть посеред проходу лишає чесне 'failed', а не бадьору брехню (T13).
+    """
+    name = src["name"]
+    source_id = upsert_source(conn, name, src["base_url"], adapter_kind="ssr",
+                              platform=src.get("platform"),
+                              discount_url=src["discount_urls"][0],
+                              fetch_tier=src.get("fetch_tier"))
+    scan_run_id = conn.execute(
+        "INSERT INTO scan_run (source_id, surface, status) VALUES (%s,'discovery','failed') "
+        "RETURNING scan_run_id", (source_id,)).fetchone()[0]
+
+    items, errors, n_urls = _extract_source(src, fetch, delay)
 
     try:
         n = persist_items(conn, source_id, items, categories,
@@ -146,7 +155,7 @@ def _collect_source(conn, src, categories, fetch, delay) -> dict:
         errors.append(f"persist: {type(e).__name__}: {e}")
         n = 0
 
-    ok_urls = max(len(urls), 1) - len(errors)
+    ok_urls = max(n_urls, 1) - len(errors)
     status = "failed" if ok_urls == 0 else ("partial" if errors else "ok")
     conn.execute("UPDATE scan_run SET finished_at = now(), items_seen = %s, status = %s "
                  "WHERE scan_run_id = %s", (n, status, scan_run_id))
@@ -179,10 +188,67 @@ def collect(conn, sources, fetch=default_fetch, delay=POLITE_DELAY) -> dict:
             "problems": [r for r in per_source if r["status"] != "ok" or r["items"] == 0]}
 
 
+# ── сателіт: збирає зі СВОЄЇ (резидентної) мережі й ШЛЕ на сервер, не пише в БД ──
+# Навіщо: наш ДЦ-IP (Hetzner) ловить 403 від Allo/Rozetka/Foxtrot/... Довірений
+# колектор (оператор+друзі) зі свого дому проходить фільтр і POST-ить на /api/ingest,
+# де сервер валідує кожен елемент (§7.4 — не botnet: збирають власники, зі згодою).
+
+def _post_ingest(ingest_url: str, token: str, payload: dict) -> dict:
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(ingest_url, data=data, method="POST", headers={
+        "Content-Type": "application/json", "Authorization": f"Bearer {token}"})
+    with urllib.request.urlopen(req, timeout=90) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
+def collect_satellite(sources, ingest_url, token, *, fetch=default_fetch,
+                      delay=POLITE_DELAY, post=_post_ingest) -> list[dict]:
+    """Для кожного satellite-джерела: fetch+extract (свій IP) → POST на /api/ingest.
+    `post` інʼєктовний — тести підміняють, щоб не ходити в мережу."""
+    out = []
+    for src in sources:
+        if not src.get("satellite"):
+            continue
+        items, errors, _ = _extract_source(src, fetch, delay)
+        payload = {"source": src["name"],
+                   "items": [dataclasses.asdict(it) for it in items]}
+        resp, perr = None, None
+        try:
+            resp = post(ingest_url, token, payload)
+        except Exception as e:
+            perr = f"POST: {type(e).__name__}: {e}"
+        out.append({"source": src["name"], "sent": len(items),
+                    "errors": errors + ([perr] if perr else []), "resp": resp})
+    return out
+
+
+def main_satellite():
+    ingest_url = os.environ.get("INGEST_URL")
+    token = os.environ.get("INGEST_TOKEN")
+    if not ingest_url or not token:
+        print("SKIP satellite: потрібні INGEST_URL та INGEST_TOKEN у середовищі.")
+        return
+    results = collect_satellite(SOURCES, ingest_url, token)
+    bad = 0
+    for r in results:
+        ok = r["resp"] and not r["errors"] and r["sent"] > 0
+        print(f"  {r['source']:12} надіслано {r['sent']:>4}; сервер: {r['resp']}")
+        for e in r["errors"]:
+            print(f"      ! {e}")
+        bad += 0 if ok else 1
+    if not results:
+        print("немає satellite-джерел у SOURCES.")
+    if bad:
+        print(f"\nПРОВАЛ: {bad} джерел без даних/з помилками.")
+        sys.exit(1)
+
+
 def main():
+    if "--satellite" in sys.argv:
+        return main_satellite()
     url = os.environ.get("DATABASE_URL")
     if not url:
-        print("SKIP collect: DATABASE_URL не задано (потрібна ПОСТІЙНА БД — Neon + Actions secret).")
+        print("SKIP collect: DATABASE_URL не задано (потрібна ПОСТІЙНА БД).")
         return
     import psycopg
     migrate.apply(url)

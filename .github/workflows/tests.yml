@@ -31,6 +31,10 @@ jobs:
         run: python tests/test_initdata.py
       - name: розпаковка тіла — gzip/deflate (8.8x трафіку)
         run: python tests/test_fetch.py
+      - name: ingest — токен-гейт + валідація елементів (S10)
+        run: python tests/test_ingest.py
+      - name: сателіт-передавач — payload на касетах (S10)
+        run: python tests/test_satellite.py
       - name: таксономія — категоризація за URL (§2.6)
         run: python tests/test_taxonomy.py
 
