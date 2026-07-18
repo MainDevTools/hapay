@@ -30,10 +30,10 @@ Actions до неї не достукаються. `collect.yml` у Actions бі
 3. На сервері (зі своїм SSH-ключем):
    ```
    ssh root@89.167.84.32
-   curl -fsSL https://raw.githubusercontent.com/<OWNER>/<REPO>/main/deploy/hetzner/setup.sh -o setup.sh
+   curl -fsSL https://raw.githubusercontent.com/MainDevTools/hapay/main/deploy/hetzner/setup.sh -o setup.sh
    less setup.sh          # прочитай, перш ніж виконувати чужий скрипт від root
    bash setup.sh          # 1-й прогін: система, фаєрвол, Docker, шаблон секретів
-   git clone https://github.com/<OWNER>/<REPO>.git /opt/hapay/repo
+   git clone https://github.com/MainDevTools/hapay.git /opt/hapay/repo
    bash setup.sh          # 2-й прогін: доставить таймери (бачить уже склоноване репо)
    ```
 4. `nano /etc/hapay/hapay.env` — пароль Postgres **уже згенеровано**; перевір `HAPAY_DOMAIN`

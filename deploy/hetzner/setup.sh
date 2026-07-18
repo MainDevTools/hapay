@@ -12,7 +12,7 @@
 #
 # Запуск (від root, одразу після створення сервера):
 #   ssh root@<IP>
-#   curl -fsSL https://raw.githubusercontent.com/<OWNER>/<REPO>/main/deploy/hetzner/setup.sh -o setup.sh
+#   curl -fsSL https://raw.githubusercontent.com/MainDevTools/hapay/main/deploy/hetzner/setup.sh -o setup.sh
 #   less setup.sh          # ПРОЧИТАЙ, перш ніж виконувати чужий скрипт від root
 #   bash setup.sh
 set -Eeuo pipefail
@@ -101,7 +101,7 @@ log "6/7 Код у $REPO_DIR"
 install -d "$APP_DIR"
 if [[ ! -d "$REPO_DIR/.git" ]]; then
   echo "Репо ще не склоновано. Зроби вручну (URL — твого GitHub-акаунта):"
-  echo "  git clone https://github.com/<OWNER>/<REPO>.git $REPO_DIR"
+  echo "  git clone https://github.com/MainDevTools/hapay.git $REPO_DIR"
   echo "Тоді запусти setup.sh ще раз — доставить таймери."
 else
   log "7/7 Таймери: колектор 2x/добу + бекап щоночі"
