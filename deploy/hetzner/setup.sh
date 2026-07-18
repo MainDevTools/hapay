@@ -110,6 +110,9 @@ sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='$POSTGRES_D
 
 log "7/9 Код + Python-venv + міграції"
 [[ -d "$REPO_DIR/.git" ]] || die "нема $REPO_DIR — спершу: git clone https://github.com/MainDevTools/hapay.git $REPO_DIR"
+# репо належить користувачу hapay, а git pull робиться від root — без цього git відмовляє
+# з «dubious ownership» і оновлення мовчки не доїжджають
+git config --global --add safe.directory "$REPO_DIR" 2>/dev/null || true
 if ! id -u "$APP_USER" &>/dev/null; then
   adduser --system --group --home "$APP_DIR" --shell /usr/sbin/nologin "$APP_USER"
 fi
@@ -195,15 +198,18 @@ if ! command -v caddy &>/dev/null; then
   apt-get install -y -qq caddy
 fi
 install -m 0644 "$REPO_DIR/deploy/hetzner/Caddyfile" /etc/caddy/Caddyfile
-# щоб {$HAPAY_DOMAIN} у Caddyfile підставився — даємо Caddy наш env-файл
+# Caddy бачить ЛИШЕ домен, не весь hapay.env: пароль БД йому не потрібен, а systemd
+# при падінні друкує оточення сервісу в journald — секретам там не місце.
+grep '^HAPAY_DOMAIN=' "$ENV_FILE" > /etc/hapay/caddy.env
+chmod 644 /etc/hapay/caddy.env
 install -d /etc/systemd/system/caddy.service.d
-cat > /etc/systemd/system/caddy.service.d/hapay.conf <<EOF
+cat > /etc/systemd/system/caddy.service.d/hapay.conf <<'EOF'
 [Service]
-EnvironmentFile=$ENV_FILE
+EnvironmentFile=/etc/hapay/caddy.env
 EOF
 systemctl daemon-reload
-systemctl enable --now caddy
-systemctl reload caddy || systemctl restart caddy
+systemctl enable caddy
+systemctl restart caddy
 
 IP="$(curl -fsS https://ipv4.icanhazip.com 2>/dev/null || echo '<IP>')"
 cat <<EOF
