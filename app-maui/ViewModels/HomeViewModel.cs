@@ -41,15 +41,16 @@ public partial class HomeViewModel : ObservableObject
     public async Task InitializeAsync()
     {
         if (_ready) return;
+        // «Усі категорії» додаємо ДО запиту — щоб пікер не лишився порожнім, якщо мережа впаде
+        Categories.Add(new Category { Slug = "", Name = "Усі категорії" });
         try
         {
             var cats = await _api.CategoriesAsync();
-            Categories.Add(new Category { Slug = "", Name = "Усі категорії" });
             foreach (var c in cats) Categories.Add(c);
         }
-        catch { /* категорії необовʼязкові */ }
+        catch { /* категорії необовʼязкові — «Усі» вже є */ }
 
-        _selectedCategory = Categories.Count > 0 ? Categories[0] : null;
+        _selectedCategory = Categories[0];   // завжди є принаймні «Усі категорії»
         _selectedSort = SortOptions[0];
         OnPropertyChanged(nameof(SelectedCategory));
         OnPropertyChanged(nameof(SelectedSort));
