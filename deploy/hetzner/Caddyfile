@@ -2,9 +2,9 @@
 # сертифікат видають на імʼя. Плюс домен дає змінити хост, не ламаючи вже встановлені
 # застосунки (інакше — оновлення в сторі й цикл рев'ю Apple заради зміни адреси).
 #
-# {$RADAR_DOMAIN} підставляється з /etc/radar/radar.env
+# {$HAPAY_DOMAIN} підставляється з /etc/hapay/hapay.env (через compose environment)
 
-{$RADAR_DOMAIN} {
+{$HAPAY_DOMAIN} {
 	encode gzip zstd
 
 	# Mini App вантажиться в iframe Telegram — інакше порожній екран.

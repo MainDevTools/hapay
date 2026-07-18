@@ -1,22 +1,28 @@
 #!/usr/bin/env bash
-# Разове налаштування чистого Hetzner CX22 / Ubuntu 24.04 під «Радар знижок».
+# Разове налаштування чистого Hetzner CX23 / Ubuntu 24.04 під «Хапай».
 #
 # ⚠ ЧЕСНО: написано наосліп. У пісочниці розробки немає ні Docker, ні WSL, ні Postgres,
 #   тож локально це не перевірялось. ПЕРШИЙ ЗАПУСК НА СЕРВЕРІ Й Є ТЕСТОМ. На чистій
 #   машині втрачати нічого, але не запускай це на сервері з даними.
 #
+# Архітектура (2026-07-18): усе на одному сервері — db (Postgres) + api + caddy + collect.
+# Neon відкинуто; колектор переїхав сюди з GitHub Actions (база приватна).
+#
 # Ідемпотентний: можна ганяти повторно.
 #
 # Запуск (від root, одразу після створення сервера):
 #   ssh root@<IP>
-#   curl -fsSL https://raw.githubusercontent.com/<OWNER>/radar-znyzhok/main/deploy/hetzner/setup.sh -o setup.sh
+#   curl -fsSL https://raw.githubusercontent.com/<OWNER>/<REPO>/main/deploy/hetzner/setup.sh -o setup.sh
 #   less setup.sh          # ПРОЧИТАЙ, перш ніж виконувати чужий скрипт від root
 #   bash setup.sh
 set -Eeuo pipefail
 
-RADAR_USER="radar"
-RADAR_DIR="/opt/radar"
-SECRET_DIR="/etc/radar"
+APP_USER="hapay"
+APP_DIR="/opt/hapay"
+REPO_DIR="$APP_DIR/repo"
+SECRET_DIR="/etc/hapay"
+ENV_FILE="$SECRET_DIR/hapay.env"
+COMPOSE_DIR="$REPO_DIR/deploy/hetzner"
 log() { printf '\n\033[1;32m==> %s\033[0m\n' "$*"; }
 die() { printf '\n\033[1;31mСТОП: %s\033[0m\n' "$*" >&2; exit 1; }
 
@@ -24,21 +30,15 @@ die() { printf '\n\033[1;31mСТОП: %s\033[0m\n' "$*" >&2; exit 1; }
 [[ -f /etc/os-release ]] && . /etc/os-release
 [[ "${VERSION_ID:-}" == "24.04" ]] || echo "УВАГА: очікував Ubuntu 24.04, маю ${VERSION_ID:-?} — продовжую"
 
-log "1/8 Оновлення системи + автооновлення безпеки"
+log "1/7 Оновлення системи + автооновлення безпеки"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get upgrade -y -qq
-apt-get install -y -qq ca-certificates curl gnupg ufw fail2ban unattended-upgrades postgresql-client-16
+apt-get install -y -qq ca-certificates curl gnupg ufw fail2ban unattended-upgrades openssl
 # без цього сервер тихо гниє незакритими дірками
 dpkg-reconfigure -f noninteractive unattended-upgrades
 
-log "2/8 Користувач ${RADAR_USER} (працюємо не від root)"
-if ! id -u "$RADAR_USER" &>/dev/null; then
-  adduser --system --group --home "$RADAR_DIR" --shell /usr/sbin/nologin "$RADAR_USER"
-fi
-install -d -o "$RADAR_USER" -g "$RADAR_USER" -m 0750 "$RADAR_DIR"
-
-log "3/8 Фаєрвол: закрито все, крім SSH і HTTPS"
+log "2/7 Фаєрвол: закрито все, крім SSH і HTTPS (Postgres назовні НЕ світиться)"
 ufw --force reset >/dev/null
 ufw default deny incoming
 ufw default allow outgoing
@@ -48,16 +48,15 @@ ufw allow 443/tcp  comment 'https'
 ufw --force enable
 ufw status verbose
 
-log "4/8 SSH: лише ключі, root без пароля"
+log "3/7 SSH: лише ключі, root без пароля"
 sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
 sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
-# Hetzner кладе свої налаштування сюди — вони перекривають головний файл
-rm -f /etc/ssh/sshd_config.d/50-cloud-init.conf
+rm -f /etc/ssh/sshd_config.d/50-cloud-init.conf   # Hetzner кладе тут перекриття
 sshd -t || die "конфіг sshd зламаний — НЕ перезапускаю, бо втратиш доступ"
 systemctl reload ssh
 systemctl enable --now fail2ban
 
-log "5/8 Docker"
+log "4/7 Docker"
 if ! command -v docker &>/dev/null; then
   install -m 0755 -d /etc/apt/keyrings
   curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
@@ -71,64 +70,102 @@ fi
 systemctl enable --now docker
 docker --version
 
-log "6/8 Секрети → ${SECRET_DIR}/radar.env (поза git, chmod 600)"
+log "5/7 Секрети → $ENV_FILE (поза git, chmod 600; пароль Postgres генерується сам)"
 install -d -m 0700 "$SECRET_DIR"
-if [[ ! -f "$SECRET_DIR/radar.env" ]]; then
-  cat > "$SECRET_DIR/radar.env" <<'EOF'
-# Секрети. НІКОЛИ не комітити (git-безпека §8). chmod 600.
-DATABASE_URL=postgresql://user:pass@ep-xxx.eu-central-1.aws.neon.tech/neondb?sslmode=require
-BOT_TOKEN=
-RADAR_DOMAIN=radar.example.com
-GHCR_OWNER=
-# Куди складати pg_dump ПОЗА цим сервером (Storage Box / B2). Порожнє = бекапів нема.
+if [[ ! -f "$ENV_FILE" ]]; then
+  PGPASS="$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)"   # URL-safe, без /+=
+  cat > "$ENV_FILE" <<EOF
+# Секрети «Хапай». НІКОЛИ не комітити (git-безпека §8). chmod 600.
+# Postgres — на цьому ж сервері; DATABASE_URL compose будує сам із цих трьох:
+POSTGRES_USER=hapay
+POSTGRES_PASSWORD=$PGPASS
+POSTGRES_DB=hapay
+
+# Домен для HTTPS (Caddy отримає сертифікат саме на нього):
+HAPAY_DOMAIN=hapay.com.ua
+
+# Куди складати pg_dump ПОЗА цей сервер (Storage Box: user@host:path / rsync:// / s3://).
+# Порожнє = бекапів НЕМА і hapay-backup впаде навмисно (мовчазний успіх гірший за помилку).
 BACKUP_TARGET=
+
+# Опційно (Telegram Mini App):
+BOT_TOKEN=
 EOF
-  chmod 600 "$SECRET_DIR/radar.env"
-  echo "СТВОРЕНО шаблон — впиши значення РУКАМИ: nano $SECRET_DIR/radar.env"
+  chmod 600 "$ENV_FILE"
+  echo "СТВОРЕНО з готовим паролем Postgres. Перевір/впиши домен і BACKUP_TARGET: nano $ENV_FILE"
 else
-  echo "вже існує — не чіпаю"
+  echo "вже існує — не чіпаю (пароль не перегенеровую)"
 fi
 
-log "7/8 Код у ${RADAR_DIR}"
-if [[ ! -d "$RADAR_DIR/repo/.git" ]]; then
-  echo "Клонуй репо вручну (щоб не зашивати сюди URL нового акаунта):"
-  echo "  git clone https://github.com/<OWNER>/radar-znyzhok.git $RADAR_DIR/repo"
-fi
-
-log "8/8 Бекапи + таймер"
-install -m 0755 "$RADAR_DIR/repo/deploy/hetzner/backup.sh" /usr/local/bin/radar-backup 2>/dev/null \
-  || echo "backup.sh ще нема (репо не склоновано) — постав пізніше"
-cat > /etc/systemd/system/radar-backup.service <<EOF
+log "6/7 Код у $REPO_DIR"
+install -d "$APP_DIR"
+if [[ ! -d "$REPO_DIR/.git" ]]; then
+  echo "Репо ще не склоновано. Зроби вручну (URL — твого GitHub-акаунта):"
+  echo "  git clone https://github.com/<OWNER>/<REPO>.git $REPO_DIR"
+  echo "Тоді запусти setup.sh ще раз — доставить таймери."
+else
+  log "7/7 Таймери: колектор 2x/добу + бекап щоночі"
+  # колектор
+  cat > /etc/systemd/system/hapay-collect.service <<EOF
 [Unit]
-Description=Радар — pg_dump бази ПОЗА цей сервер
+Description=Хапай — збір цін (collect)
+After=docker.service
+Requires=docker.service
 [Service]
 Type=oneshot
-EnvironmentFile=$SECRET_DIR/radar.env
-ExecStart=/usr/local/bin/radar-backup
+WorkingDirectory=$COMPOSE_DIR
+ExecStart=/usr/bin/docker compose --env-file $ENV_FILE run --rm collect
 EOF
-cat > /etc/systemd/system/radar-backup.timer <<'EOF'
+  cat > /etc/systemd/system/hapay-collect.timer <<'EOF'
 [Unit]
-Description=Радар — бекап щодня о 03:17
+Description=Хапай — збір 2x/добу
+[Timer]
+OnCalendar=*-*-* 05:23:00
+OnCalendar=*-*-* 17:23:00
+Persistent=true
+[Install]
+WantedBy=timers.target
+EOF
+  # бекап (backup.sh сам читає ENV_FILE і робить dump через контейнер)
+  install -m 0755 "$COMPOSE_DIR/backup.sh" /usr/local/bin/hapay-backup
+  cat > /etc/systemd/system/hapay-backup.service <<EOF
+[Unit]
+Description=Хапай — pg_dump бази ПОЗА цей сервер
+After=docker.service
+Requires=docker.service
+[Service]
+Type=oneshot
+WorkingDirectory=$COMPOSE_DIR
+ExecStart=/usr/local/bin/hapay-backup
+EOF
+  cat > /etc/systemd/system/hapay-backup.timer <<'EOF'
+[Unit]
+Description=Хапай — бекап щодня о 03:17
 [Timer]
 OnCalendar=*-*-* 03:17:00
 Persistent=true
 [Install]
 WantedBy=timers.target
 EOF
-systemctl daemon-reload
-systemctl enable radar-backup.timer 2>/dev/null || true
+  systemctl daemon-reload
+  systemctl enable hapay-collect.timer hapay-backup.timer
+  echo "таймери увімкнено (стартують за розкладом)"
+fi
 
+IP="$(curl -fsS https://ipv4.icanhazip.com 2>/dev/null || echo '<IP>')"
 cat <<EOF
 
 ╭──────────────────────────────────────────────────────────────────╮
-│  Базове налаштування завершено. ЩО ЗАЛИШИЛОСЬ ЗРОБИТИ РУКАМИ:    │
+│  Готово. ЩО ЗАЛИШИЛОСЬ ЗРОБИТИ РУКАМИ:                            │
 ╰──────────────────────────────────────────────────────────────────╯
-  1. nano $SECRET_DIR/radar.env        — вписати DATABASE_URL, домен, GHCR_OWNER
-  2. git clone <репо> $RADAR_DIR/repo
-  3. DNS: A-запис домену → $(curl -fsS https://ipv4.icanhazip.com 2>/dev/null || echo '<IP>')
-     Тільки ПІСЛЯ цього піднімай Caddy — інакше Let's Encrypt дасть по руках
-     за невдалі спроби (є ліміт).
-  4. cd $RADAR_DIR/repo/deploy/hetzner && docker compose --env-file $SECRET_DIR/radar.env up -d
-  5. systemctl start radar-backup.service && journalctl -u radar-backup -n 30
-     ↑ перевір бекап ОДРАЗУ. Бекап, який не пробували відновити, — не бекап.
+  1. nano $ENV_FILE          — перевір HAPAY_DOMAIN, впиши BACKUP_TARGET
+  2. git clone <репо> $REPO_DIR   (якщо ще не зроблено) → потім `bash setup.sh` ще раз
+  3. DNS: A-запис hapay.com.ua → $IP
+     Тільки ПІСЛЯ цього піднімай Caddy — у Let's Encrypt є ліміт невдалих спроб.
+  4. cd $COMPOSE_DIR && docker compose --env-file $ENV_FILE up -d --build
+     ↑ підніме db + migrate(одноразово) + api + caddy. Перший build ~2-3 хв.
+  5. Перевір: curl -s https://hapay.com.ua/api/health   → {"ok":true}
+  6. Збір разово: docker compose --env-file $ENV_FILE run --rm collect
+  7. Бекап ОДРАЗУ: systemctl start hapay-backup.service && journalctl -u hapay-backup -n 40
+     Бекап, який не пробували, — не бекап.
 EOF
