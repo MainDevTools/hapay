@@ -82,7 +82,7 @@ POSTGRES_PASSWORD=$PGPASS
 POSTGRES_DB=hapay
 
 # Домен для HTTPS (Caddy отримає сертифікат саме на нього):
-HAPAY_DOMAIN=hapay.com.ua
+HAPAY_DOMAIN=hapay.today
 
 # Куди складати pg_dump ПОЗА цей сервер (Storage Box: user@host:path / rsync:// / s3://).
 # Порожнє = бекапів НЕМА і hapay-backup впаде навмисно (мовчазний успіх гірший за помилку).
@@ -160,11 +160,11 @@ cat <<EOF
 ╰──────────────────────────────────────────────────────────────────╯
   1. nano $ENV_FILE          — перевір HAPAY_DOMAIN, впиши BACKUP_TARGET
   2. git clone <репо> $REPO_DIR   (якщо ще не зроблено) → потім `bash setup.sh` ще раз
-  3. DNS: A-запис hapay.com.ua → $IP
+  3. DNS: A-запис hapay.today → $IP
      Тільки ПІСЛЯ цього піднімай Caddy — у Let's Encrypt є ліміт невдалих спроб.
   4. cd $COMPOSE_DIR && docker compose --env-file $ENV_FILE up -d --build
      ↑ підніме db + migrate(одноразово) + api + caddy. Перший build ~2-3 хв.
-  5. Перевір: curl -s https://hapay.com.ua/api/health   → {"ok":true}
+  5. Перевір: curl -s https://hapay.today/api/health   → {"ok":true}
   6. Збір разово: docker compose --env-file $ENV_FILE run --rm collect
   7. Бекап ОДРАЗУ: systemctl start hapay-backup.service && journalctl -u hapay-backup -n 40
      Бекап, який не пробували, — не бекап.

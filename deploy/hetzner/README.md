@@ -25,7 +25,7 @@ Actions до неї не достукаються. `collect.yml` у Actions бі
 ## Порядок (твої кроки — CC не має права на акаунти/гроші/креденшели)
 
 1. **Сервер** уже є: Hetzner CX23, Ubuntu 24.04, IP `89.167.84.32`.
-2. **DNS:** у реєстратора `hapay.com.ua` → **A-запис на `89.167.84.32`**.
+2. **DNS:** у реєстратора `hapay.today` → **A-запис на `89.167.84.32`**.
    Зроби це **до** кроку «up» — у Let's Encrypt ліміт невдалих спроб сертифіката.
 3. На сервері (зі своїм SSH-ключем):
    ```
@@ -44,7 +44,7 @@ Actions до неї не достукаються. `collect.yml` у Actions бі
    docker compose --env-file /etc/hapay/hapay.env up -d --build
    ```
    Підніме db → migrate (раз) → api → caddy. Перший build ~2-3 хв.
-6. Перевірити: `curl -s https://hapay.com.ua/api/health` → `{"ok":true}`
+6. Перевірити: `curl -s https://hapay.today/api/health` → `{"ok":true}`
 7. Збір разово: `docker compose --env-file /etc/hapay/hapay.env run --rm collect`
 8. **Бекап ОДРАЗУ:** `systemctl start hapay-backup.service && journalctl -u hapay-backup -n 40`
 
