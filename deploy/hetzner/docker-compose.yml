@@ -29,7 +29,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - db_data:/var/lib/postgresql/data   # історія цін живе ТУТ — том переживає рестарти
+      # postgres:18+ монтує ТОМ у /var/lib/postgresql (дані в підпапці 18/docker), НЕ в /data —
+      # старий шлях /data образ 18 відхиляє з крешем (docker-library/postgres#37). Історія цін тут.
+      - db_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
