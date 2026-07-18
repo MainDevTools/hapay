@@ -69,21 +69,6 @@ jobs:
       - name: read-API — перелік/історія/watchlist (§8.10.1)
         run: python tests/test_api.py
 
-  docker:
-    # Верифікація Dockerfile: образ будується й API стартує (/api/health без БД).
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build образ read-API
-        run: docker build -t radar-api .
-      - name: Smoke /api/health (без БД)
-        run: |
-          docker run -d --name api -p 8080:8080 -e RUN_MIGRATIONS=0 radar-api
-          ok=0
-          for i in $(seq 1 20); do
-            if curl -sf http://localhost:8080/api/health; then ok=1; break; fi
-            sleep 2
-          done
-          test "$ok" = 1
-          curl -s http://localhost:8080/api/health | grep -q '"ok":true'
+  # docker-джоб знято 2026-07-18: прод — bare-metal (systemd+venv, рішення власника),
+  # Docker-образ більше не деплоїться, тож його smoke-тест тестував би те, чого нема.
 

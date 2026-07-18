@@ -1,64 +1,58 @@
-# Розгортання «Хапай» на Hetzner
+# Розгортання «Хапай» на Hetzner (bare-metal, без Docker)
 
-> ⚠ **Написано наосліп.** У пісочниці розробки немає ні Docker, ні WSL, ні Postgres —
-> локально це не перевірялось. **Перший запуск на сервері й буде тестом.** На чистій
-> машині це прийнятно; на машині з даними — ні.
+> ⚠ **Написано наосліп.** У пісочниці розробки немає сервера — локально це не
+> перевірялось. **Перший запуск на сервері й буде тестом.** На чистій машині це
+> прийнятно; на машині з даними — ні.
 
-## Що тут крутиться (усе на одному CX23)
+**Docker відкинуто** (рішення власника, 2026-07-18: «зайвий фрагмент»). Стек стоїть
+прямо на хості, керується systemd. Compose/Dockerfile видалено з репо.
 
-| сервіс | роль |
-|---|---|
-| **db** | Postgres 18 — **на цьому ж сервері** (Neon відкинуто, 2026-07-18). Порту назовні НЕМА |
-| **migrate** | одноразово накочує міграції й виходить |
-| **api** | `api.main:app` за Caddy |
-| **collect** | збір цін; НЕ стартує сам — запускає `hapay-collect.timer` 2x/добу |
-| **caddy** | TLS (Let's Encrypt) + зворотний проксі; єдине, що дивиться в інтернет |
+## Що крутиться на CX23 (Ubuntu 24.04, IP 89.167.84.32)
 
-**Чому Postgres тут, а не на Neon.** Рішення власника: усе на своєму залізі. Наслідок —
-**колектор переїхав із GitHub Actions сюди**, бо база приватна (без публічного порту) і
-Actions до неї не достукаються. `collect.yml` у Actions більше не працюватиме (нема куди
-писати) — його можна вимкнути.
+| компонент | як живе | роль |
+|---|---|---|
+| **PostgreSQL 18** | пакет із PGDG, `postgresql.service` | база; слухає **лише localhost** |
+| **API** | venv `/opt/hapay/venv`, `hapay-api.service` | uvicorn на 127.0.0.1:8080 |
+| **collect** | `hapay-collect.timer` 2×/добу (05:23, 17:23) | збір цін у локальну базу |
+| **Caddy** | пакет, `caddy.service` | TLS (Let's Encrypt) + проксі; єдине, що дивиться в інтернет |
+| **backup** | `hapay-backup.timer` щоночі 03:17 | `pg_dump` → офсайт (`BACKUP_TARGET`) |
 
-**Ціна цього рішення:** бекапи стали **критичним шляхом**, не приємним доповненням. Neon
-давав PITR безкоштовно; тут його заміняє `backup.sh` + офсайт. Див. нижче.
+Postgres 18 ставиться з **PGDG-репозиторію** (Ubuntu 24.04 дає лише 16) — щоб прод
+збігався з версією, проти якої зелений CI.
 
-## Порядок (твої кроки — CC не має права на акаунти/гроші/креденшели)
+**Колектор живе тут** (не в GitHub Actions): база локальна й назовні не видна.
+`collect.yml` в Actions більше не пише нікуди — можна вимкнути.
 
-1. **Сервер** уже є: Hetzner CX23, Ubuntu 24.04, IP `89.167.84.32`.
-2. **DNS:** у реєстратора `hapay.today` → **A-запис на `89.167.84.32`**.
-   Зроби це **до** кроку «up» — у Let's Encrypt ліміт невдалих спроб сертифіката.
-3. На сервері (зі своїм SSH-ключем):
+## Порядок (твої кроки)
+
+1. **DNS:** A-запис `hapay.today` → `89.167.84.32` (зроблено).
+2. На сервері:
    ```
    ssh root@89.167.84.32
-   curl -fsSL https://raw.githubusercontent.com/MainDevTools/hapay/main/deploy/hetzner/setup.sh -o setup.sh
-   less setup.sh          # прочитай, перш ніж виконувати чужий скрипт від root
-   bash setup.sh          # 1-й прогін: система, фаєрвол, Docker, шаблон секретів
-   git clone https://github.com/MainDevTools/hapay.git /opt/hapay/repo
-   bash setup.sh          # 2-й прогін: доставить таймери (бачить уже склоноване репо)
+   git clone https://github.com/MainDevTools/hapay.git /opt/hapay/repo   # якщо ще нема
+   cd /opt/hapay/repo && git pull
+   bash deploy/hetzner/setup.sh
    ```
-4. `nano /etc/hapay/hapay.env` — пароль Postgres **уже згенеровано**; перевір `HAPAY_DOMAIN`
-   і впиши **`BACKUP_TARGET`** (куди офсайт-бекап). **Значення не показуй CC, у git не клади.**
-5. Підняти:
+   Скрипт ідемпотентний; ставить Postgres 18, створює роль/базу, venv, міграції,
+   systemd-юніти, Caddy. Секрети — `/etc/hapay/hapay.env` (пароль генерує сам;
+   існуючий файл не перезаписує, лише доповнює `DATABASE_URL`, якщо його нема).
+3. `nano /etc/hapay/hapay.env` — перевір `HAPAY_DOMAIN`, впиши `BACKUP_TARGET`.
+   **Значення не показуй CC, у git не клади.**
+4. Перевірка:
    ```
-   cd /opt/hapay/repo/deploy/hetzner
-   docker compose --env-file /etc/hapay/hapay.env up -d --build
+   systemctl status hapay-api caddy postgresql --no-pager | grep Active
+   curl -s https://hapay.today/api/health     → {"ok":true}
    ```
-   Підніме db → migrate (раз) → api → caddy. Перший build ~2-3 хв.
-6. Перевірити: `curl -s https://hapay.today/api/health` → `{"ok":true}`
-7. Збір разово: `docker compose --env-file /etc/hapay/hapay.env run --rm collect`
-8. **Бекап ОДРАЗУ:** `systemctl start hapay-backup.service && journalctl -u hapay-backup -n 40`
+5. Збір разово: `systemctl start hapay-collect.service && journalctl -u hapay-collect -n 30`
+6. **Бекап одразу** (коли є `BACKUP_TARGET`): `systemctl start hapay-backup.service`
 
 ## Що зроблено, щоб не повторити 17 липня (T13)
 
 - `backup.sh` **падає**, якщо `BACKUP_TARGET` порожній — мовчазний успіх гірший за помилку.
-- Дамп іде **через контейнер** (`compose exec db pg_dump`) — версія завжди збігається з базою,
-  а Postgres не треба світити портом.
-- Перевіряє дамп: **магію формату** (`PGDMP`) + **читає назад** через `pg_restore --list`,
-  шукаючи `price_snapshot`. Порожній дамп щодня помічають надто пізно.
-- Бекап їде **поза сервер** (`BACKUP_TARGET`): бекап поруч із базою — один пункт відмови.
-- Postgres і API **без `ports:`** — назовні лише Caddy (443).
-- Логи всіх сервісів обмежені (`max-size`), інакше 40 ГБ диска тихо закінчаться.
-- `db_data` — іменований том: історія цін переживає рестарти контейнера.
+- Дамп перевіряється: розмір + **читання назад** (`pg_restore --list`, шукає `price_snapshot`).
+- Бекап їде **поза сервер**: бекап поруч із базою — один пункт відмови.
+- Postgres слухає лише localhost; назовні відкриті тільки 22/80/443 (ufw).
+- API працює від системного користувача `hapay` (не root).
 
 ## Раз на місяць — обов'язково
 
