@@ -44,7 +44,10 @@
   .brand{display:flex;align-items:baseline;gap:8px;margin:0 0 10px}
   .brand h1{margin:0;font-size:19px;font-weight:750;letter-spacing:-.02em}
   .brand .sub{color:var(--faint);font-size:12px;font-weight:500}
-  .controls{display:flex;gap:8px}
+  /* Підписи категорій довші за сортування (напр. «Амуніція (нашийники, повідці) (7)» ≈ 215px) і
+     не влазять у пів-рядка навіть на максимальній ширині колонки (540px → ≈209px тексту): лічильник
+     обрізало б. Стек — кожне поле на всю ширину, повний підпис видно. */
+  .controls{display:flex;flex-direction:column;gap:8px}
   select{flex:1;min-width:0;appearance:none;background:var(--surface);color:var(--fg);
     border:1px solid var(--line);border-radius:var(--radius-s);padding:9px 30px 9px 11px;font-size:13px;
     font-weight:550;cursor:pointer;
