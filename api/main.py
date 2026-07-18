@@ -12,7 +12,9 @@ from fastapi.responses import FileResponse
 
 from db.pool import get_pool
 from api import db as qdb
+from api import ingest as qingest
 from api.initdata import verify_init_data, check_auth_age, InitDataError
+from detection.runner import detect_pass
 
 app = FastAPI(title="Радар знижок — read-API")
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
@@ -77,3 +79,28 @@ def add_watchlist(body: dict, user=Depends(require_user), conn=Depends(get_conn)
         raise HTTPException(400, "kind ∈ category|store_product|query")
     return qdb.add_watchlist(conn, int(user["id"]), kind,
                              body.get("ref_id"), body.get("query_text"))
+
+
+def require_collector(authorization: str | None = Header(default=None)):
+    """Гейт ingest: приймаємо лише відомі bearer-токени довірених колекторів (S10)."""
+    label = qingest.collector_label(authorization)
+    if label is None:
+        raise HTTPException(401, "невідомий/відсутній токен колектора")
+    return label
+
+
+@app.post("/api/ingest")
+def ingest(body: dict, collector=Depends(require_collector), conn=Depends(get_conn)):
+    """Довірений колектор шле зібране зі своєї резидентної мережі (§7.4 — не botnet).
+    Сервер валідує КОЖЕН елемент (api/ingest), тоді детекція оновлює бейджі."""
+    source = body.get("source")
+    items = body.get("items")
+    if not isinstance(source, str) or not isinstance(items, list):
+        raise HTTPException(400, "потрібні source (str) та items (list)")
+    try:
+        result = qingest.ingest_batch(conn, source, items)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    result["events"] = detect_pass(conn)        # бейджі для щойно прийнятих (§8.4)
+    result["collector"] = collector
+    return result
