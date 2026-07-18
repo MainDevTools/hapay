@@ -26,22 +26,32 @@ def main():
         with open(os.path.join(os.path.dirname(__file__), "cassettes", name), encoding="utf-8") as f:
             return f.read()
     cas_ph, cas_pc = _read("pethouse_akcii.html"), _read("petchoice_akcii.html")
-    fetch = lambda url: cas_pc if "petchoice" in url else cas_ph   # DI: касета за URL, без HTTP
+    cas_ah, cas_aa = _read("allo_hub.html"), _read("allo_action.html")
+
+    def fetch(url):                                   # DI: касета за URL, без HTTP
+        if "petchoice" in url:
+            return cas_pc
+        if url.rstrip("/").endswith("events-and-discounts"):
+            return cas_ah                             # хаб Allo (hub_discovery)
+        if "-action/" in url:
+            return cas_aa                             # лендинг акції Allo
+        return cas_ph
 
     checks, failed = [], 0
     with psycopg.connect(URL, autocommit=True) as conn:
         stats = collect(conn, SOURCES, fetch=fetch, delay=0)
-        checks.append(("collect items = 12 (Pethouse 9 dedup + PetChoice 3)", stats["items"] == 12, stats))
+        # Allo: 9 лендингів із хаба, всі віддають ту саму касету → 3 unique (дедуп §10.1)
+        checks.append(("collect items = 15 (PH 9 + PC 3 + Allo 3)", stats["items"] == 15, stats))
 
         snaps = conn.execute("SELECT count(*) FROM price_snapshot").fetchone()[0]
-        checks.append(("price_snapshot = 12", snaps == 12, snaps))
+        checks.append(("price_snapshot = 15", snaps == 15, snaps))
 
         sr = conn.execute("SELECT count(*), count(*) FILTER (WHERE surface='discovery') FROM scan_run").fetchone()
-        checks.append(("2 discovery scan_run", sr == (2, 2), sr))
+        checks.append(("3 discovery scan_run", sr == (3, 3), sr))
 
         ev = conn.execute("SELECT count(*), count(*) FILTER (WHERE badge_state='declared') "
                           "FROM discount_event").fetchone()
-        checks.append(("11 подій, усі declared (8 PH + 3 PC)", ev == (11, 11), ev))
+        checks.append(("14 подій, усі declared (8 PH + 3 PC + 3 Allo)", ev == (14, 14), ev))
 
         ncats = conn.execute("SELECT count(DISTINCT sp.category_id) FROM store_product sp "
                              "JOIN category c USING (category_id) WHERE c.slug <> 'uncategorized'").fetchone()[0]
@@ -53,13 +63,15 @@ def main():
         def boom(url):
             if "petchoice" in url:
                 raise RuntimeError("імітація: крамниця лягла")
-            return cas_ph
+            return fetch(url)
 
         st2 = collect(conn, SOURCES, fetch=boom, delay=0)
         ph = next(r for r in st2["per_source"] if r["source"] == "Pethouse")
         pc = next(r for r in st2["per_source"] if r["source"] == "PetChoice")
-        checks.append(("падіння PetChoice НЕ завалило Pethouse",
-                       ph["items"] == 9 and ph["status"] == "ok", (ph, pc)))
+        al = next(r for r in st2["per_source"] if r["source"] == "Allo")
+        checks.append(("падіння PetChoice НЕ завалило Pethouse і Allo",
+                       ph["items"] == 9 and ph["status"] == "ok" and al["status"] == "ok",
+                       (ph, pc, al)))
         checks.append(("PetChoice → failed, 0 позицій", pc["status"] == "failed" and pc["items"] == 0, pc))
         checks.append(("detect_pass відпрацював попри падіння джерела", st2["events"] >= 0, st2["events"]))
         checks.append(("проблемне джерело потрапило в problems",

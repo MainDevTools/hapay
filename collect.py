@@ -16,6 +16,7 @@ import time
 import urllib.request
 import zlib
 
+from adapters.allo import HUB as ALLO_HUB, AlloAdapter
 from adapters.pethouse import PethouseAdapter
 from adapters.petchoice import PetChoiceAdapter
 from db import migrate
@@ -41,6 +42,12 @@ SOURCES = [
     {"name": "PetChoice", "base_url": "https://petchoice.ua", "platform": "custom",
      "fetch_tier": "A", "adapter": PetChoiceAdapter(), "category_slug": "uncategorized",
      "discount_urls": ["https://petchoice.ua/discounts"]},
+    # Allo: каталог client-side, але акційні лендинги SSR (розвідка 2026-07-18).
+    # hub_discovery: спершу хаб → adapter.discover() → лендинги (*-action/).
+    {"name": "Allo", "base_url": "https://allo.ua", "platform": "nuxt",
+     "fetch_tier": "A", "adapter": AlloAdapter(), "category_slug": "uncategorized",
+     "hub_discovery": True, "max_pages": 20,
+     "discount_urls": [ALLO_HUB]},
 ]
 
 
@@ -94,8 +101,23 @@ def _collect_source(conn, src, categories, fetch, delay) -> dict:
         "INSERT INTO scan_run (source_id, surface, status) VALUES (%s,'discovery','failed') "
         "RETURNING scan_run_id", (source_id,)).fetchone()[0]
 
-    items, seen, errors = [], set(), []
-    for i, url in enumerate(src["discount_urls"]):
+    # Дворівневий discovery (Allo-клас): discount_urls[0] — ХАБ, адаптер.discover(хаб)
+    # віддає справжні сторінки-лендинги. Падіння хаба = failed одразу (сторінок нема звідки взяти).
+    urls = list(src["discount_urls"])
+    errors: list[str] = []
+    if src.get("hub_discovery"):
+        try:
+            urls = src["adapter"].discover(fetch(urls[0]))[:src.get("max_pages", 20)]
+            if delay:
+                time.sleep(delay)
+            if not urls:
+                errors.append(f"{src['discount_urls'][0]}: discover() віддав 0 сторінок")
+        except Exception as e:
+            errors.append(f"hub {src['discount_urls'][0]}: {type(e).__name__}: {e}")
+            urls = []
+
+    items, seen = [], set()
+    for i, url in enumerate(urls):
         if i and delay:
             time.sleep(delay)                            # ввічливість між сторінками хоста
         try:
@@ -116,7 +138,7 @@ def _collect_source(conn, src, categories, fetch, delay) -> dict:
         errors.append(f"persist: {type(e).__name__}: {e}")
         n = 0
 
-    ok_urls = len(src["discount_urls"]) - len(errors)
+    ok_urls = max(len(urls), 1) - len(errors)
     status = "failed" if ok_urls == 0 else ("partial" if errors else "ok")
     conn.execute("UPDATE scan_run SET finished_at = now(), items_seen = %s, status = %s "
                  "WHERE scan_run_id = %s", (n, status, scan_run_id))
