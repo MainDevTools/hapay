@@ -16,6 +16,10 @@ import psycopg                                    # noqa: E402
 from db import migrate                            # noqa: E402
 from collect import collect, SOURCES              # noqa: E402
 
+# Allo в проді вимкнений (403 з ДЦ-IP), але конвеєр hub-discovery МУСИТЬ лишатись
+# перевіреним — вмикаємо примусово: тут fetch = касети, живого HTTP нема взагалі.
+TEST_SOURCES = [{**s, "enabled": True} for s in SOURCES]
+
 
 def main():
     with psycopg.connect(URL, autocommit=True) as conn:
@@ -39,7 +43,7 @@ def main():
 
     checks, failed = [], 0
     with psycopg.connect(URL, autocommit=True) as conn:
-        stats = collect(conn, SOURCES, fetch=fetch, delay=0)
+        stats = collect(conn, TEST_SOURCES, fetch=fetch, delay=0)
         # Allo: 9 лендингів із хаба, всі віддають ту саму касету → 3 unique (дедуп §10.1)
         checks.append(("collect items = 15 (PH 9 + PC 3 + Allo 3)", stats["items"] == 15, stats))
 
@@ -65,7 +69,7 @@ def main():
                 raise RuntimeError("імітація: крамниця лягла")
             return fetch(url)
 
-        st2 = collect(conn, SOURCES, fetch=boom, delay=0)
+        st2 = collect(conn, TEST_SOURCES, fetch=boom, delay=0)
         ph = next(r for r in st2["per_source"] if r["source"] == "Pethouse")
         pc = next(r for r in st2["per_source"] if r["source"] == "PetChoice")
         al = next(r for r in st2["per_source"] if r["source"] == "Allo")
@@ -82,7 +86,7 @@ def main():
         checks.append(("scan_run у БД каже 'failed', а не 'ok' при нулі", dbst == ("failed", 0), dbst))
 
         # нуль без винятку (селектор помер / чужий HTML) — теж проблема, не тиша
-        st3 = collect(conn, SOURCES, fetch=lambda u: cas_ph, delay=0)   # PetChoice дістає чужий HTML
+        st3 = collect(conn, TEST_SOURCES, fetch=lambda u: cas_ph, delay=0)   # PetChoice дістає чужий HTML
         pc3 = next(r for r in st3["per_source"] if r["source"] == "PetChoice")
         checks.append(("мовчазний нуль (без винятку) видно в problems",
                        pc3["items"] == 0 and any(r["source"] == "PetChoice" for r in st3["problems"]), pc3))

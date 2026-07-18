@@ -46,9 +46,15 @@ SOURCES = [
     # hub_discovery: спершу хаб → adapter.discover() → лендинги (*-action/).
     # platform: 'custom' — власна платформа Allo (Nuxt це фронтенд, а CHECK у §6
     # дозволяє лише horoshop/opencart/woocommerce/magento/bitrix/custom)
+    #
+    # ⚠ enabled=False (2026-07-18): Allo віддає 403 з дата-центрових IP (Hetzner) —
+    # перевірено curl-ом із сервера (403 і голим, і з браузерними заголовками), тоді
+    # як із резидентних IP той самий URL — 200. Обхід проксями НЕ робимо (§7.4).
+    # Адаптер робочий (golden-касети в CI). Шлях повернення — сателіт-колектор з
+    # іншої точки (напр. GH Actions → POST на наш ingest-API) або зміна політики Allo.
     {"name": "Allo", "base_url": "https://allo.ua", "platform": "custom",
      "fetch_tier": "A", "adapter": AlloAdapter(), "category_slug": "uncategorized",
-     "hub_discovery": True, "max_pages": 20,
+     "hub_discovery": True, "max_pages": 20, "enabled": False,
      "discount_urls": [ALLO_HUB]},
 ]
 
@@ -155,8 +161,11 @@ def collect(conn, sources, fetch=default_fetch, delay=POLITE_DELAY) -> dict:
     тому кажемо про це вголос, а не ховаємо за status='ok'.
     """
     categories = load_categories(conn)          # slug→id; категорія на товар — за URL (§2.6)
-    per_source = []
+    per_source, disabled = [], []
     for src in sources:
+        if not src.get("enabled", True):        # свідомо вимкнене (причина — коментар у SOURCES)
+            disabled.append(src["name"])
+            continue
         try:
             per_source.append(_collect_source(conn, src, categories, fetch, delay))
         except Exception as e:                  # остання сітка: джерело не валить прохід
@@ -166,7 +175,7 @@ def collect(conn, sources, fetch=default_fetch, delay=POLITE_DELAY) -> dict:
     events = detect_pass(conn)                            # бейджі після збору (§8.4)
     closed = close_absent(conn)                           # закрити зниклі з акцій (§5.5)
     return {"items": sum(r["items"] for r in per_source), "events": events, "closed": closed,
-            "sources": len(sources), "per_source": per_source,
+            "sources": len(per_source), "disabled": disabled, "per_source": per_source,
             "problems": [r for r in per_source if r["status"] != "ok" or r["items"] == 0]}
 
 
@@ -184,6 +193,8 @@ def main():
         print(f"  {r['source']:12} {r['items']:>4} позицій  [{r['status']}]")
         for e in r["errors"]:
             print(f"      ! {e}")
+    for name in stats.get("disabled", []):
+        print(f"  {name:12}    — вимкнено свідомо (причина в SOURCES)")
     print(f"колект: items={stats['items']} events={stats['events']} closed={stats['closed']}")
 
     # Мовчазний нуль — головний спосіб, у який збір гниє непоміченим: cron «зелений»,
