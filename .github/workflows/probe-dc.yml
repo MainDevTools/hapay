@@ -1,0 +1,28 @@
+# Разовий пробій: чи пускають крамниці IP GitHub Actions (Azure)?
+# Контекст: Hetzner-IP отримує 403 від Rozetka/Allo/EVA/Foxtrot/... (2026-07-18).
+# Якщо Actions пускають — це легітимна сателіт-точка збору для цих крамниць.
+name: probe-dc
+on: workflow_dispatch
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: HTTP-коди з Actions-IP
+        run: |
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+          probe() {
+            code=$(curl -s -o /dev/null -w "%{http_code}" --compressed -m 25 -A "$UA" "$2" || echo ERR)
+            printf "%-12s %s  %s\n" "$1" "$code" "$2"
+            sleep 2
+          }
+          probe Rozetka   "https://rozetka.com.ua/ua/samsung-sm-s948bzkgeuc/p570540502/"
+          probe Allo      "https://allo.ua/ua/events-and-discounts/"
+          probe EVA       "https://eva.ua/"
+          probe Foxtrot   "https://www.foxtrot.com.ua/uk/shop/televizoriy-samsung-qe55qn80fauxua.html"
+          probe MasterZoo "https://masterzoo.ua/ua/akcii/"
+          probe Pampik    "https://pampik.com/"
+          probe Watsons   "https://www.watsons.ua/"
+          probe Answear   "https://answear.ua/"
+          probe Moyo      "https://www.moyo.ua/"
+          probe Eldorado  "https://eldorado.ua/"
