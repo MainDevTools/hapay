@@ -2,7 +2,7 @@
 # сертифікат видають на імʼя. Плюс домен дає змінити хост, не ламаючи вже встановлені
 # застосунки (інакше — оновлення в сторі й цикл рев'ю Apple заради зміни адреси).
 #
-# {$HAPAY_DOMAIN} підставляється з /etc/hapay/hapay.env (через compose environment)
+# {$HAPAY_DOMAIN} підставляється з /etc/hapay/hapay.env (drop-in EnvironmentFile у caddy.service)
 
 {$HAPAY_DOMAIN} {
 	encode gzip zstd
@@ -22,14 +22,19 @@
 	}
 
 	log {
-		output file /data/access.log {
+		# bare-metal: /var/log/caddy існує з прав caddy:caddy (створює deb-пакет).
+		# Було /data/access.log з Docker-версії — на хості /data нема, і Caddy ВАЛИВСЯ на старті.
+		output file /var/log/caddy/hapay-access.log {
 			roll_size 10mb
 			roll_keep 5
 		}
 		# initData містить дані користувача Telegram — у логах їм не місце (§7.7)
 		format filter {
-			request>headers>X-Init-Data delete
-			request>headers>Cookie delete
+			wrap json
+			fields {
+				request>headers>X-Init-Data delete
+				request>headers>Cookie delete
+			}
 		}
 	}
 }
