@@ -15,6 +15,9 @@ URL = test_dsn("test_queue")
 import psycopg                                          # noqa: E402
 from db import migrate                                  # noqa: E402
 from api import qtasks                                  # noqa: E402
+from api.ingest import HTML_SOURCES                     # noqa: E402
+
+N_SRC = len(HTML_SOURCES)                               # к-сть крамниць у черзі (росте з адаптерами)
 
 
 def main():
@@ -27,7 +30,7 @@ def main():
         # ── сів: HTML_SOURCES → задачі; повторний сів нічого не дублює ────────────
         n1 = qtasks.seed_tasks(conn)
         n2 = qtasks.seed_tasks(conn)
-        checks.append(("сів створює задачі (Allo hub + Fox + Moyo)", n1 >= 3, n1))
+        checks.append((f"сів створює задачі (≥{N_SRC} крамниць HTML_SOURCES)", n1 >= N_SRC, n1))
         checks.append(("повторний сів ідемпотентний (0 нових)", n2 == 0, n2))
 
         # друга задача Allo — щоб розліт було ВИДНО (вільна задача source ≠ доступна)
@@ -35,10 +38,10 @@ def main():
                      "('Allo', 'https://allo.ua/ua/events-and-discounts/extra-action/', 'page')")
 
         # ── оренда: по ОДНІЙ задачі на крамницю, навіть якщо limit більший ────────
-        got = qtasks.lease_tasks(conn, "phone-A", limit=5)
+        got = qtasks.lease_tasks(conn, "phone-A", limit=N_SRC + 3)
         srcs = [t["source"] for t in got]
         checks.append(("оренда віддає по 1 на крамницю", len(srcs) == len(set(srcs)), srcs))
-        checks.append(("усі 3 крамниці в першій оренді", len(got) == 3, len(got)))
+        checks.append((f"усі {N_SRC} крамниць у першій оренді", len(got) == N_SRC, len(got)))
 
         # ── розліт 15 хв: друга задача Allo ВІЛЬНА, але not_before зсунуто ────────
         got_b = qtasks.lease_tasks(conn, "phone-B", limit=5)
