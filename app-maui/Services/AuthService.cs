@@ -66,6 +66,33 @@ public partial class AuthService : ObservableObject
         IsLoggedIn = true;
     }
 
+    /// Звіряє кеш із сервером через /api/me: оновлює email+роль на актуальні (напр. роль
+    /// щойно підняли до collector). На 401 (акаунт зник / токен протух) — розлогінює, щоб
+    /// застаріла сесія не висіла мовчки. Мережевий збій НЕ розлогінює (лишаємо кеш офлайн).
+    /// Повертає true, якщо сесія жива. НЕ кидає — безпечно кликати з async void OnAppearing.
+    public async Task<bool> RefreshFromServerAsync()
+    {
+        if (!IsLoggedIn) return false;
+        try
+        {
+            var me = await _api.MeAsync();
+            Email = me.Email;
+            Role = me.Role;                                 // сповістить і IsCollector
+            await SecureStorage.SetAsync(KeyEmail, me.Email);
+            await SecureStorage.SetAsync(KeyRole, me.Role);
+            return true;
+        }
+        catch (UnauthorizedException)
+        {
+            Logout();                                       // недійсна сесія → чистимо кеш і токен
+            return false;
+        }
+        catch
+        {
+            return true;                                    // мережа/сховище впали — лишаємо кеш, не викидаємо
+        }
+    }
+
     public void Logout()
     {
         SecureStorage.Remove(KeyToken);

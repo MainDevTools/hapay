@@ -12,9 +12,9 @@ public partial class ProfilePage : ContentPage
         BindingContext = _vm = vm;
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
-        _vm.Refresh();   // показати актуальні email/роль (могли змінитись після логіну)
+        await _vm.RefreshAsync();   // звірка з /api/me: актуальні email+роль, авто-logout на 401
     }
 }

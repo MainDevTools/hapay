@@ -39,6 +39,20 @@ public partial class ProfileViewModel : ObservableObject
         OnPropertyChanged(nameof(IsCollector));
     }
 
+    /// На відкритті: звіряємось із сервером (актуальні email+роль). Якщо сесія мертва —
+    /// AuthService уже розлогінив, тікаємо з профілю. НЕ кидає (безпечно з async void).
+    public async Task RefreshAsync()
+    {
+        bool alive = true;
+        try { alive = await _auth.RefreshFromServerAsync(); }
+        catch { /* RefreshFromServerAsync не кидає, але про всяк */ }
+        Refresh();                                          // показати оновлені значення
+        if (!alive)
+        {
+            try { await Shell.Current.GoToAsync(".."); } catch { /* уже пішли */ }
+        }
+    }
+
     // збір: тягнемо HTML крамниць зі свого IP і шлемо серверу (він парсить). Лише collector+.
     [RelayCommand(CanExecute = nameof(CanCollect))]
     private async Task Collect()
