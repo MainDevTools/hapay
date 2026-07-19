@@ -18,12 +18,17 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
 
-        // DI: сервіс — один на застосунок; VM/сторінки — щоразу нові.
+        // DI: сервіси — по одному на застосунок (Auth тримає стан токена); VM/сторінки — нові.
         builder.Services.AddSingleton<ApiService>();
+        builder.Services.AddSingleton<AuthService>();
         builder.Services.AddTransient<HomeViewModel>();
         builder.Services.AddTransient<HomePage>();
         builder.Services.AddTransient<DetailViewModel>();
         builder.Services.AddTransient<DetailPage>();
+        builder.Services.AddTransient<LoginViewModel>();
+        builder.Services.AddTransient<LoginPage>();
+        builder.Services.AddTransient<ProfileViewModel>();
+        builder.Services.AddTransient<ProfilePage>();
 
 #if DEBUG
         builder.Logging.AddDebug();

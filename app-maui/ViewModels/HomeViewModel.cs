@@ -12,6 +12,7 @@ public record SortOption(string Label, string Key);
 public partial class HomeViewModel : ObservableObject
 {
     private readonly ApiService _api;
+    private readonly AuthService _auth;
 
     public ObservableCollection<Discount> Items { get; } = new();
     public ObservableCollection<Category> Categories { get; } = new();
@@ -36,11 +37,16 @@ public partial class HomeViewModel : ObservableObject
     private bool _ready;       // до першого завантаження ігноруємо property-changed (щоб не дублювати)
     private CancellationTokenSource? _searchCts;
 
-    public HomeViewModel(ApiService api) => _api = api;
+    public HomeViewModel(ApiService api, AuthService auth)
+    {
+        _api = api;
+        _auth = auth;
+    }
 
     public async Task InitializeAsync()
     {
         if (_ready) return;
+        await _auth.LoadAsync();   // підняти збережений токен (SecureStorage) до першого запиту
         // «Усі категорії» додаємо ДО запиту — щоб пікер не лишився порожнім, якщо мережа впаде
         Categories.Add(new Category { Slug = "", Name = "Усі категорії" });
         try
@@ -101,6 +107,14 @@ public partial class HomeViewModel : ObservableObject
         if (d is null) return;
         await Shell.Current.GoToAsync(nameof(DetailPage),
             new Dictionary<string, object> { ["Discount"] = d });
+    }
+
+    [RelayCommand]
+    private async Task Account()
+    {
+        // залогінений → профіль; ні → екран входу/реєстрації
+        var route = _auth.IsLoggedIn ? nameof(ProfilePage) : nameof(LoginPage);
+        await Shell.Current.GoToAsync(route);
     }
 
     private async Task ReloadAsync()

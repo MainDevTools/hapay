@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Hapay.Views.ProfilePage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:Hapay.ViewModels"
+    x:DataType="vm:ProfileViewModel"
+    Title="Профіль">
+
+    <VerticalStackLayout Padding="24" Spacing="16" VerticalOptions="Start">
+
+        <Label Text="{Binding Email}" FontSize="18" FontAttributes="Bold" />
+        <Label Text="{Binding RoleLabel}" TextColor="Gray" />
+
+        <!-- підказка для колектора (роль дає право збирати ціни — S11 етап 3) -->
+        <Border IsVisible="{Binding IsCollector}" Padding="12" StrokeThickness="0"
+                BackgroundColor="{AppThemeBinding Light=#EEF6EC, Dark=#132A1D}"
+                StrokeShape="RoundRectangle 10">
+            <Label Text="Ти колектор — можеш збирати ціни зі своєї мережі." FontSize="13" />
+        </Border>
+
+        <BoxView HeightRequest="1" Color="#22808080" Margin="0,8" />
+
+        <Button Text="Вийти" Command="{Binding LogoutCommand}"
+                BackgroundColor="Transparent" TextColor="#E23B3B" HeightRequest="48" />
+    </VerticalStackLayout>
+</ContentPage>

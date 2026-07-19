@@ -62,3 +62,19 @@ public class HistoryPoint
 
     [JsonIgnore] public DateTime Date => DateTime.Parse(Day);
 }
+
+/// Відповідь /api/auth/register|login (S11).
+public class AuthResult
+{
+    [JsonPropertyName("token")] public string Token { get; set; } = "";
+    [JsonPropertyName("role")] public string Role { get; set; } = "user";
+    [JsonPropertyName("email")] public string Email { get; set; } = "";
+}
+
+/// Профіль із /api/me.
+public class UserProfile
+{
+    [JsonPropertyName("user_id")] public int UserId { get; set; }
+    [JsonPropertyName("email")] public string Email { get; set; } = "";
+    [JsonPropertyName("role")] public string Role { get; set; } = "user";
+}

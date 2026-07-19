@@ -14,6 +14,10 @@
         <conv:StringNotEmptyConverter x:Key="NotEmpty" />
     </ContentPage.Resources>
 
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Акаунт" Command="{Binding AccountCommand}" />
+    </ContentPage.ToolbarItems>
+
     <Grid RowDefinitions="Auto,*" Padding="0">
 
         <!-- панель: пошук + категорія + сорт -->

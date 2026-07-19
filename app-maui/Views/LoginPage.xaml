@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Hapay.Views.LoginPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:Hapay.ViewModels"
+    xmlns:conv="clr-namespace:Hapay.Converters"
+    x:DataType="vm:LoginViewModel"
+    Title="{Binding Title}">
+
+    <ContentPage.Resources>
+        <conv:StringNotEmptyConverter x:Key="NotEmpty" />
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="16" VerticalOptions="Center" MaximumWidthRequest="480">
+
+            <Label Text="Хапай" FontSize="30" FontAttributes="Bold" HorizontalOptions="Center" />
+            <Label Text="{Binding Title}" FontSize="18" TextColor="Gray" HorizontalOptions="Center" />
+
+            <Entry Placeholder="Email" Text="{Binding Email}"
+                   Keyboard="Email" ReturnType="Next" />
+            <Entry Placeholder="Пароль (≥ 8 символів)" Text="{Binding Password}"
+                   IsPassword="True" ReturnType="Done"
+                   ReturnCommand="{Binding SubmitCommand}" />
+
+            <Label Text="{Binding Error}" TextColor="#E23B3B"
+                   IsVisible="{Binding Error, Converter={StaticResource NotEmpty}}" />
+
+            <Button Text="{Binding SubmitText}" Command="{Binding SubmitCommand}"
+                    HeightRequest="48" />
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+                               HorizontalOptions="Center" />
+
+            <Button Text="{Binding ToggleText}" Command="{Binding ToggleCommand}"
+                    BackgroundColor="Transparent" TextColor="Gray" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
