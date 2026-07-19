@@ -198,6 +198,18 @@ def main():
     checks.append(("html-ingest товар видно в /discounts (store=Allo)",
                    len(allo_seen) >= 1 and allo_seen[0]["store"] == "Allo", allo_seen))
 
+    # ── фільтр ціни (копійки) ─────────────────────────────────────────────────────
+    all_now = client.get("/api/discounts?sort=new").json()
+    expensive = client.get("/api/discounts?sort=new&price_min=4000000").json()   # ≥ 40 000 ₴
+    cheap = client.get("/api/discounts?sort=new&price_max=100000").json()        # ≤ 1 000 ₴
+    checks.append(("price_min: усі ≥ поріг", all(d["current_kop"] >= 4000000 for d in expensive), len(expensive)))
+    checks.append(("price_max: усі ≤ поріг", all(d["current_kop"] <= 100000 for d in cheap), len(cheap)))
+    checks.append(("price_min звужує вибірку", len(expensive) < len(all_now) and len(expensive) >= 1,
+                   (len(expensive), len(all_now))))
+    band = client.get("/api/discounts?sort=new&price_min=1000000&price_max=2000000").json()  # 10k–20k ₴
+    checks.append(("price діапазон: усі в межах",
+                   all(1000000 <= d["current_kop"] <= 2000000 for d in band), len(band)))
+
     for name, ok, val in checks:
         print(f"{'PASS' if ok else 'FAIL'}  {name}" + ("" if ok else f"  -> {val!r}"))
         failed += 0 if ok else 1

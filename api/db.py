@@ -14,7 +14,8 @@ _SORTS = {
 }
 
 
-def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, offset=0, q=None):
+def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, offset=0, q=None,
+                   price_min=None, price_max=None):
     where = ["de.ended_at IS NULL"]
     params: list = []
     if category:
@@ -23,6 +24,10 @@ def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, o
         where.append("de.badge_state = %s"); params.append(badge)
     if q:                                   # пошук за назвою (ILIKE — прощає часткові; §9.1)
         where.append("sp.title ILIKE %s"); params.append(f"%{q.strip()}%")
+    if price_min is not None:               # ціна — копійки (інв. A); фільтр за поточною ціною
+        where.append("de.current_kop >= %s"); params.append(price_min)
+    if price_max is not None:
+        where.append("de.current_kop <= %s"); params.append(price_max)
     order = _SORTS.get(sort, _SORTS["verified"])
     sql = f"""
         SELECT de.discount_event_id, sp.store_product_id, sp.title, sp.url, sp.image_url,

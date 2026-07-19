@@ -63,8 +63,12 @@ def categories(conn=Depends(get_conn)):
 
 @app.get("/api/discounts")
 def discounts(category: str | None = None, badge: str | None = None, q: str | None = None,
-              sort: str = "verified", page: int = Query(0, ge=0), conn=Depends(get_conn)):
-    return qdb.list_discounts(conn, category, badge, sort, limit=50, offset=page * 50, q=q)
+              sort: str = "verified", page: int = Query(0, ge=0),
+              price_min: int | None = Query(None, ge=0),   # копійки (інв. A); фільтр за поточною ціною
+              price_max: int | None = Query(None, ge=0),
+              conn=Depends(get_conn)):
+    return qdb.list_discounts(conn, category, badge, sort, limit=50, offset=page * 50, q=q,
+                              price_min=price_min, price_max=price_max)
 
 
 @app.get("/api/product/{store_product_id}/history")
