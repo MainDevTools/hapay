@@ -72,6 +72,27 @@ public class ApiService
         return (await resp.Content.ReadFromJsonAsync<UserProfile>(_json, ct))!;
     }
 
+    // ── збір (S11 етап 3): застосунок = «тупий фетчер», парсить сервер ────────────────
+    /// Сервер каже, ЩО тягнути (гейт ролі collector). 401 → нема прав/токен застарів.
+    public async Task<CollectPlan> GetCollectPlanAsync(CancellationToken ct = default)
+    {
+        var resp = await _http.GetAsync($"{Base}/api/collect/plan", ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        resp.EnsureSuccessStatusCode();
+        return (await resp.Content.ReadFromJsonAsync<CollectPlan>(_json, ct))!;
+    }
+
+    /// Пересилаємо СИРИЙ HTML крамниці — сервер парсить. Для hub повертає discovered-лендинги.
+    public async Task<IngestHtmlResult> IngestHtmlAsync(string source, string url, string html,
+                                                        CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync($"{Base}/api/ingest/html",
+                                               new { source, url, html }, ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
+        return (await resp.Content.ReadFromJsonAsync<IngestHtmlResult>(_json, ct))!;
+    }
+
     private static async Task<string> SafeDetail(HttpResponseMessage resp, CancellationToken ct)
     {
         try

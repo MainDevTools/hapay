@@ -78,3 +78,26 @@ public class UserProfile
     [JsonPropertyName("email")] public string Email { get; set; } = "";
     [JsonPropertyName("role")] public string Role { get; set; } = "user";
 }
+
+/// Ціль збору з /api/collect/plan — ЩО тягнути. Сервер вирішує (застосунок = «тупий фетчер»).
+public class CollectTarget
+{
+    [JsonPropertyName("source")] public string Source { get; set; } = "";
+    [JsonPropertyName("url")] public string Url { get; set; } = "";
+    [JsonPropertyName("kind")] public string Kind { get; set; } = "page";   // hub | page
+}
+
+/// Відповідь /api/collect/plan.
+public class CollectPlan
+{
+    [JsonPropertyName("targets")] public List<CollectTarget> Targets { get; set; } = new();
+}
+
+/// Відповідь /api/ingest/html. Для hub — discovered-лендинги (сервер їх знайшов); для page — accepted.
+public class IngestHtmlResult
+{
+    [JsonPropertyName("kind")] public string Kind { get; set; } = "";        // hub | page
+    [JsonPropertyName("accepted")] public int Accepted { get; set; }
+    [JsonPropertyName("rejected")] public int Rejected { get; set; }
+    [JsonPropertyName("discovered")] public List<string>? Discovered { get; set; }
+}

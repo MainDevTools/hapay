@@ -4,20 +4,33 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:vm="clr-namespace:Hapay.ViewModels"
+    xmlns:conv="clr-namespace:Hapay.Converters"
     x:DataType="vm:ProfileViewModel"
     Title="Профіль">
+
+    <ContentPage.Resources>
+        <conv:StringNotEmptyConverter x:Key="NotEmpty" />
+    </ContentPage.Resources>
 
     <VerticalStackLayout Padding="24" Spacing="16" VerticalOptions="Start">
 
         <Label Text="{Binding Email}" FontSize="18" FontAttributes="Bold" />
         <Label Text="{Binding RoleLabel}" TextColor="Gray" />
 
-        <!-- підказка для колектора (роль дає право збирати ціни — S11 етап 3) -->
-        <Border IsVisible="{Binding IsCollector}" Padding="12" StrokeThickness="0"
-                BackgroundColor="{AppThemeBinding Light=#EEF6EC, Dark=#132A1D}"
-                StrokeShape="RoundRectangle 10">
-            <Label Text="Ти колектор — можеш збирати ціни зі своєї мережі." FontSize="13" />
-        </Border>
+        <!-- збір: лише для колектора. Тягне HTML крамниць зі свого IP, парсить сервер (S11 етап 3) -->
+        <VerticalStackLayout IsVisible="{Binding IsCollector}" Spacing="10">
+            <Border Padding="12" StrokeThickness="0"
+                    BackgroundColor="{AppThemeBinding Light=#EEF6EC, Dark=#132A1D}"
+                    StrokeShape="RoundRectangle 10">
+                <Label Text="Ти колектор — збираєш ціни зі своєї мережі. Тисни, коли є Wi-Fi."
+                       FontSize="13" />
+            </Border>
+            <Button Text="Зібрати ціни зараз" Command="{Binding CollectCommand}" HeightRequest="48" />
+            <ActivityIndicator IsRunning="{Binding IsCollecting}" IsVisible="{Binding IsCollecting}"
+                               HorizontalOptions="Center" />
+            <Label Text="{Binding CollectStatus}" FontSize="13" TextColor="Gray"
+                   IsVisible="{Binding CollectStatus, Converter={StaticResource NotEmpty}}" />
+        </VerticalStackLayout>
 
         <BoxView HeightRequest="1" Color="#22808080" Margin="0,8" />
 

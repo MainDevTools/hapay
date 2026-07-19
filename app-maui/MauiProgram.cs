@@ -21,6 +21,7 @@ public static class MauiProgram
         // DI: сервіси — по одному на застосунок (Auth тримає стан токена); VM/сторінки — нові.
         builder.Services.AddSingleton<ApiService>();
         builder.Services.AddSingleton<AuthService>();
+        builder.Services.AddSingleton<CollectorService>();
         builder.Services.AddTransient<HomeViewModel>();
         builder.Services.AddTransient<HomePage>();
         builder.Services.AddTransient<DetailViewModel>();
