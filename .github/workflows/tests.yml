@@ -45,6 +45,8 @@ jobs:
         run: python tests/test_citrus.py
       - name: Brain — екстракція відрендереного (WebView) лістингу (§8.8)
         run: python tests/test_brain.py
+      - name: KTC — екстракція лістингу (del-cram ціни) (§8.8)
+        run: python tests/test_ktc.py
       - name: ingest — токен-гейт + валідація елементів (S10)
         run: python tests/test_ingest.py
       - name: html-ingest — двофазний discover + валідація (S11 етап 3)

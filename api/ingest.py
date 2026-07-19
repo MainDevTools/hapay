@@ -24,6 +24,7 @@ from adapters.brain import BrainAdapter
 from adapters.citrus import CitrusAdapter
 from adapters.comfy import ComfyAdapter
 from adapters.foxtrot import FoxtrotAdapter
+from adapters.ktc import KtcAdapter
 from adapters.moyo import MoyoAdapter
 from adapters.rozetka import RozetkaAdapter
 from db.store import load_categories, persist_items, upsert_source
@@ -40,6 +41,7 @@ INGEST_SOURCES: dict[str, dict] = {
     "Comfy":    {"base_url": "https://comfy.ua",           "hosts": ("comfy.ua",)},
     "Citrus":   {"base_url": "https://www.ctrs.com.ua",    "hosts": ("ctrs.com.ua",)},
     "Brain":    {"base_url": "https://brain.com.ua",       "hosts": ("brain.com.ua",)},
+    "KTC":      {"base_url": "https://ktc.ua",             "hosts": ("ktc.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -78,6 +80,11 @@ HTML_SOURCES: dict[str, dict] = {
     # рендерить у WebView). Дані з data-атрибутів; A07 SM-A075FZKGSEK перетин із Moyo/Rozetka.
     "Brain": {"adapter": BrainAdapter(), "mode": "render", "urls": (
         "https://brain.com.ua/ukr/Smartfoni_zvyazok-c297/",
+    )},
+    # KTC (розвідка 2026-07-19): SSR-лістинг /smartphone/, 48 карток, 54 SM-коди —
+    # S26/A07 перетини з рештою → більше груп «Де купити».
+    "KTC": {"adapter": KtcAdapter(), "urls": (
+        "https://ktc.ua/smartphone/",
     )},
 }
 # режим збору per-source: 'fetch' (plain GET) | 'render' (WebView — SPA-крамниці).
