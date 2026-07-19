@@ -91,6 +91,81 @@ def product_history(conn, store_product_id: int, days: int = 90):
         return cur.execute(sql, (store_product_id, days)).fetchall()
 
 
+# сортування для «усіх товарів» (не лише знижок) — колонки з CTE best нижче
+_PSORTS = {
+    "discount":  "declared_pct DESC NULLS LAST, first_seen_at DESC",   # спочатку знижки
+    "new":       "first_seen_at DESC",
+    "cheap":     "current_kop ASC",
+    "expensive": "current_kop DESC",
+}
+
+
+def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=None,
+                  price_min=None, price_max=None, only_discounts=False):
+    """УСІ товари (не лише знижкові), остання відома ціна кожного, MPN-дедуп як стрічка.
+
+    Розворот у бік повного прайс-агрегатора: показуємо весь зібраний каталог, а знижка —
+    бейдж на картці (has_discount), не єдиний критерій. `only_discounts=True` звужує до
+    знижкових (сумісність зі старою стрічкою). Ціна — з останнього price_snapshot.
+    """
+    where = ["sp.last_seen_at > now() - interval '3 days'", "l.in_stock"]
+    params: list = []
+    if category:
+        where.append("c.slug = %s"); params.append(category)
+    if q:
+        where.append("sp.title ILIKE %s"); params.append(f"%{q.strip()}%")
+    if price_min is not None:
+        where.append("l.current_kop >= %s"); params.append(price_min)
+    if price_max is not None:
+        where.append("l.current_kop <= %s"); params.append(price_max)
+    if only_discounts:
+        where.append("de.discount_event_id IS NOT NULL")
+    order = _PSORTS.get(sort, _PSORTS["discount"])
+    sql = f"""
+        WITH latest AS (   -- остання ціна кожного товару (index-scan по ix_ps_prod_window)
+            SELECT DISTINCT ON (ps.store_product_id)
+                   ps.store_product_id, ps.price_now_kop AS current_kop,
+                   ps.price_old_kop AS old_declared_kop, ps.in_stock
+            FROM price_snapshot ps
+            ORDER BY ps.store_product_id, ps.seen_at DESC
+        ),
+        ev AS (
+            SELECT l.store_product_id, sp.title, sp.url, sp.image_url, sp.variant_note, sp.mpn,
+                   s.name AS store, sp.first_seen_at,
+                   l.current_kop, l.old_declared_kop,
+                   de.discount_event_id, de.declared_pct, de.verified_pct,
+                   COALESCE(de.badge_state, 'none') AS badge_state,
+                   COALESCE(sp.mpn, 'sp:' || sp.store_product_id) AS gkey
+            FROM latest l
+            JOIN store_product sp USING (store_product_id)
+            JOIN source s USING (source_id)
+            JOIN category c ON c.category_id = sp.category_id
+            LEFT JOIN discount_event de
+                   ON de.store_product_id = l.store_product_id AND de.ended_at IS NULL
+            WHERE {' AND '.join(where)}
+        ),
+        best AS (   -- одна картка на групу (MPN): найдешевша, знижкова пріоритетно
+            SELECT DISTINCT ON (gkey)
+                   store_product_id, title, url, image_url, variant_note, mpn, store,
+                   first_seen_at, current_kop, old_declared_kop, declared_pct, verified_pct,
+                   badge_state, discount_event_id
+            FROM ev ORDER BY gkey, (discount_event_id IS NOT NULL) DESC, current_kop
+        )
+        SELECT b.store_product_id, b.title, b.url, b.image_url, b.variant_note, b.store,
+               b.current_kop, b.old_declared_kop, b.declared_pct, b.verified_pct, b.badge_state,
+               (b.discount_event_id IS NOT NULL) AS has_discount,
+               CASE WHEN b.mpn IS NULL THEN 1
+                    ELSE (SELECT count(DISTINCT sp2.source_id)
+                          FROM store_product sp2 WHERE sp2.mpn = b.mpn)
+               END AS offers_n
+        FROM best b
+        ORDER BY {order}
+        LIMIT %s OFFSET %s"""
+    params += [limit, offset]
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(sql, params).fetchall()
+
+
 def product_offers(conn, store_product_id: int):
     """«Де купити» (T15/§17.5): ПО ОДНІЙ (найдешевшій) пропозиції на КРАМНИЦЮ з тим
     самим товаром (однаковий mpn), сортовано від найдешевшої. Включає сам товар.

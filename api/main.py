@@ -82,6 +82,17 @@ def discounts(category: str | None = None, badge: str | None = None, q: str | No
                               price_min=price_min, price_max=price_max)
 
 
+@app.get("/api/products")
+def products(category: str | None = None, q: str | None = None, sort: str = "discount",
+             page: int = Query(0, ge=0),
+             price_min: int | None = Query(None, ge=0),
+             price_max: int | None = Query(None, ge=0),
+             only_discounts: bool = False, conn=Depends(get_conn)):
+    """УСІ товари (не лише знижки) — повний прайс-агрегатор. `only_discounts=1` → лише знижкові."""
+    return qdb.list_products(conn, category, sort, limit=50, offset=page * 50, q=q,
+                             price_min=price_min, price_max=price_max, only_discounts=only_discounts)
+
+
 @app.get("/api/product/{store_product_id}/history")
 def history(store_product_id: int, conn=Depends(get_conn)):
     return qdb.product_history(conn, store_product_id)

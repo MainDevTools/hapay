@@ -40,6 +40,21 @@ public class ApiService
         return await _http.GetFromJsonAsync<List<Discount>>(url, _json, ct) ?? new();
     }
 
+    /// УСІ товари (не лише знижки) — повний прайс-агрегатор. onlyDiscounts=true → лише знижкові.
+    public async Task<List<Discount>> ProductsAsync(
+        string? category = null, string? q = null, string sort = "discount", int page = 0,
+        int? priceMinKop = null, int? priceMaxKop = null, bool onlyDiscounts = false,
+        CancellationToken ct = default)
+    {
+        var url = $"{Base}/api/products?sort={Uri.EscapeDataString(sort)}&page={page}";
+        if (!string.IsNullOrWhiteSpace(category)) url += $"&category={Uri.EscapeDataString(category)}";
+        if (!string.IsNullOrWhiteSpace(q)) url += $"&q={Uri.EscapeDataString(q.Trim())}";
+        if (priceMinKop is int lo) url += $"&price_min={lo}";
+        if (priceMaxKop is int hi) url += $"&price_max={hi}";
+        if (onlyDiscounts) url += "&only_discounts=1";
+        return await _http.GetFromJsonAsync<List<Discount>>(url, _json, ct) ?? new();
+    }
+
     public async Task<List<Category>> CategoriesAsync(CancellationToken ct = default) =>
         await _http.GetFromJsonAsync<List<Category>>($"{Base}/api/categories", _json, ct) ?? new();
 

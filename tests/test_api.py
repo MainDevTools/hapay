@@ -349,6 +349,28 @@ def main():
                    {s["source"] for s in qs.get("sources", [])} >= {"Allo", "Foxtrot", "Moyo"},
                    qs))
 
+    # ── усі товари, не лише знижки (/api/products) ────────────────────────────────
+    prods = client.get("/api/products?sort=new").json()
+    disc = client.get("/api/discounts?sort=new").json()
+    checks.append(("/products ⊇ /discounts (усі товари ≥ знижки)",
+                   len(prods) >= len(disc) and len(prods) >= 1, (len(prods), len(disc))))
+    # Foxtrot-лістинг мав Xiaomi Redmi 15C БЕЗ знижки → у /products є, у /discounts нема
+    nd = client.get("/api/products?q=Redmi 15C").json()
+    checks.append(("не-знижковий товар у /products (has_discount=false)",
+                   len(nd) >= 1 and nd[0].get("has_discount") is False, nd))
+    checks.append(("той самий БЕЗ знижки — НЕ в /discounts",
+                   client.get("/api/discounts?q=Redmi 15C").json() == [], None))
+    od = client.get("/api/products?only_discounts=1").json()
+    checks.append(("only_discounts=1 звужує вибірку", len(od) < len(prods) and len(od) >= 1,
+                   (len(od), len(prods))))
+    checks.append(("/products має offers_n і badge", all("offers_n" in x and "badge_state" in x
+                   for x in prods[:3]), list(prods[0]) if prods else None))
+    # сорт «дешевші» — неспадна ціна
+    cheap = client.get("/api/products?sort=cheap").json()
+    checks.append(("sort=cheap: ціни неспадні",
+                   all(cheap[i]["current_kop"] <= cheap[i+1]["current_kop"] for i in range(len(cheap)-1)),
+                   [c["current_kop"] for c in cheap[:4]]))
+
     # ── фільтр ціни (копійки) ─────────────────────────────────────────────────────
     all_now = client.get("/api/discounts?sort=new").json()
     expensive = client.get("/api/discounts?sort=new&price_min=4000000").json()   # ≥ 40 000 ₴
