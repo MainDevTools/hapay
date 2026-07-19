@@ -90,14 +90,32 @@ public class ApiService
     }
 
     /// Пересилаємо СИРИЙ HTML крамниці — сервер парсить. Для hub повертає discovered-лендинги.
+    /// taskId (черга T16): сервер закриє задачу сам при успішному інджесті.
     public async Task<IngestHtmlResult> IngestHtmlAsync(string source, string url, string html,
-                                                        CancellationToken ct = default)
+                                                        int? taskId = null, CancellationToken ct = default)
     {
         var resp = await _http.PostAsJsonAsync($"{Base}/api/ingest/html",
-                                               new { source, url, html }, ct);
+                                               new { source, url, html, task_id = taskId }, ct);
         if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
         if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
         return (await resp.Content.ReadFromJsonAsync<IngestHtmlResult>(_json, ct))!;
+    }
+
+    /// Черга-оренда (T16): забрати ≤limit дозрілих задач (по 1 на крамницю). 401 → нема прав.
+    public async Task<List<LeaseTask>> LeaseAsync(int limit = 3, CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync($"{Base}/api/collect/lease", new { limit }, ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        resp.EnsureSuccessStatusCode();
+        return (await resp.Content.ReadFromJsonAsync<LeaseResponse>(_json, ct))!.Tasks;
+    }
+
+    /// Не стягнулось (403/капча/таймаут) → сервер зробить бекоф цій задачі.
+    public async Task CollectFailAsync(int taskId, string note, CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync($"{Base}/api/collect/fail",
+                                               new { task_id = taskId, note }, ct);
+        resp.EnsureSuccessStatusCode();
     }
 
     private static async Task<string> SafeDetail(HttpResponseMessage resp, CancellationToken ct)

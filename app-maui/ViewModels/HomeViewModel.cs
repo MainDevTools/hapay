@@ -48,16 +48,20 @@ public partial class HomeViewModel : ObservableObject
     private bool _ready;       // до першого завантаження ігноруємо property-changed (щоб не дублювати)
     private CancellationTokenSource? _searchCts;
 
-    public HomeViewModel(ApiService api, AuthService auth)
+    private readonly ICollectScheduler _scheduler;
+
+    public HomeViewModel(ApiService api, AuthService auth, ICollectScheduler scheduler)
     {
         _api = api;
         _auth = auth;
+        _scheduler = scheduler;
     }
 
     public async Task InitializeAsync()
     {
         if (_ready) return;
         await _auth.LoadAsync();   // підняти збережений токен (SecureStorage) до першого запиту
+        _scheduler.EnsureIfEnabled();   // відновити фоновий збір (T16), якщо був увімкнений
         // «Усі категорії» додаємо ДО запиту — щоб пікер не лишився порожнім, якщо мережа впаде
         Categories.Add(new Category { Slug = "", Name = "Усі категорії" });
         try

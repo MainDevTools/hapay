@@ -112,6 +112,20 @@ public class Offer
     [JsonIgnore] public double Opacity => InStock ? 1.0 : 0.45;   // «немає» — приглушено
 }
 
+/// Задача з черги-оренди /api/collect/lease (T16): одна сторінка однієї крамниці.
+public class LeaseTask
+{
+    [JsonPropertyName("task_id")] public int TaskId { get; set; }
+    [JsonPropertyName("source")] public string Source { get; set; } = "";
+    [JsonPropertyName("url")] public string Url { get; set; } = "";
+    [JsonPropertyName("kind")] public string Kind { get; set; } = "page";
+}
+
+public class LeaseResponse
+{
+    [JsonPropertyName("tasks")] public List<LeaseTask> Tasks { get; set; } = new();
+}
+
 /// Ціль збору з /api/collect/plan — ЩО тягнути. Сервер вирішує (застосунок = «тупий фетчер»).
 public class CollectTarget
 {

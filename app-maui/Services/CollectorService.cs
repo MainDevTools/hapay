@@ -45,7 +45,7 @@ public class CollectorService
             {
                 progress.Report($"{t.Source}: {Short(t.Url)}…");
                 var html = await FetchAsync(t.Url, ct);
-                var r = await _api.IngestHtmlAsync(t.Source, t.Url, html, ct);
+                var r = await _api.IngestHtmlAsync(t.Source, t.Url, html, ct: ct);
                 pages++;
                 accepted += r.Accepted;
 
@@ -67,7 +67,7 @@ public class CollectorService
                         {
                             progress.Report($"{t.Source}: {Short(landing)} (зібрано {accepted})…");
                             var lhtml = await FetchAsync(landing, ct);
-                            var lr = await _api.IngestHtmlAsync(t.Source, landing, lhtml, ct);
+                            var lr = await _api.IngestHtmlAsync(t.Source, landing, lhtml, ct: ct);
                             pages++;
                             accepted += lr.Accepted;
                         }
@@ -80,6 +80,35 @@ public class CollectorService
             catch (Exception e) { errors.Add($"{t.Source}: {e.Message}"); }
         }
         return new CollectSummary(accepted, pages, errors);
+    }
+
+    /// Один ФОНОВИЙ прохід по черзі-оренді (T16): lease ≤3 задач (по 1 на крамницю,
+    /// сервер сам тримає розліт 15 хв) → fetch → ingest із task_id (закривається сам).
+    /// Не стягнулось → collect/fail (бекоф на сервері). Короткий: ~3 сторінки за прохід.
+    public async Task<QueuePassSummary> RunQueuePassAsync(CancellationToken ct = default)
+    {
+        var tasks = await _api.LeaseAsync(3, ct);
+        int pages = 0, accepted = 0;
+        var errors = new List<string>();
+        foreach (var t in tasks)
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                var html = await FetchAsync(t.Url, ct);
+                var r = await _api.IngestHtmlAsync(t.Source, t.Url, html, t.TaskId, ct);
+                pages++;
+                accepted += r.Accepted;
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception e)
+            {
+                errors.Add($"{t.Source}: {e.Message}");
+                try { await _api.CollectFailAsync(t.TaskId, e.Message, ct); } catch { /* бекоф не критичний */ }
+            }
+        }
+        if (pages > 0) CollectPrefs.BumpToday(pages);
+        return new QueuePassSummary(pages, accepted, errors);
     }
 
     private async Task<string> FetchAsync(string url, CancellationToken ct)
@@ -104,3 +133,6 @@ public class CollectorService
 
 /// Підсумок одного прогону збору.
 public record CollectSummary(int Accepted, int Pages, List<string> Errors);
+
+/// Підсумок одного фонового проходу по черзі (T16).
+public record QueuePassSummary(int Pages, int Accepted, List<string> Errors);

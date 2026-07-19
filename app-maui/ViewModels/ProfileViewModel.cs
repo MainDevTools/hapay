@@ -8,11 +8,14 @@ public partial class ProfileViewModel : ObservableObject
 {
     private readonly AuthService _auth;
     private readonly CollectorService _collector;
+    private readonly ICollectScheduler _scheduler;
 
-    public ProfileViewModel(AuthService auth, CollectorService collector)
+    public ProfileViewModel(AuthService auth, CollectorService collector, ICollectScheduler scheduler)
     {
         _auth = auth;
         _collector = collector;
+        _scheduler = scheduler;
+        _autoCollect = CollectPrefs.AutoEnabled;   // прямо в поле — без тригера OnChanged
     }
 
     public string Email => _auth.Email ?? "";
@@ -29,6 +32,19 @@ public partial class ProfileViewModel : ObservableObject
     [ObservableProperty] private bool _isCollecting;
     [ObservableProperty] private string? _collectStatus;
 
+    // фоновий збір (T16 крок 2): перемикач керує WorkManager-розкладом
+    [ObservableProperty] private bool _autoCollect;
+
+    public bool AutoCollectSupported => _scheduler.IsSupported && IsCollector;
+    public string TodayText => $"Сьогодні зібрано: {CollectPrefs.TodayCount()} стор.";
+
+    partial void OnAutoCollectChanged(bool value)
+    {
+        CollectPrefs.SetAuto(value);
+        if (value) _scheduler.Enable();
+        else _scheduler.Disable();
+    }
+
     partial void OnIsCollectingChanged(bool value) => CollectCommand.NotifyCanExecuteChanged();
 
     public void Refresh()
@@ -37,6 +53,8 @@ public partial class ProfileViewModel : ObservableObject
         OnPropertyChanged(nameof(Role));
         OnPropertyChanged(nameof(RoleLabel));
         OnPropertyChanged(nameof(IsCollector));
+        OnPropertyChanged(nameof(AutoCollectSupported));
+        OnPropertyChanged(nameof(TodayText));
     }
 
     /// На відкритті: звіряємось із сервером (актуальні email+роль). Якщо сесія мертва —

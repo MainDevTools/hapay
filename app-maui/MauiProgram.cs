@@ -22,6 +22,11 @@ public static class MauiProgram
         builder.Services.AddSingleton<ApiService>();
         builder.Services.AddSingleton<AuthService>();
         builder.Services.AddSingleton<CollectorService>();
+#if ANDROID
+        builder.Services.AddSingleton<ICollectScheduler, AndroidCollectScheduler>();
+#else
+        builder.Services.AddSingleton<ICollectScheduler, NoopCollectScheduler>();
+#endif
         builder.Services.AddTransient<HomeViewModel>();
         builder.Services.AddTransient<HomePage>();
         builder.Services.AddTransient<DetailViewModel>();

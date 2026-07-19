@@ -25,6 +25,14 @@
                 <Label Text="Ти колектор — збираєш ціни зі своєї мережі. Тисни, коли є Wi-Fi."
                        FontSize="13" />
             </Border>
+            <!-- фоновий збір (T16): WorkManager кожні ~15 хв, лише Wi-Fi + зарядка -->
+            <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding AutoCollectSupported}">
+                <Label Text="Збирати автоматично (Wi-Fi + зарядка)"
+                       VerticalOptions="Center" FontSize="14" />
+                <Switch Grid.Column="1" IsToggled="{Binding AutoCollect}" />
+            </Grid>
+            <Label Text="{Binding TodayText}" FontSize="12" TextColor="Gray" />
+
             <Button Text="Зібрати ціни зараз" Command="{Binding CollectCommand}" HeightRequest="48" />
             <ActivityIndicator IsRunning="{Binding IsCollecting}" IsVisible="{Binding IsCollecting}"
                                HorizontalOptions="Center" />
