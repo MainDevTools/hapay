@@ -24,7 +24,9 @@ _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 app = FastAPI(title="Радар знижок — read-API")
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
-WEB_INDEX = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web", "index.html")
+WEB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web")
+WEB_INDEX = os.path.join(WEB_DIR, "index.html")
+_LEGAL = {"privacy", "terms", "support"}   # юр-сторінки (обов'язкові для сторів)
 
 
 def get_conn():
@@ -50,6 +52,14 @@ def require_user(x_init_data: str | None = Header(default=None)):
 @app.get("/")
 def index():
     return FileResponse(WEB_INDEX)
+
+
+@app.get("/{page}")
+def legal(page: str):
+    """Юр-сторінки /privacy, /terms, /support (для App Store / Google Play)."""
+    if page not in _LEGAL:
+        raise HTTPException(404, "не знайдено")
+    return FileResponse(os.path.join(WEB_DIR, f"{page}.html"), media_type="text/html")
 
 
 @app.get("/api/health")

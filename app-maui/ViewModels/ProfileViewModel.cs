@@ -102,6 +102,14 @@ public partial class ProfileViewModel : ObservableObject
 
     private bool CanCollect() => !IsCollecting;
 
+    // юр-сторінки на hapay.today (обов'язкові для сторів) — відкриваємо в браузері
+    [RelayCommand]
+    private async Task OpenLink(string? url)
+    {
+        if (url is not null && Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            await Launcher.Default.OpenAsync(uri);
+    }
+
     [RelayCommand]
     private async Task Logout()
     {
