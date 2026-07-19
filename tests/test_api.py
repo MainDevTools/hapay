@@ -280,17 +280,22 @@ def main():
 
     # та сама крамниця, 2 кольори з РОДОВИМ артикулом (OPPO CPH2801) → НЕ група:
     # offers = 1 крамниця (дедуп), offers_n = 1 (рахуємо крамниці, не товари)
+    # знижкові (old>now), щоб потрапили у /discounts і перевірки нижче реально відпрацювали
     client.post("/api/ingest", headers=ing_tok, json={"source": "Foxtrot", "items": [
         {"external_ref": "/ua/shop/oppo-reno15f-black.html",
          "url": "https://www.foxtrot.com.ua/ua/shop/oppo-reno15f-black.html",
-         "title": "Смартфон OPPO Reno 15 F 8/256GB Black (CPH2801)", "price_now_kop": 1749900},
+         "title": "Смартфон OPPO Reno 15 F 8/256GB Black (CPH2801)",
+         "price_now_kop": 1749900, "price_old_kop": 1899900},
         {"external_ref": "/ua/shop/oppo-reno15f-blue.html",
          "url": "https://www.foxtrot.com.ua/ua/shop/oppo-reno15f-blue.html",
-         "title": "Смартфон OPPO Reno 15 F 8/256GB Blue (CPH2801)", "price_now_kop": 1749900}]})
+         "title": "Смартфон OPPO Reno 15 F 8/256GB Blue (CPH2801)",
+         "price_now_kop": 1749900, "price_old_kop": 1899900}]})
     oppo = client.get("/api/discounts?q=CPH2801").json()
+    checks.append(("OPPO CPH2801 у вітрині (передумова дедуп-тесту)", len(oppo) >= 1, len(oppo)))
+    checks.append(("2 кольори 1 крамниці → offers_n=1 (не бреше про 2 крамниці)",
+                   bool(oppo) and all(d.get("offers_n") == 1 for d in oppo),
+                   [d.get("offers_n") for d in oppo]))
     if oppo:
-        checks.append(("2 кольори 1 крамниці → offers_n=1 (не бреше про 2 крамниці)",
-                       all(d.get("offers_n") == 1 for d in oppo), [d.get("offers_n") for d in oppo]))
         oo = client.get(f"/api/product/{oppo[0]['store_product_id']}/offers").json()
         checks.append(("«Де купити»: одна пропозиція на крамницю (дедуп Foxtrot)",
                        len(oo) == 1 and oo[0]["store"] == "Foxtrot", [o["store"] for o in oo]))
