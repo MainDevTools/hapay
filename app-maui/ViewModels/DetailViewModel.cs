@@ -14,9 +14,13 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
     [ObservableProperty] private Discount? _item;
     [ObservableProperty] private bool _loadingHistory;
     [ObservableProperty] private string? _historyNote;
+    [ObservableProperty] private bool _hasOffers;   // ≥2 крамниці — тоді блок «Де купити» видно
 
     /// Точки для графіка — свій IDrawable читає цю колекцію (сходинки+розриви, T12).
     public ObservableCollection<HistoryPoint> History { get; } = new();
+
+    /// «Де купити» (T15): той самий товар (mpn) у крамницях, від найдешевшої.
+    public ObservableCollection<Offer> Offers { get; } = new();
 
     public DetailViewModel(ApiService api) => _api = api;
 
@@ -26,10 +30,36 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
             Item = d;   // setter → OnItemChanged → тягне історію
     }
 
-    // прийшов товар через Shell-навігацію → тягнемо історію
+    // прийшов товар через Shell-навігацію → тягнемо історію + офери
     partial void OnItemChanged(Discount? value)
     {
-        if (value is not null) _ = LoadHistory(value.StoreProductId);
+        if (value is not null)
+        {
+            _ = LoadHistory(value.StoreProductId);
+            _ = LoadOffers(value.StoreProductId);
+        }
+    }
+
+    private async Task LoadOffers(int storeProductId)
+    {
+        try
+        {
+            var offers = await _api.OffersAsync(storeProductId);
+            Offers.Clear();
+            foreach (var o in offers) Offers.Add(o);
+            HasOffers = Offers.Count > 1;   // група з 1 = сам товар, блок не потрібен
+        }
+        catch
+        {
+            HasOffers = false;              // офери — бонус; збій мережі не ламає картку
+        }
+    }
+
+    [RelayCommand]
+    private async Task OpenOffer(Offer? o)
+    {
+        if (o?.Url is string url && Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            await Launcher.Default.OpenAsync(uri);
     }
 
     private async Task LoadHistory(int storeProductId)

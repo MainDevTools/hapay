@@ -94,6 +94,21 @@ public class UserProfile
     [JsonPropertyName("role")] public string Role { get; set; } = "user";
 }
 
+/// Оффер із /api/product/{id}/offers — той самий товар (mpn) в одній із крамниць (T15).
+public class Offer
+{
+    [JsonPropertyName("store_product_id")] public int StoreProductId { get; set; }
+    [JsonPropertyName("store")] public string Store { get; set; } = "";
+    [JsonPropertyName("title")] public string Title { get; set; } = "";
+    [JsonPropertyName("url")] public string Url { get; set; } = "";
+    [JsonPropertyName("current_kop")] public int CurrentKop { get; set; }
+    [JsonPropertyName("in_stock")] public bool InStock { get; set; } = true;
+    [JsonPropertyName("seen_day")] public string? SeenDay { get; set; }
+
+    [JsonIgnore] public string CurrentGrn => Money.Grn(CurrentKop);
+    [JsonIgnore] public double Opacity => InStock ? 1.0 : 0.45;   // «немає» — приглушено
+}
+
 /// Ціль збору з /api/collect/plan — ЩО тягнути. Сервер вирішує (застосунок = «тупий фетчер»).
 public class CollectTarget
 {

@@ -47,6 +47,11 @@ public class ApiService
         await _http.GetFromJsonAsync<List<HistoryPoint>>(
             $"{Base}/api/product/{storeProductId}/history", _json, ct) ?? new();
 
+    /// «Де купити» (T15): той самий товар (mpn) у всіх крамницях, від найдешевшої.
+    public async Task<List<Offer>> OffersAsync(int storeProductId, CancellationToken ct = default) =>
+        await _http.GetFromJsonAsync<List<Offer>>(
+            $"{Base}/api/product/{storeProductId}/offers", _json, ct) ?? new();
+
     // ── auth (S11) ────────────────────────────────────────────────────────────────
     public Task<AuthResult> RegisterAsync(string email, string password, CancellationToken ct = default) =>
         PostAuthAsync("/api/auth/register", email, password, ct);

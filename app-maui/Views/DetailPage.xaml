@@ -3,13 +3,16 @@
     x:Class="Hapay.Views.DetailPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Name="ThisPage"
     xmlns:vm="clr-namespace:Hapay.ViewModels"
+    xmlns:models="clr-namespace:Hapay.Models"
     xmlns:conv="clr-namespace:Hapay.Converters"
     x:DataType="vm:DetailViewModel"
     Title="{Binding Item.Store}">
 
     <ContentPage.Resources>
         <conv:StringNotEmptyConverter x:Key="NotEmpty" />
+        <conv:InvertBoolConverter x:Key="Invert" />
     </ContentPage.Resources>
 
     <ScrollView>
@@ -39,6 +42,36 @@
             <Label Text="{Binding HistoryNote}" TextColor="Gray"
                    IsVisible="{Binding HistoryNote, Converter={StaticResource NotEmpty}}" />
             <GraphicsView x:Name="Chart" HeightRequest="180" />
+
+            <!-- «Де купити» (T15/§17.5): той самий товар (mpn) у крамницях, від найдешевшої.
+                 Видно лише коли є ≥2 крамниці — інакше блок не додає нічого. -->
+            <VerticalStackLayout Spacing="8" IsVisible="{Binding HasOffers}" Margin="0,12,0,0">
+                <Label Text="Де купити" FontAttributes="Bold" TextColor="Gray" />
+                <VerticalStackLayout Spacing="6" BindableLayout.ItemsSource="{Binding Offers}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="models:Offer">
+                            <Border StrokeThickness="0" StrokeShape="RoundRectangle 12" Padding="12,10"
+                                    BackgroundColor="{AppThemeBinding Light=#F4F4F6, Dark=#22242A}"
+                                    Opacity="{Binding Opacity}">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding Source={x:Reference ThisPage}, Path=BindingContext.OpenOfferCommand}"
+                                        CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                    <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                        <Label Text="{Binding Store}" FontAttributes="Bold" />
+                                        <Label Text="Немає в наявності" FontSize="11" TextColor="Gray"
+                                               IsVisible="{Binding InStock, Converter={StaticResource Invert}}" />
+                                    </VerticalStackLayout>
+                                    <Label Grid.Column="1" Text="{Binding CurrentGrn}"
+                                           FontAttributes="Bold" FontSize="16" VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
 
             <Button Text="Відкрити в крамниці" Command="{Binding OpenStoreCommand}"
                     Margin="0,12,0,0" HeightRequest="48" />
