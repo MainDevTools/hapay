@@ -4,6 +4,7 @@
 Гроші повертаємо в копійках (int); формат у грн — на клієнті.
 """
 from __future__ import annotations
+from psycopg import errors
 from psycopg.rows import dict_row
 
 _SORTS = {
@@ -83,3 +84,48 @@ def list_watchlist(conn, tg_user_id: int):
         return cur.execute(
             "SELECT watchlist_id, kind, ref_id, query_text, created_at FROM watchlist "
             "WHERE tg_user_id = %s ORDER BY created_at DESC", (tg_user_id,)).fetchall()
+
+
+# ── акаунти (S11) ────────────────────────────────────────────────────────────────
+def create_user(conn, email: str, password_hash: str):
+    """Створює юзера. Повертає (user_id, role) або None, якщо email зайнятий."""
+    try:
+        return conn.execute(
+            "INSERT INTO app_user (email, password_hash) VALUES (%s,%s) "
+            "RETURNING user_id, role", (email, password_hash)).fetchone()
+    except errors.UniqueViolation:
+        return None
+
+
+def get_user_by_email(conn, email: str):
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(
+            "SELECT user_id, email, password_hash, role FROM app_user "
+            "WHERE lower(email) = lower(%s)", (email,)).fetchone()
+
+
+def touch_login(conn, user_id: int):
+    conn.execute("UPDATE app_user SET last_login_at = now() WHERE user_id = %s", (user_id,))
+
+
+def get_user(conn, user_id: int):
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(
+            "SELECT user_id, email, role, created_at FROM app_user WHERE user_id = %s",
+            (user_id,)).fetchone()
+
+
+# watchlist на app-юзера (окремо від Telegram-версії вище)
+def add_watchlist_user(conn, user_id: int, kind: str, ref_id: int | None, query_text: str | None):
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(
+            "INSERT INTO watchlist (user_id, kind, ref_id, query_text) VALUES (%s,%s,%s,%s) "
+            "RETURNING watchlist_id, kind, ref_id, query_text",
+            (user_id, kind, ref_id, query_text)).fetchone()
+
+
+def list_watchlist_user(conn, user_id: int):
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(
+            "SELECT watchlist_id, kind, ref_id, query_text, created_at FROM watchlist "
+            "WHERE user_id = %s ORDER BY created_at DESC", (user_id,)).fetchall()

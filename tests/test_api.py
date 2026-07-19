@@ -15,6 +15,7 @@ URL = test_dsn("test_api")                              # РУЙНІВНИЙ: н
 os.environ["BOT_TOKEN"] = "123456:TEST-token"           # до імпорту app (читається на імпорті)
 os.environ["DATABASE_URL"] = URL                        # api/db.py ходить у ТЕСТОВУ базу, не в прод
 os.environ["INGEST_TOKENS"] = "tester:secret-ingest-token"   # довірений колектор для тесту
+os.environ["JWT_SECRET"] = "test-jwt-secret-at-least-16-chars"  # для auth-ендпоінтів
 
 import psycopg                                          # noqa: E402
 from fastapi.testclient import TestClient               # noqa: E402
@@ -111,6 +112,36 @@ def main():
     checks.append(("ingest невідомого джерела → 400",
                    client.post("/api/ingest", json={"source": "Хакер", "items": []},
                                headers=ing_tok).status_code == 400, None))
+
+    # ── акаунти (S11): реєстрація / логін / профіль / watchlist ───────────────────
+    reg = client.post("/api/auth/register", json={"email": "Test@Hapay.today", "password": "supersecret"})
+    checks.append(("register 200 + token", reg.status_code == 200 and "token" in reg.json(), reg.status_code))
+    tok = reg.json().get("token", "")
+    ahdr = {"Authorization": f"Bearer {tok}"}
+
+    checks.append(("дубль email → 409",
+                   client.post("/api/auth/register",
+                               json={"email": "test@hapay.today", "password": "another1"}).status_code == 409, None))
+    checks.append(("короткий пароль → 400",
+                   client.post("/api/auth/register",
+                               json={"email": "b@hapay.today", "password": "short"}).status_code == 400, None))
+
+    lg = client.post("/api/auth/login", json={"email": "test@hapay.today", "password": "supersecret"})
+    checks.append(("login (регістр email байдужий) → 200", lg.status_code == 200 and "token" in lg.json(), lg.status_code))
+    checks.append(("login з невірним паролем → 401",
+                   client.post("/api/auth/login",
+                               json={"email": "test@hapay.today", "password": "WRONG"}).status_code == 401, None))
+
+    checks.append(("/api/me без токена → 401", client.get("/api/me").status_code == 401, None))
+    mer = client.get("/api/me", headers=ahdr).json()
+    checks.append(("/api/me повертає email+role=user",
+                   mer.get("email") == "test@hapay.today" and mer.get("role") == "user", mer))
+
+    wa = client.post("/api/me/watchlist", json={"kind": "query", "query_text": "iphone"}, headers=ahdr)
+    checks.append(("POST /api/me/watchlist → 200", wa.status_code == 200, wa.status_code))
+    mwl = client.get("/api/me/watchlist", headers=ahdr).json()
+    checks.append(("/api/me/watchlist повертає запис юзера",
+                   len(mwl) == 1 and mwl[0]["query_text"] == "iphone", mwl))
 
     for name, ok, val in checks:
         print(f"{'PASS' if ok else 'FAIL'}  {name}" + ("" if ok else f"  -> {val!r}"))
