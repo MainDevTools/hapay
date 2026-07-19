@@ -23,6 +23,7 @@ from adapters.base import RawItem, canon_ref
 from adapters.comfy import ComfyAdapter
 from adapters.foxtrot import FoxtrotAdapter
 from adapters.moyo import MoyoAdapter
+from adapters.rozetka import RozetkaAdapter
 from db.store import load_categories, persist_items, upsert_source
 
 # ── Сервер — АВТОРИТЕТ, хто може бути джерелом і які хости валідні ────────────────
@@ -58,6 +59,11 @@ HTML_SOURCES: dict[str, dict] = {
     # Allo/Foxtrot/Moyo (напр. SM-A376BLVGEUC) → групи «Де купити» ширшають.
     "Comfy": {"adapter": ComfyAdapter(), "urls": (
         "https://comfy.ua/smartfon/",
+    )},
+    # Rozetka (розвідка 2026-07-19): найбільший маркетплейс, Angular-SSR 60 карток;
+    # масові перетини MPN (SM-S942BZKGEUC = Foxtrot S26, SM-A576BZVDEUC = Moyo/Allo A57).
+    "Rozetka": {"adapter": RozetkaAdapter(), "urls": (
+        "https://rozetka.com.ua/ua/mobile-phones/c80003/",
     )},
 }
 

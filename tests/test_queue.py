@@ -18,6 +18,7 @@ from api import qtasks                                  # noqa: E402
 from api.ingest import HTML_SOURCES                     # noqa: E402
 
 N_SRC = len(HTML_SOURCES)                               # к-сть крамниць у черзі (росте з адаптерами)
+PER_LEASE = min(N_SRC, qtasks.MAX_LEASE)               # одна оренда — не більше стелі MAX_LEASE
 
 
 def main():
@@ -41,12 +42,14 @@ def main():
         got = qtasks.lease_tasks(conn, "phone-A", limit=N_SRC + 3)
         srcs = [t["source"] for t in got]
         checks.append(("оренда віддає по 1 на крамницю", len(srcs) == len(set(srcs)), srcs))
-        checks.append((f"усі {N_SRC} крамниць у першій оренді", len(got) == N_SRC, len(got)))
+        checks.append((f"перша оренда = min(джерел, стеля) = {PER_LEASE}", len(got) == PER_LEASE, len(got)))
 
-        # ── розліт 15 хв: друга задача Allo ВІЛЬНА, але not_before зсунуто ────────
-        got_b = qtasks.lease_tasks(conn, "phone-B", limit=5)
-        checks.append(("другий телефон одразу → порожньо (розліт, не зайнятість)",
-                       got_b == [], got_b))
+        # ── розліт 15 хв: жодна ЩОЙНО орендована крамниця недоступна другому телефону
+        # (навіть якщо в неї лишились вільні задачі, як 2-га Allo) ────────────────
+        got_b = qtasks.lease_tasks(conn, "phone-B", limit=N_SRC + 3)
+        leased_srcs = {t["source"] for t in got}
+        checks.append(("розліт: орендовані крамниці недоступні другому телефону",
+                       {t["source"] for t in got_b}.isdisjoint(leased_srcs), got_b))
 
         # ── закриття: not_before стрибає на repeat_min; чужий не закриє ───────────
         t0 = got[0]

@@ -212,6 +212,21 @@ def main():
     checks.append(("ingest/html Moyo-лістинг → 3 прийнято",
                    mr.status_code == 200 and mr.json().get("accepted") == 3, mr.json()))
 
+    # Rozetka-лістинг: S26 SM-S942BZKGEUC збігається з Foxtrot (той самий MPN) →
+    # ЖИВА крос-крамнична група «Де купити» з реальних адаптерів (не синтетика)
+    rz = client.post("/api/ingest/html", headers=chdr, json={
+        "source": "Rozetka", "url": "https://rozetka.com.ua/ua/mobile-phones/c80003/",
+        "html": _cas("rozetka_listing.html")})
+    checks.append(("ingest/html Rozetka-лістинг → 3 прийнято",
+                   rz.status_code == 200 and rz.json().get("accepted") == 3, rz.json()))
+    s26 = client.get("/api/discounts?q=SM-S942BZKGEUC").json()
+    checks.append(("S26 у вітрині (Rozetka+Foxtrot)", len(s26) >= 1, len(s26)))
+    if s26:
+        s26_off = client.get(f"/api/product/{s26[0]['store_product_id']}/offers").json()
+        checks.append(("S26 група з РЕАЛЬНИХ адаптерів: {Rozetka, Foxtrot}",
+                       {o["store"] for o in s26_off} == {"Rozetka", "Foxtrot"},
+                       [o["store"] for o in s26_off]))
+
     # ── агрегатна картка за MPN (T15/§17.5): той самий товар у 2 крамницях ────────
     # Allo (html-ingest вище) має Samsung A37 SM-A376BDGGEUC. Запит ПОВНИМ MPN:
     # у Moyo-касеті інший варіант A37 (…BZABEUC) — він НЕ мусить потрапити ні сюди,
