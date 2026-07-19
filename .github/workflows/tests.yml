@@ -31,10 +31,16 @@ jobs:
         run: python tests/test_initdata.py
       - name: розпаковка тіла — gzip/deflate (8.8x трафіку)
         run: python tests/test_fetch.py
+      - name: Allo — hub-discovery + екстракція лендингу (§8.8)
+        run: python tests/test_allo.py
       - name: ingest — токен-гейт + валідація елементів (S10)
         run: python tests/test_ingest.py
+      - name: html-ingest — двофазний discover + валідація (S11 етап 3)
+        run: python tests/test_ingest_html.py
       - name: сателіт-передавач — payload на касетах (S10)
         run: python tests/test_satellite.py
+      - name: auth — хеш паролів + JWT (HS256, stdlib) (S11)
+        run: python tests/test_auth.py
       - name: таксономія — категоризація за URL (§2.6)
         run: python tests/test_taxonomy.py
 
