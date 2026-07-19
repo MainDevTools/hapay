@@ -20,6 +20,7 @@ from urllib.parse import urlsplit
 
 from adapters.allo import HUB as ALLO_HUB, AlloAdapter
 from adapters.base import RawItem, canon_ref
+from adapters.citrus import CitrusAdapter
 from adapters.comfy import ComfyAdapter
 from adapters.foxtrot import FoxtrotAdapter
 from adapters.moyo import MoyoAdapter
@@ -36,6 +37,7 @@ INGEST_SOURCES: dict[str, dict] = {
     "Rozetka":  {"base_url": "https://rozetka.com.ua",     "hosts": ("rozetka.com.ua",)},
     "Allo":     {"base_url": "https://allo.ua",            "hosts": ("allo.ua",)},
     "Comfy":    {"base_url": "https://comfy.ua",           "hosts": ("comfy.ua",)},
+    "Citrus":   {"base_url": "https://www.ctrs.com.ua",    "hosts": ("ctrs.com.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -64,6 +66,11 @@ HTML_SOURCES: dict[str, dict] = {
     # масові перетини MPN (SM-S942BZKGEUC = Foxtrot S26, SM-A576BZVDEUC = Moyo/Allo A57).
     "Rozetka": {"adapter": RozetkaAdapter(), "urls": (
         "https://rozetka.com.ua/ua/mobile-phones/c80003/",
+    )},
+    # Citrus (розвідка 2026-07-19): Next.js SSR, 47 карток, хешовані класи (префіксні
+    # селектори); SM-S948BZKGEUC перетинається з Comfy → більше груп.
+    "Citrus": {"adapter": CitrusAdapter(), "urls": (
+        "https://www.ctrs.com.ua/smartfony/",
     )},
 }
 

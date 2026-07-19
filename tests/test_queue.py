@@ -85,6 +85,20 @@ def main():
         got_d = qtasks.lease_tasks(conn, "phone-D", limit=2)
         checks.append(("limit=2 ріже видачу (навіть якщо дозріло 3+)", len(got_d) == 2, len(got_d)))
 
+        # ── чесна ротація (антистарвейшн): усі дозрілі, але 3 крамниці «свіжі», 3 «древні»
+        # → оренда бере ДРЕВНІ, а не перші за абеткою (інакше нові адаптери голодували б)
+        conn.execute("UPDATE collect_task SET leased_until = NULL, not_before = now() - interval '1 hour'")
+        srcs = [r[0] for r in conn.execute("SELECT DISTINCT source FROM collect_task "
+                                           "ORDER BY source").fetchall()]
+        if len(srcs) >= 4:
+            fresh = srcs[:len(srcs) // 2]      # перші за абеткою — робимо СВІЖИМИ (щойно збирані)
+            conn.execute("UPDATE collect_task SET not_before = now() - interval '1 minute' "
+                         "WHERE source = ANY(%s)", (fresh,))
+            got_fair = qtasks.lease_tasks(conn, "phone-fair", limit=len(fresh))
+            picked = {t["source"] for t in got_fair}
+            checks.append(("чесна ротація: бере найдовше очікувані, не за абеткою",
+                           bool(picked) and picked.isdisjoint(set(fresh)), (sorted(picked), fresh)))
+
         # ── enqueue_pages: лендинги хаба → у чергу, ідемпотентно, з розльотом ─────
         urls = ["https://allo.ua/ua/events-and-discounts/aaa-action/",
                 "https://allo.ua/ua/events-and-discounts/bbb-action/"]

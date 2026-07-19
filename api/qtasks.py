@@ -59,12 +59,14 @@ def lease_tasks(conn, worker: str, limit: int = 3) -> list[dict]:
                    leased_until = now() + make_interval(mins => %s)
                WHERE task_id IN (
                    SELECT task_id FROM (
-                       SELECT DISTINCT ON (source) task_id
+                       SELECT DISTINCT ON (source) task_id, priority, not_before
                        FROM collect_task
                        WHERE not_before <= now()
                          AND (leased_until IS NULL OR leased_until < now())
-                       ORDER BY source, priority, not_before
-                   ) pick LIMIT %s
+                       ORDER BY source, priority, not_before   -- 1 задача/крамницю
+                   ) pick
+                   ORDER BY priority, not_before                -- НАЙДОВШЕ очікувані першими (не абетка)
+                   LIMIT %s                                     -- → чесна ротація при джерелах > стелі
                )
                  AND not_before <= now()
                  AND (leased_until IS NULL OR leased_until < now())
