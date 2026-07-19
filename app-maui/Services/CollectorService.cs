@@ -12,14 +12,16 @@ namespace Hapay.Services;
 public class CollectorService
 {
     private readonly ApiService _api;
+    private readonly IWebRenderer _renderer;   // рендер SPA-крамниць (mode=render) — Android WebView
     private readonly HttpClient _store;    // ОКРЕМИЙ клієнт: БЕЗ нашого JWT (не світимо токен крамниці)
 
     private const int MaxHtml = 5_000_000;                       // = серверна стеля; не вантажимо більше
     private static readonly TimeSpan Polite = TimeSpan.FromSeconds(2);  // §10.2 — пауза між запитами до хоста
 
-    public CollectorService(ApiService api)
+    public CollectorService(ApiService api, IWebRenderer renderer)
     {
         _api = api;
+        _renderer = renderer;
         var handler = new HttpClientHandler
         {
             AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
@@ -44,7 +46,7 @@ public class CollectorService
             try
             {
                 progress.Report($"{t.Source}: {Short(t.Url)}…");
-                var html = await FetchAsync(t.Url, ct);
+                var html = await GetHtmlAsync(t.Url, t.Mode, ct);
                 var r = await _api.IngestHtmlAsync(t.Source, t.Url, html, ct: ct);
                 pages++;
                 accepted += r.Accepted;
@@ -95,7 +97,7 @@ public class CollectorService
             ct.ThrowIfCancellationRequested();
             try
             {
-                var html = await FetchAsync(t.Url, ct);
+                var html = await GetHtmlAsync(t.Url, t.Mode, ct);
                 var r = await _api.IngestHtmlAsync(t.Source, t.Url, html, t.TaskId, ct);
                 pages++;
                 accepted += r.Accepted;
@@ -109,6 +111,19 @@ public class CollectorService
         }
         if (pages > 0) CollectPrefs.BumpToday(pages);
         return new QueuePassSummary(pages, accepted, errors);
+    }
+
+    /// HTML сторінки за режимом: render (WebView — SPA-крамниці) або fetch (plain GET — SSR).
+    private async Task<string> GetHtmlAsync(string url, string mode, CancellationToken ct)
+    {
+        if (mode == "render")
+        {
+            if (!_renderer.IsSupported)
+                throw new Exception("render недоступний на цій платформі");
+            var rendered = await _renderer.RenderHtmlAsync(url, ct);
+            return rendered ?? throw new Exception("render повернув порожньо");
+        }
+        return await FetchAsync(url, ct);
     }
 
     private async Task<string> FetchAsync(string url, CancellationToken ct)

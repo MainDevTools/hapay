@@ -122,6 +122,7 @@ public class LeaseTask
     [JsonPropertyName("source")] public string Source { get; set; } = "";
     [JsonPropertyName("url")] public string Url { get; set; } = "";
     [JsonPropertyName("kind")] public string Kind { get; set; } = "page";
+    [JsonPropertyName("mode")] public string Mode { get; set; } = "fetch";   // fetch | render (WebView)
 }
 
 public class LeaseResponse
@@ -135,6 +136,7 @@ public class CollectTarget
     [JsonPropertyName("source")] public string Source { get; set; } = "";
     [JsonPropertyName("url")] public string Url { get; set; } = "";
     [JsonPropertyName("kind")] public string Kind { get; set; } = "page";   // hub | page
+    [JsonPropertyName("mode")] public string Mode { get; set; } = "fetch";  // fetch | render (WebView)
 }
 
 /// Відповідь /api/collect/plan.
