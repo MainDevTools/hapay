@@ -33,6 +33,10 @@
                         ItemDisplayBinding="{Binding Label}"
                         SelectedItem="{Binding SelectedSort}" />
             </Grid>
+            <Picker Title="Ціна"
+                    ItemsSource="{Binding PriceOptions}"
+                    ItemDisplayBinding="{Binding Label}"
+                    SelectedItem="{Binding SelectedPrice}" />
             <Label Text="{Binding ErrorMessage}" TextColor="#E23B3B"
                    IsVisible="{Binding ErrorMessage, Converter={StaticResource NotEmpty}}" />
         </VerticalStackLayout>

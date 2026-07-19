@@ -8,6 +8,7 @@ using Hapay.Views;
 namespace Hapay.ViewModels;
 
 public record SortOption(string Label, string Key);
+public record PriceOption(string Label, int? MinKop, int? MaxKop);   // межі — копійки (інв. A), null = без межі
 
 public partial class HomeViewModel : ObservableObject
 {
@@ -22,9 +23,19 @@ public partial class HomeViewModel : ObservableObject
         new("Найновіші", "new"),
         new("За нашим мінімумом", "verified"),
     };
+    public IReadOnlyList<PriceOption> PriceOptions { get; } = new List<PriceOption>
+    {
+        new("Будь-яка ціна", null, null),
+        new("до 500 ₴", null, 50_000),
+        new("500–2 000 ₴", 50_000, 200_000),
+        new("2 000–10 000 ₴", 200_000, 1_000_000),
+        new("10 000–30 000 ₴", 1_000_000, 3_000_000),
+        new("від 30 000 ₴", 3_000_000, null),
+    };
 
     [ObservableProperty] private Category? _selectedCategory;
     [ObservableProperty] private SortOption? _selectedSort;
+    [ObservableProperty] private PriceOption? _selectedPrice;
     [ObservableProperty] private string _searchText = "";
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private bool _isRefreshing;
@@ -58,8 +69,10 @@ public partial class HomeViewModel : ObservableObject
 
         _selectedCategory = Categories[0];   // завжди є принаймні «Усі категорії»
         _selectedSort = SortOptions[0];
+        _selectedPrice = PriceOptions[0];    // «Будь-яка ціна»
         OnPropertyChanged(nameof(SelectedCategory));
         OnPropertyChanged(nameof(SelectedSort));
+        OnPropertyChanged(nameof(SelectedPrice));
 
         await ReloadAsync();
         _ready = true;
@@ -68,6 +81,7 @@ public partial class HomeViewModel : ObservableObject
     // property-changed від пікерів → перезавантаження (після ініціалізації)
     partial void OnSelectedCategoryChanged(Category? value) { if (_ready) _ = ReloadAsync(); }
     partial void OnSelectedSortChanged(SortOption? value) { if (_ready) _ = ReloadAsync(); }
+    partial void OnSelectedPriceChanged(PriceOption? value) { if (_ready) _ = ReloadAsync(); }
 
     partial void OnSearchTextChanged(string value)
     {
@@ -136,7 +150,9 @@ public partial class HomeViewModel : ObservableObject
                 category: string.IsNullOrEmpty(SelectedCategory?.Slug) ? null : SelectedCategory!.Slug,
                 q: SearchText,
                 sort: SelectedSort?.Key ?? "discount",
-                page: _page);
+                page: _page,
+                priceMinKop: SelectedPrice?.MinKop,
+                priceMaxKop: SelectedPrice?.MaxKop);
             if (gen != _gen) return;   // фільтр змінився під час запиту → відповідь застаріла
             foreach (var d in batch) Items.Add(d);
             _more = batch.Count >= 50;

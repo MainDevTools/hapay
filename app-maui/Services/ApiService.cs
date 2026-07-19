@@ -30,11 +30,13 @@ public class ApiService
 
     public async Task<List<Discount>> DiscountsAsync(
         string? category = null, string? q = null, string sort = "discount", int page = 0,
-        CancellationToken ct = default)
+        int? priceMinKop = null, int? priceMaxKop = null, CancellationToken ct = default)
     {
         var url = $"{Base}/api/discounts?sort={Uri.EscapeDataString(sort)}&page={page}";
         if (!string.IsNullOrWhiteSpace(category)) url += $"&category={Uri.EscapeDataString(category)}";
         if (!string.IsNullOrWhiteSpace(q)) url += $"&q={Uri.EscapeDataString(q.Trim())}";
+        if (priceMinKop is int lo) url += $"&price_min={lo}";        // копійки (інв. A)
+        if (priceMaxKop is int hi) url += $"&price_max={hi}";
         return await _http.GetFromJsonAsync<List<Discount>>(url, _json, ct) ?? new();
     }
 
