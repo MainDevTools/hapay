@@ -33,7 +33,10 @@ def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, o
         SELECT de.discount_event_id, sp.store_product_id, sp.title, sp.url, sp.image_url,
                sp.variant_note, s.name AS store,
                de.current_kop, de.old_declared_kop, de.reference_kop,
-               de.declared_pct, de.verified_pct, de.badge_state
+               de.declared_pct, de.verified_pct, de.badge_state,
+               CASE WHEN sp.mpn IS NULL THEN 1
+                    ELSE (SELECT count(*) FROM store_product sp2 WHERE sp2.mpn = sp.mpn)
+               END AS offers_n
         FROM discount_event de
         JOIN store_product sp USING (store_product_id)
         JOIN source s USING (source_id)

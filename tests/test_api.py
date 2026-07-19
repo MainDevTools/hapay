@@ -237,6 +237,15 @@ def main():
                    and duo[0]["current_kop"] == 1999900
                    and duo[0]["current_kop"] <= duo[1]["current_kop"], duo))
 
+    # стрічка знає розмір групи: offers_n=2 у картці A37 (для «Наявно в 2 крамницях»)
+    a37_after = client.get("/api/discounts?q=SM-A376BDGGEUC").json()
+    checks.append(("discounts.offers_n = 2 після 2-ї крамниці",
+                   len(a37_after) == 1 and a37_after[0].get("offers_n") == 2,
+                   [d.get("offers_n") for d in a37_after]))
+    pet_n = client.get("/api/discounts?q=Royal").json()
+    checks.append(("товар без MPN → offers_n = 1",
+                   all(d.get("offers_n") == 1 for d in pet_n), [d.get("offers_n") for d in pet_n]))
+
     # регіональний суфікс НЕ зливається (пастка AUXUA): третя позиція з іншим суфіксом
     client.post("/api/ingest", headers=ing_tok, json={"source": "Moyo", "items": [
         {"external_ref": "/ua/samsung-a37-ua.html",
