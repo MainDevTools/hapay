@@ -183,6 +183,8 @@ def main():
     checks.append(("ingest/html хаб → 9 лендингів, accepted=0",
                    h1.status_code == 200 and hj.get("kind") == "hub"
                    and len(hj.get("discovered", [])) == 9 and hj.get("accepted") == 0, hj))
+    checks.append(("хаб кладе лендинги в чергу (enqueued=9, T16)",
+                   hj.get("enqueued") == 9, hj.get("enqueued")))
 
     # фаза 2: один лендинг → СЕРВЕР extract → персист 3 товари
     landing = hj["discovered"][0]
@@ -287,8 +289,9 @@ def main():
         hr = client.post("/api/ingest/html", headers=chdr, json={
             "source": "Allo", "url": allo_task["url"], "html": allo_hub,
             "task_id": allo_task["task_id"]}).json()
-        checks.append(("хаб через чергу: лендинги ENQUEUED (не лише discovered)",
-                       hr.get("enqueued", 0) >= 1 and hr.get("task_closed") is True, hr))
+        # лендинги ВЖЕ в черзі з першого хаб-виклику → повтор ідемпотентний (0 нових)
+        checks.append(("хаб через чергу: задача закрита, enqueue ідемпотентний",
+                       hr.get("task_closed") is True and hr.get("enqueued") == 0, hr))
 
     moyo_task = next((t for t in ltasks if t["source"] == "Moyo"), None)
     if moyo_task:
