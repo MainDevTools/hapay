@@ -22,6 +22,7 @@ from fastapi.testclient import TestClient               # noqa: E402
 from db import migrate                                  # noqa: E402
 from collect import collect, SOURCES                    # noqa: E402
 from api.main import app                                # noqa: E402
+from api import ingest as qingest                       # noqa: E402  (к-сть HTML_SOURCES)
 from api.initdata import build_init_data                # noqa: E402
 
 
