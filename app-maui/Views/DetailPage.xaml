@@ -36,6 +36,11 @@
                 </Border>
             </Grid>
 
+            <!-- T15: видно без скролу; де саме — блок «Де купити» нижче -->
+            <Label Text="{Binding OffersLine}" FontAttributes="Bold" FontSize="13"
+                   TextColor="{AppThemeBinding Light=#512BD4, Dark=#AC99EA}"
+                   IsVisible="{Binding HasOffers}" />
+
             <Label Text="Історія ціни" FontAttributes="Bold" TextColor="Gray" Margin="0,12,0,0" />
             <ActivityIndicator IsRunning="{Binding LoadingHistory}" IsVisible="{Binding LoadingHistory}"
                                HorizontalOptions="Start" />

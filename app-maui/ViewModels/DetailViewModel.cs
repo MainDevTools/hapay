@@ -40,6 +40,9 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
         }
     }
 
+    /// «Наявно в N крамницях» — під ціною, щоб було видно без скролу до «Де купити».
+    public string OffersLine => $"Наявно в {Offers.Count} крамницях";
+
     private async Task LoadOffers(int storeProductId)
     {
         try
@@ -48,6 +51,7 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
             Offers.Clear();
             foreach (var o in offers) Offers.Add(o);
             HasOffers = Offers.Count > 1;   // група з 1 = сам товар, блок не потрібен
+            OnPropertyChanged(nameof(OffersLine));
         }
         catch
         {

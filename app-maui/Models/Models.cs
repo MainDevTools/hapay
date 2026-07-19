@@ -40,8 +40,11 @@ public class Discount
     [JsonPropertyName("declared_pct")] public int? DeclaredPct { get; set; }
     [JsonPropertyName("verified_pct")] public int? VerifiedPct { get; set; }
     [JsonPropertyName("badge_state")] public string BadgeState { get; set; } = "declared";
+    [JsonPropertyName("offers_n")] public int OffersN { get; set; } = 1;   // розмір MPN-групи (T15)
 
     // --- похідні для XAML-байндингу ---
+    [JsonIgnore] public bool HasMultiStores => OffersN > 1;
+    [JsonIgnore] public string StoresText => $"Наявно в {OffersN} крамницях";
     [JsonIgnore] public string CurrentGrn => Money.Grn(CurrentKop);
     [JsonIgnore] public string OldGrn => Money.Grn(OldDeclaredKop);
     [JsonIgnore] public bool HasOld => OldDeclaredKop is not null && OldDeclaredKop > CurrentKop;
