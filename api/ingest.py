@@ -20,6 +20,7 @@ from urllib.parse import urlsplit
 
 from adapters.allo import HUB as ALLO_HUB, AlloAdapter
 from adapters.base import RawItem, canon_ref
+from adapters.comfy import ComfyAdapter
 from adapters.foxtrot import FoxtrotAdapter
 from adapters.moyo import MoyoAdapter
 from db.store import load_categories, persist_items, upsert_source
@@ -33,6 +34,7 @@ INGEST_SOURCES: dict[str, dict] = {
     "Eldorado": {"base_url": "https://eldorado.ua",        "hosts": ("eldorado.ua",)},
     "Rozetka":  {"base_url": "https://rozetka.com.ua",     "hosts": ("rozetka.com.ua",)},
     "Allo":     {"base_url": "https://allo.ua",            "hosts": ("allo.ua",)},
+    "Comfy":    {"base_url": "https://comfy.ua",           "hosts": ("comfy.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -51,6 +53,11 @@ HTML_SOURCES: dict[str, dict] = {
     )},
     "Moyo": {"adapter": MoyoAdapter(), "urls": (
         "https://www.moyo.ua/ua/telecommunication/smart/",
+    )},
+    # Comfy (розвідка 2026-07-19): SSR-лістинг, 50 карток, MPN у назвах — перетин із
+    # Allo/Foxtrot/Moyo (напр. SM-A376BLVGEUC) → групи «Де купити» ширшають.
+    "Comfy": {"adapter": ComfyAdapter(), "urls": (
+        "https://comfy.ua/smartfon/",
     )},
 }
 
