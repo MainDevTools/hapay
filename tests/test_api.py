@@ -198,6 +198,46 @@ def main():
     checks.append(("html-ingest товар видно в /discounts (store=Allo)",
                    len(allo_seen) >= 1 and allo_seen[0]["store"] == "Allo", allo_seen))
 
+    # ── агрегатна картка за MPN (T15/§17.5): той самий товар у 2 крамницях ────────
+    # Allo (html-ingest вище) вже має Samsung A37 з MPN SM-A376BDGGEUC у назві.
+    a37 = client.get("/api/discounts?q=A37").json()
+    checks.append(("Allo A37 у вітрині (передумова)", len(a37) == 1, len(a37)))
+    a37_id = a37[0]["store_product_id"]
+
+    # до другої крамниці: offers повертає лише сам товар (група з 1)
+    solo = client.get(f"/api/product/{a37_id}/offers").json()
+    checks.append(("offers до 2-ї крамниці: група з 1 (сам товар)",
+                   len(solo) == 1 and solo[0]["store"] == "Allo", solo))
+
+    # Foxtrot продає ТОЙ САМИЙ товар (той самий MPN у назві) дешевше
+    client.post("/api/ingest", headers=ing_tok, json={"source": "Foxtrot", "items": [
+        {"external_ref": "/ua/shop/samsung-a37-256.html",
+         "url": "https://www.foxtrot.com.ua/ua/shop/samsung-a37-256.html",
+         "title": "Samsung Galaxy A37 5G 8/256GB Awesome Graphite (SM-A376BDGGEUC)",
+         "price_now_kop": 1999900}]})
+    duo = client.get(f"/api/product/{a37_id}/offers").json()
+    checks.append(("offers після 2-ї крамниці: 2 офери",
+                   len(duo) == 2 and {o["store"] for o in duo} == {"Allo", "Foxtrot"}, duo))
+    checks.append(("offers сортовано від найдешевшої (Foxtrot перший)",
+                   len(duo) == 2 and duo[0]["store"] == "Foxtrot"
+                   and duo[0]["current_kop"] == 1999900
+                   and duo[0]["current_kop"] <= duo[1]["current_kop"], duo))
+
+    # регіональний суфікс НЕ зливається (пастка AUXUA): третя позиція з іншим суфіксом
+    client.post("/api/ingest", headers=ing_tok, json={"source": "Moyo", "items": [
+        {"external_ref": "/ua/samsung-a37-ua.html",
+         "url": "https://www.moyo.ua/ua/samsung-a37-ua.html",
+         "title": "Samsung Galaxy A37 5G 8/256GB (SM-A376BDGGAUXUA)",
+         "price_now_kop": 1899900}]})
+    still = client.get(f"/api/product/{a37_id}/offers").json()
+    checks.append(("AUXUA-суфікс НЕ злився у групу (лишилось 2)", len(still) == 2, len(still)))
+
+    # товар без MPN (зоо) → offers порожній, блок не показується
+    pet = client.get("/api/discounts?q=Royal").json()
+    if pet:
+        po = client.get(f"/api/product/{pet[0]['store_product_id']}/offers").json()
+        checks.append(("товар без MPN → offers = []", po == [], po))
+
     # ── фільтр ціни (копійки) ─────────────────────────────────────────────────────
     all_now = client.get("/api/discounts?sort=new").json()
     expensive = client.get("/api/discounts?sort=new&price_min=4000000").json()   # ≥ 40 000 ₴

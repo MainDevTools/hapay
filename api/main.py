@@ -76,6 +76,12 @@ def history(store_product_id: int, conn=Depends(get_conn)):
     return qdb.product_history(conn, store_product_id)
 
 
+@app.get("/api/product/{store_product_id}/offers")
+def offers(store_product_id: int, conn=Depends(get_conn)):
+    """«Де купити» (T15): той самий товар (mpn) у всіх крамницях, від найдешевшої."""
+    return qdb.product_offers(conn, store_product_id)
+
+
 @app.get("/api/watchlist")
 def watchlist(user=Depends(require_user), conn=Depends(get_conn)):
     return qdb.list_watchlist(conn, int(user["id"]))

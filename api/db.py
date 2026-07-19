@@ -64,6 +64,39 @@ def product_history(conn, store_product_id: int, days: int = 90):
         return cur.execute(sql, (store_product_id, days)).fetchall()
 
 
+def product_offers(conn, store_product_id: int):
+    """«Де купити» (T15/§17.5): усі крамниці з ТИМ САМИМ товаром (однаковий mpn),
+    остання відома ціна кожної, сортовано від найдешевшої. Включає сам товар.
+
+    Товар без mpn → [] (немає ключа групування — блок у застосунку не показується).
+    Ціна — з СИРОГО price_snapshot (останній вимір), не з discount_event: оффер
+    крамниці існує й без активної знижки.
+    """
+    sql = """
+        WITH grp AS (
+            SELECT sp.store_product_id, sp.title, sp.url, s.name AS store
+            FROM store_product sp
+            JOIN source s USING (source_id)
+            WHERE sp.mpn IS NOT NULL
+              AND sp.mpn = (SELECT mpn FROM store_product WHERE store_product_id = %s)
+        ),
+        last_price AS (
+            SELECT DISTINCT ON (ps.store_product_id)
+                   ps.store_product_id, ps.price_now_kop, ps.in_stock,
+                   (ps.seen_at AT TIME ZONE 'Europe/Kyiv')::date AS seen_day
+            FROM price_snapshot ps
+            JOIN grp USING (store_product_id)
+            ORDER BY ps.store_product_id, ps.seen_at DESC
+        )
+        SELECT g.store_product_id, g.store, g.title, g.url,
+               lp.price_now_kop AS current_kop, lp.in_stock, lp.seen_day
+        FROM grp g
+        JOIN last_price lp USING (store_product_id)
+        ORDER BY lp.price_now_kop, g.store"""
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(sql, (store_product_id,)).fetchall()
+
+
 def categories(conn):
     """Лише категорії з активними знижками (+ лічильник) — для селектора §9.1."""
     with conn.cursor(row_factory=dict_row) as cur:

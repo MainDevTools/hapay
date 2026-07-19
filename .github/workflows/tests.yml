@@ -43,6 +43,8 @@ jobs:
         run: python tests/test_auth.py
       - name: таксономія — категоризація за URL (§2.6)
         run: python tests/test_taxonomy.py
+      - name: matching — MPN-екстракція без перезлиття (T15)
+        run: python tests/test_matching.py
 
   migration:
     # Верифікація 0001 проти живого PostgreSQL 18 (= версія прод-Neon; Timescale-фічі → 0002).
