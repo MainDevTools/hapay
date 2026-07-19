@@ -35,7 +35,8 @@ def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, o
                de.current_kop, de.old_declared_kop, de.reference_kop,
                de.declared_pct, de.verified_pct, de.badge_state,
                CASE WHEN sp.mpn IS NULL THEN 1
-                    ELSE (SELECT count(*) FROM store_product sp2 WHERE sp2.mpn = sp.mpn)
+                    ELSE (SELECT count(DISTINCT sp2.source_id)
+                          FROM store_product sp2 WHERE sp2.mpn = sp.mpn)
                END AS offers_n
         FROM discount_event de
         JOIN store_product sp USING (store_product_id)
@@ -68,16 +69,17 @@ def product_history(conn, store_product_id: int, days: int = 90):
 
 
 def product_offers(conn, store_product_id: int):
-    """«Де купити» (T15/§17.5): усі крамниці з ТИМ САМИМ товаром (однаковий mpn),
-    остання відома ціна кожної, сортовано від найдешевшої. Включає сам товар.
+    """«Де купити» (T15/§17.5): ПО ОДНІЙ (найдешевшій) пропозиції на КРАМНИЦЮ з тим
+    самим товаром (однаковий mpn), сортовано від найдешевшої. Включає сам товар.
 
-    Товар без mpn → [] (немає ключа групування — блок у застосунку не показується).
-    Ціна — з СИРОГО price_snapshot (останній вимір), не з discount_event: оффер
-    крамниці існує й без активної знижки.
+    Дедуп по крамниці (не по товару): родовий артикул (OPPO CPH2801, Motorola PBA…)
+    спільний для кольорових варіантів → без дедупу «Де купити» двічі писало б ту саму
+    крамницю. Товар без mpn → [] (нема ключа групування). Ціна — з СИРОГО
+    price_snapshot (оффер крамниці існує й без активної знижки).
     """
     sql = """
         WITH grp AS (
-            SELECT sp.store_product_id, sp.title, sp.url, s.name AS store
+            SELECT sp.store_product_id, sp.source_id, sp.title, sp.url, s.name AS store
             FROM store_product sp
             JOIN source s USING (source_id)
             WHERE sp.mpn IS NOT NULL
@@ -90,12 +92,20 @@ def product_offers(conn, store_product_id: int):
             FROM price_snapshot ps
             JOIN grp USING (store_product_id)
             ORDER BY ps.store_product_id, ps.seen_at DESC
+        ),
+        joined AS (
+            SELECT g.source_id, g.store_product_id, g.store, g.title, g.url,
+                   lp.price_now_kop AS current_kop, lp.in_stock, lp.seen_day
+            FROM grp g JOIN last_price lp USING (store_product_id)
+        ),
+        per_store AS (   -- одна найдешевша (та в наявності пріоритетно) пропозиція на крамницю
+            SELECT DISTINCT ON (source_id) store_product_id, store, title, url,
+                   current_kop, in_stock, seen_day
+            FROM joined
+            ORDER BY source_id, in_stock DESC, current_kop
         )
-        SELECT g.store_product_id, g.store, g.title, g.url,
-               lp.price_now_kop AS current_kop, lp.in_stock, lp.seen_day
-        FROM grp g
-        JOIN last_price lp USING (store_product_id)
-        ORDER BY lp.price_now_kop, g.store"""
+        SELECT store_product_id, store, title, url, current_kop, in_stock, seen_day
+        FROM per_store ORDER BY current_kop, store"""
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(sql, (store_product_id,)).fetchall()
 
