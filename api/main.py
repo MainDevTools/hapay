@@ -86,12 +86,20 @@ def add_watchlist(body: dict, user=Depends(require_user), conn=Depends(get_conn)
                              body.get("ref_id"), body.get("query_text"))
 
 
+_COLLECTOR_ROLES = {"collector", "moderator", "admin"}
+
+
 def require_collector(authorization: str | None = Header(default=None)):
-    """Гейт ingest: приймаємо лише відомі bearer-токени довірених колекторів (S10)."""
+    """Гейт ingest: статичний bearer-токен колектора (S10 — скрипти/GH Actions) АБО
+    app-акаунт із роллю collector+ (S11 етап 3 — збір із застосунку). Повертає мітку
+    колектора для провенансу (label токена або `acct:<user_id>`)."""
     label = qingest.collector_label(authorization)
-    if label is None:
-        raise HTTPException(401, "невідомий/відсутній токен колектора")
-    return label
+    if label:
+        return label
+    claims = qauth.bearer_claims(authorization)
+    if claims and claims.get("role") in _COLLECTOR_ROLES:
+        return f"acct:{claims.get('sub')}"
+    raise HTTPException(401, "потрібен токен колектора або акаунт із роллю collector")
 
 
 # ── акаунти (S11): реєстрація / логін / профіль / watchlist на юзера ──────────────
@@ -173,5 +181,30 @@ def ingest(body: dict, collector=Depends(require_collector), conn=Depends(get_co
     except ValueError as e:
         raise HTTPException(400, str(e))
     result["events"] = detect_pass(conn)        # бейджі для щойно прийнятих (§8.4)
+    result["collector"] = collector
+    return result
+
+
+@app.get("/api/collect/plan")
+def collect_plan(collector=Depends(require_collector)):
+    """Застосунок-колектор питає, ЩО тягнути. Сервер — авторитет над списком (додати
+    крамницю = зміна лише тут, без оновлення застосунку в сторах)."""
+    return {"targets": qingest.collect_plan(), "collector": collector}
+
+
+@app.post("/api/ingest/html")
+def ingest_html(body: dict, collector=Depends(require_collector), conn=Depends(get_conn)):
+    """Застосунок шле СИРИЙ HTML (зі свого резидентного IP) → СЕРВЕР парсить адаптером
+    (§7.4 — не botnet; застосунок = «тупий фетчер»). Двофазно для hub: у відповіді —
+    `discovered`-лендинги, які застосунок дотягне наступними викликами."""
+    source, url, html = body.get("source"), body.get("url"), body.get("html")
+    if not (isinstance(source, str) and isinstance(url, str) and isinstance(html, str)):
+        raise HTTPException(400, "потрібні source, url, html (усі str)")
+    try:
+        result = qingest.ingest_html(conn, source, url, html)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    if result.get("kind") == "page" and result.get("accepted"):
+        result["events"] = detect_pass(conn)    # бейджі лише коли справді щось прийняли (§8.4)
     result["collector"] = collector
     return result

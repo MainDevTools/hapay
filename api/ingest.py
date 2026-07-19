@@ -13,10 +13,12 @@
 """
 from __future__ import annotations
 
+import dataclasses
 import hmac
 import os
 from urllib.parse import urlsplit
 
+from adapters.allo import HUB as ALLO_HUB, AlloAdapter
 from adapters.base import RawItem, canon_ref
 from db.store import load_categories, persist_items, upsert_source
 
@@ -31,11 +33,21 @@ INGEST_SOURCES: dict[str, dict] = {
     "Allo":     {"base_url": "https://allo.ua",            "hosts": ("allo.ua",)},
 }
 
+# ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
+# Застосунок = «тупий фетчер»: тягне HTML зі своєї резидентної мережі й шле сюди, а
+# ВСЯ екстракція — тут, на сервері. Плюс: зміна селекторів/крамниці не вимагає оновлення
+# застосунку в сторах. Лише джерела з РОБОЧИМ серверним адаптером; host-політика — з
+# INGEST_SOURCES вище. `hub` → дворівневий discovery (сервер робить discover, не застосунок).
+HTML_SOURCES: dict[str, dict] = {
+    "Allo": {"adapter": AlloAdapter(), "hub": ALLO_HUB, "max_pages": 20},
+}
+
 PRICE_MIN_KOP = 100                 # 1 грн — нижче майже напевно помилка парсингу
 PRICE_MAX_KOP = 100_000_000         # 1 000 000 грн — стеля здорового глузду
 _MAX_TITLE = 300
 _MAX_REF = 500
 _MAX_URL = 600
+_MAX_HTML = 5_000_000               # 5 МБ на сторінку — стеля проти роздування (лендинги ~сотні КБ)
 
 
 def load_tokens() -> dict[str, str]:
@@ -180,3 +192,67 @@ def ingest_batch(conn, source: str, items: list) -> dict:
         reasons[r] = reasons.get(r, 0) + 1
     return {"source": source, "accepted": n, "rejected": len(rejected),
             "reasons": reasons, "status": status}
+
+
+# ── html-ingest: застосунок шле сирий HTML, СЕРВЕР парсить (S11 етап 3) ────────────
+def collect_plan() -> list[dict]:
+    """Що застосунку-колектору тягнути. Сервер — авторитет (додати крамницю = зміна ТУТ,
+    не оновлення застосунку). Для hub-джерел віддаємо хаб; сервер сам зробить discover()
+    з присланого HTML і поверне лендинги наступним кроком."""
+    out: list[dict] = []
+    for name, cfg in HTML_SOURCES.items():
+        if cfg.get("hub"):
+            out.append({"source": name, "url": cfg["hub"], "kind": "hub"})
+        for u in cfg.get("urls", ()):                   # прямі сторінки (майбутнє, не-hub джерела)
+            out.append({"source": name, "url": u, "kind": "page"})
+    return out
+
+
+def ingest_html(conn, source: str, url: str, html: str) -> dict:
+    """Сирий HTML від колектора → СЕРВЕР парсить адаптером → та сама валідація+персист,
+    що й /api/ingest (довіра до людини ≠ довіра до кожного байта — усе перевіряється).
+
+    Двофазно для hub-джерел: якщо `url` — хаб, повертаємо discover()-лендинги (accepted=0);
+    застосунок дотягне їх наступними викликами (kind='page'). Так уся логіка парсингу
+    лишається на сервері — застосунок лише fetch+forward.
+    """
+    if source not in HTML_SOURCES:
+        raise ValueError(f"невідоме html-джерело: {source!r}")
+    if source not in INGEST_SOURCES:
+        raise ValueError(f"джерело {source!r} без host-політики")
+    hosts = INGEST_SOURCES[source]["hosts"]
+
+    if not isinstance(url, str) or not (0 < len(url) <= _MAX_URL):
+        raise ValueError("url: порожній/задовгий")
+    if urlsplit(url).scheme != "https":
+        raise ValueError("url: лише https")
+    if not _host_ok(url, hosts):
+        raise ValueError(f"url не на домені {source} ({hosts})")
+    if not isinstance(html, str) or not html.strip():
+        raise ValueError("html: порожній")
+    if len(html) > _MAX_HTML:
+        raise ValueError(f"html: завеликий (>{_MAX_HTML} байт)")
+
+    cfg = HTML_SOURCES[source]
+    adapter = cfg["adapter"]
+
+    # фаза 1: хаб → лендинги (discover робить СЕРВЕР, не застосунок)
+    if cfg.get("hub") and canon_ref(url) == canon_ref(cfg["hub"]):
+        try:
+            landings = adapter.discover(html)[: cfg.get("max_pages", 20)]
+        except Exception as e:
+            raise ValueError(f"discover: {type(e).__name__}: {e}")
+        # лендинги мусять лишатись на домені джерела (не дати збити застосунок на чужий хост)
+        landings = [u for u in landings if _host_ok(u, hosts)]
+        return {"source": source, "kind": "hub", "discovered": landings,
+                "accepted": 0, "rejected": 0, "status": "ok"}
+
+    # фаза 2: сторінка → екстракт → та сама валідація+персист, що й прямий /api/ingest
+    try:
+        extracted = adapter.extract(html)
+    except Exception as e:
+        raise ValueError(f"extract: {type(e).__name__}: {e}")
+    items = [dataclasses.asdict(it) for it in extracted]
+    result = ingest_batch(conn, source, items)
+    result["kind"] = "page"
+    return result

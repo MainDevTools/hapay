@@ -143,6 +143,61 @@ def main():
     checks.append(("/api/me/watchlist повертає запис юзера",
                    len(mwl) == 1 and mwl[0]["query_text"] == "iphone", mwl))
 
+    # ── html-ingest (S11 етап 3): гейт ролі collector + сервер парсить переслане HTML ──
+    # ролі роздає власник напряму в БД (trusted-people) — робимо акаунт колектором
+    client.post("/api/auth/register", json={"email": "collector@hapay.today", "password": "collectorpass"})
+    with psycopg.connect(URL, autocommit=True) as conn:
+        conn.execute("UPDATE app_user SET role='collector' WHERE lower(email)='collector@hapay.today'")
+    clg = client.post("/api/auth/login",
+                      json={"email": "collector@hapay.today", "password": "collectorpass"}).json()
+    chdr = {"Authorization": f"Bearer {clg.get('token', '')}"}
+    checks.append(("login колектора → role=collector", clg.get("role") == "collector", clg.get("role")))
+
+    # план збору — гейт ролі: простому юзеру зась, колектору й статичному токену — так
+    checks.append(("collect/plan простому юзеру → 401",
+                   client.get("/api/collect/plan", headers=ahdr).status_code == 401, None))
+    checks.append(("collect/plan статичним токеном колектора → 200 (сумісність S10)",
+                   client.get("/api/collect/plan", headers=ing_tok).status_code == 200, None))
+    plan = client.get("/api/collect/plan", headers=chdr).json()
+    checks.append(("collect/plan колектору → Allo hub",
+                   any(t["source"] == "Allo" and t["kind"] == "hub"
+                       for t in plan.get("targets", [])), plan))
+
+    def _cas(n):
+        with open(os.path.join(os.path.dirname(__file__), "cassettes", n), encoding="utf-8") as f:
+            return f.read()
+    allo_hub, allo_action = _cas("allo_hub.html"), _cas("allo_action.html")
+    HUB = "https://allo.ua/ua/events-and-discounts/"
+
+    checks.append(("ingest/html без токена → 401",
+                   client.post("/api/ingest/html",
+                               json={"source": "Allo", "url": HUB, "html": allo_hub}).status_code == 401, None))
+    checks.append(("ingest/html чужий хост у url → 400",
+                   client.post("/api/ingest/html", headers=chdr,
+                               json={"source": "Allo", "url": "https://evil.example.com/x",
+                                     "html": allo_hub}).status_code == 400, None))
+
+    # фаза 1: хаб → сервер робить discover() → 9 лендингів, нічого ще не персистить
+    h1 = client.post("/api/ingest/html", json={"source": "Allo", "url": HUB, "html": allo_hub}, headers=chdr)
+    hj = h1.json()
+    checks.append(("ingest/html хаб → 9 лендингів, accepted=0",
+                   h1.status_code == 200 and hj.get("kind") == "hub"
+                   and len(hj.get("discovered", [])) == 9 and hj.get("accepted") == 0, hj))
+
+    # фаза 2: один лендинг → СЕРВЕР extract → персист 3 товари
+    landing = hj["discovered"][0]
+    p1 = client.post("/api/ingest/html",
+                     json={"source": "Allo", "url": landing, "html": allo_action}, headers=chdr)
+    pj = p1.json()
+    checks.append(("ingest/html лендинг → 3 прийнято (парсив сервер)",
+                   p1.status_code == 200 and pj.get("kind") == "page" and pj.get("accepted") == 3, pj))
+    checks.append(("ingest/html: колектор = acct:*",
+                   str(pj.get("collector", "")).startswith("acct:"), pj.get("collector")))
+
+    allo_seen = client.get("/api/discounts?q=REDMI").json()
+    checks.append(("html-ingest товар видно в /discounts (store=Allo)",
+                   len(allo_seen) >= 1 and allo_seen[0]["store"] == "Allo", allo_seen))
+
     for name, ok, val in checks:
         print(f"{'PASS' if ok else 'FAIL'}  {name}" + ("" if ok else f"  -> {val!r}"))
         failed += 0 if ok else 1
