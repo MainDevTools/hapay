@@ -198,10 +198,24 @@ def main():
     checks.append(("html-ingest товар видно в /discounts (store=Allo)",
                    len(allo_seen) >= 1 and allo_seen[0]["store"] == "Allo", allo_seen))
 
+    # Foxtrot/Moyo (kind=page, без хаба): сервер парсить лістинг своїм адаптером
+    fr = client.post("/api/ingest/html", headers=chdr, json={
+        "source": "Foxtrot", "url": "https://www.foxtrot.com.ua/uk/shop/mobilnye_telefony.html",
+        "html": _cas("foxtrot_listing.html")})
+    checks.append(("ingest/html Foxtrot-лістинг → 3 прийнято",
+                   fr.status_code == 200 and fr.json().get("accepted") == 3, fr.json()))
+    mr = client.post("/api/ingest/html", headers=chdr, json={
+        "source": "Moyo", "url": "https://www.moyo.ua/ua/telecommunication/smart/",
+        "html": _cas("moyo_listing.html")})
+    checks.append(("ingest/html Moyo-лістинг → 3 прийнято",
+                   mr.status_code == 200 and mr.json().get("accepted") == 3, mr.json()))
+
     # ── агрегатна картка за MPN (T15/§17.5): той самий товар у 2 крамницях ────────
-    # Allo (html-ingest вище) вже має Samsung A37 з MPN SM-A376BDGGEUC у назві.
-    a37 = client.get("/api/discounts?q=A37").json()
-    checks.append(("Allo A37 у вітрині (передумова)", len(a37) == 1, len(a37)))
+    # Allo (html-ingest вище) має Samsung A37 SM-A376BDGGEUC. Запит ПОВНИМ MPN:
+    # у Moyo-касеті інший варіант A37 (…BZABEUC) — він НЕ мусить потрапити ні сюди,
+    # ні в групу (різні артикули = різні товари).
+    a37 = client.get("/api/discounts?q=SM-A376BDGGEUC").json()
+    checks.append(("Allo A37 (повний MPN) у вітрині — рівно 1", len(a37) == 1, len(a37)))
     a37_id = a37[0]["store_product_id"]
 
     # до другої крамниці: offers повертає лише сам товар (група з 1)

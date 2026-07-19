@@ -46,9 +46,14 @@ def extract_mpn(title: str | None) -> str | None:
     """MPN з назви товару або None. Детермінований, без нормалізації суфіксів."""
     if not title:
         return None
-    m = _SAMSUNG.search(title)
-    if m:
-        return m.group(0)
+    # Samsung: беремо НАЙДОВШИЙ збіг — Foxtrot пише «SM-S942B Galaxy … (SM-S942BZKGEUC)»:
+    # коротка модель інлайн СПІЛЬНА для всіх варіантів памʼяті/кольору → ключем бути не може
+    # (перезлиття), повний артикул у дужках — може. Короткий (<11) без повного → None.
+    cands = _SAMSUNG.findall(title)
+    if cands:
+        best = max(cands, key=len)
+        if len(best) >= 11:
+            return best
     # родовий: беремо ОСТАННІЙ правдоподібний токен у дужках (артикул зазвичай наприкінці)
     for tok in reversed(_PAREN.findall(title)):
         if _plausible(tok):

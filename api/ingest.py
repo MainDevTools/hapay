@@ -20,6 +20,8 @@ from urllib.parse import urlsplit
 
 from adapters.allo import HUB as ALLO_HUB, AlloAdapter
 from adapters.base import RawItem, canon_ref
+from adapters.foxtrot import FoxtrotAdapter
+from adapters.moyo import MoyoAdapter
 from db.store import load_categories, persist_items, upsert_source
 
 # ── Сервер — АВТОРИТЕТ, хто може бути джерелом і які хости валідні ────────────────
@@ -40,6 +42,16 @@ INGEST_SOURCES: dict[str, dict] = {
 # INGEST_SOURCES вище. `hub` → дворівневий discovery (сервер робить discover, не застосунок).
 HTML_SOURCES: dict[str, dict] = {
     "Allo": {"adapter": AlloAdapter(), "hub": ALLO_HUB, "max_pages": 20},
+    # Foxtrot/Moyo (2026-07-19): лістинги категорій SSR-лять картки з MPN у назвах —
+    # база T15-матчингу. З ДЦ — 403, тому лише через колектора (резидентний IP).
+    # Категорії = смартфони (перетин з Allo за MPN доведено розвідкою); сервер —
+    # авторитет над списком: додати категорію = дописати URL тут.
+    "Foxtrot": {"adapter": FoxtrotAdapter(), "urls": (
+        "https://www.foxtrot.com.ua/uk/shop/mobilnye_telefony.html",
+    )},
+    "Moyo": {"adapter": MoyoAdapter(), "urls": (
+        "https://www.moyo.ua/ua/telecommunication/smart/",
+    )},
 }
 
 PRICE_MIN_KOP = 100                 # 1 грн — нижче майже напевно помилка парсингу

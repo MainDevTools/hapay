@@ -25,6 +25,18 @@ def test_samsung_inline_without_parens():
         == "SM-A576BZVDEUC"
 
 
+def test_samsung_short_plus_full_takes_full():
+    """Foxtrot-стиль: коротка модель інлайн + повний артикул у дужках → повний."""
+    assert extract_mpn("Смартфон SAMSUNG SM-S942B Galaxy S26 12/256Gb Black (SM-S942BZKGEUC)") \
+        == "SM-S942BZKGEUC"
+
+
+def test_samsung_short_only_is_ambiguous():
+    """Коротка модель БЕЗ повного артикула спільна для варіантів памʼяті/кольору —
+    ключем бути не може (перезлиття 256GB з 512GB); чесніше None."""
+    assert extract_mpn("Смартфон SAMSUNG SM-S942B Galaxy S26 12/512Gb Blue") is None
+
+
 def test_apple_code_in_parens():
     assert extract_mpn("Смартфон Apple iPhone 17 256GB Black (MG6J4)") == "MG6J4"
 

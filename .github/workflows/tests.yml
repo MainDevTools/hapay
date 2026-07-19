@@ -33,6 +33,10 @@ jobs:
         run: python tests/test_fetch.py
       - name: Allo — hub-discovery + екстракція лендингу (§8.8)
         run: python tests/test_allo.py
+      - name: Foxtrot — екстракція лістингу (§8.8)
+        run: python tests/test_foxtrot.py
+      - name: Moyo — екстракція лістингу (§8.8)
+        run: python tests/test_moyo.py
       - name: ingest — токен-гейт + валідація елементів (S10)
         run: python tests/test_ingest.py
       - name: html-ingest — двофазний discover + валідація (S11 етап 3)

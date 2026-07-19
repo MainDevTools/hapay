@@ -39,6 +39,22 @@ def test_plan_lists_allo_hub():
     assert any(t["source"] == "Allo" and t["url"] == HUB and t["kind"] == "hub" for t in plan), plan
 
 
+def test_plan_lists_foxtrot_and_moyo_pages():
+    """Foxtrot/Moyo — прямі лістинги (kind=page), без хаба; на своїх доменах."""
+    plan = ing.collect_plan()
+    fox = [t for t in plan if t["source"] == "Foxtrot"]
+    moyo = [t for t in plan if t["source"] == "Moyo"]
+    assert fox and all(t["kind"] == "page" and "foxtrot.com.ua" in t["url"] for t in fox), fox
+    assert moyo and all(t["kind"] == "page" and "moyo.ua" in t["url"] for t in moyo), moyo
+
+
+def test_every_html_source_has_host_policy():
+    """Інваріант: кожне html-джерело мусить мати host-політику в INGEST_SOURCES —
+    інакше ingest_html впаде на валідації URL."""
+    for name in ing.HTML_SOURCES:
+        assert name in ing.INGEST_SOURCES, name
+
+
 # ── фаза 1: хаб → сервер робить discover() ────────────────────────────────────────
 
 def test_hub_html_returns_discovered_landings():
