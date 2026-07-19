@@ -1,0 +1,90 @@
+name: probe-ip
+
+# Разова діагностика (ручний запуск): які укр. крамниці пускають IP GitHub Actions (Azure).
+# Не cron — лише workflow_dispatch, по 1 запиту/крамниця з паузою (перевірка досяжності, не скрап).
+# Читати: HTTP 200 = пускає; 403/429/503 = блок IP/WAF; 404 = невірний URL (не блок).
+# «₴» у тілі = схоже на живу сторінку (не challenge-заглушка).
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: runner IP
+        run: echo "Azure IP:" && curl -s --max-time 15 https://api.ipify.org || echo "?"
+      - name: probe
+        run: |
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+          probe () {
+            name="$1"; url="$2"
+            code=$(curl -s -o /tmp/b -w "%{http_code}" -A "$UA" \
+                   -H "Accept-Language: uk,en;q=0.9" -H "Accept: text/html" \
+                   --compressed --max-time 25 -L "$url" 2>/dev/null || echo ERR)
+            size=$(wc -c < /tmp/b 2>/dev/null || echo 0)
+            uah=$(grep -c -F "₴" /tmp/b 2>/dev/null || echo 0)
+            printf "%-13s %-4s %9sB  ₴x%-4s %s\n" "$name" "$code" "$size" "$uah" "$url"
+            sleep 2
+          }
+          echo "===== ЕЛЕКТРОНІКА ====="
+          probe Rozetka   "https://rozetka.com.ua/ua/mobile-phones/c80003/"
+          probe Foxtrot   "https://www.foxtrot.com.ua/uk/shop/mobilnye_telefony.html"
+          probe Moyo      "https://www.moyo.ua/ua/telecommunication/smart/"
+          probe Eldorado  "https://eldorado.ua/"
+          probe Allo      "https://allo.ua/ua/events-and-discounts/"
+          probe Comfy     "https://comfy.ua/"
+          probe Citrus    "https://www.ctrs.com.ua/"
+          probe Telemart  "https://telemart.ua/"
+          probe Brain     "https://brain.com.ua/"
+          probe Stylus    "https://stylus.ua/"
+          probe KTC       "https://ktc.ua/"
+          probe Yabko     "https://yabko.ua/"
+          probe Fifshop   "https://fifshop.com.ua/"
+          probe MTA       "https://mta.ua/"
+          echo "===== МАРКЕТПЛЕЙСИ ====="
+          probe Prom      "https://prom.ua/"
+          probe Epicentr  "https://epicentrk.ua/"
+          probe Kasta     "https://kasta.ua/"
+          probe OLX       "https://www.olx.ua/"
+          probe Bigl      "https://bigl.ua/"
+          echo "===== АПТЕКИ / БЮТІ ====="
+          probe EVA       "https://eva.ua/"
+          probe Watsons   "https://www.watsons.ua/"
+          probe Prostor   "https://prostor.ua/"
+          probe Apteka911 "https://www.apteka911.ua/"
+          probe Makeup    "https://makeup.com.ua/"
+          probe Brocard   "https://brocard.ua/"
+          probe Parfums   "https://parfums.ua/"
+          echo "===== СУПЕРМАРКЕТИ ====="
+          probe Silpo     "https://silpo.ua/"
+          probe ATB       "https://www.atbmarket.com/"
+          probe Auchan    "https://auchan.ua/"
+          probe Metro     "https://metro.ua/"
+          probe Varus     "https://varus.ua/"
+          probe Megamarket "https://megamarket.ua/"
+          probe Novus     "https://novus.online/"
+          echo "===== ДІМ / МЕБЛІ / DIY ====="
+          probe JYSK      "https://jysk.ua/"
+          probe IKEA      "https://www.ikea.com/ua/uk/"
+          probe Store27   "https://27.ua/"
+          probe Praktiker "https://praktiker.ua/"
+          echo "===== ОДЯГ / СПОРТ ====="
+          probe Answear   "https://answear.ua/"
+          probe Intertop  "https://intertop.ua/"
+          probe LeBoutique "https://leboutique.com/"
+          probe Megasport "https://megasport.ua/"
+          echo "===== ЗОО ====="
+          probe Pethouse  "https://pethouse.ua/ua/shop/koshkam/suhoi-korm/akcii/"
+          probe PetChoice "https://petchoice.ua/discounts"
+          probe MasterZoo "https://masterzoo.ua/"
+          probe Ezoo      "https://e-zoo.com.ua/"
+          probe Zootovary "https://zootovary.com/"
+          echo "===== ДИТЯЧІ / КНИГИ ====="
+          probe Antoshka  "https://antoshka.ua/"
+          probe BudInok   "https://www.budinokigrashok.ua/"
+          probe Yakaboo   "https://www.yakaboo.ua/"
+          probe BookYe    "https://book-ye.com.ua/"
