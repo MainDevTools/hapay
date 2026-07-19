@@ -43,6 +43,8 @@ jobs:
         run: python tests/test_rozetka.py
       - name: Citrus — екстракція лістингу (Next.js, хешовані класи) (§8.8)
         run: python tests/test_citrus.py
+      - name: Brain — екстракція відрендереного (WebView) лістингу (§8.8)
+        run: python tests/test_brain.py
       - name: ingest — токен-гейт + валідація елементів (S10)
         run: python tests/test_ingest.py
       - name: html-ingest — двофазний discover + валідація (S11 етап 3)

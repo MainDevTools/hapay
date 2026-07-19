@@ -20,6 +20,7 @@ from urllib.parse import urlsplit
 
 from adapters.allo import HUB as ALLO_HUB, AlloAdapter
 from adapters.base import RawItem, canon_ref
+from adapters.brain import BrainAdapter
 from adapters.citrus import CitrusAdapter
 from adapters.comfy import ComfyAdapter
 from adapters.foxtrot import FoxtrotAdapter
@@ -38,6 +39,7 @@ INGEST_SOURCES: dict[str, dict] = {
     "Allo":     {"base_url": "https://allo.ua",            "hosts": ("allo.ua",)},
     "Comfy":    {"base_url": "https://comfy.ua",           "hosts": ("comfy.ua",)},
     "Citrus":   {"base_url": "https://www.ctrs.com.ua",    "hosts": ("ctrs.com.ua",)},
+    "Brain":    {"base_url": "https://brain.com.ua",       "hosts": ("brain.com.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -72,7 +74,14 @@ HTML_SOURCES: dict[str, dict] = {
     "Citrus": {"adapter": CitrusAdapter(), "urls": (
         "https://www.ctrs.com.ua/smartfony/",
     )},
+    # Brain (розвідка 2026-07-19): SPA — ціни лише після JS → mode="render" (телефон
+    # рендерить у WebView). Дані з data-атрибутів; A07 SM-A075FZKGSEK перетин із Moyo/Rozetka.
+    "Brain": {"adapter": BrainAdapter(), "mode": "render", "urls": (
+        "https://brain.com.ua/ukr/Smartfoni_zvyazok-c297/",
+    )},
 }
+# режим збору per-source: 'fetch' (plain GET) | 'render' (WebView — SPA-крамниці).
+COLLECT_MODE = {name: cfg.get("mode", "fetch") for name, cfg in HTML_SOURCES.items()}
 
 PRICE_MIN_KOP = 100                 # 1 грн — нижче майже напевно помилка парсингу
 PRICE_MAX_KOP = 100_000_000         # 1 000 000 грн — стеля здорового глузду
@@ -233,10 +242,11 @@ def collect_plan() -> list[dict]:
     з присланого HTML і поверне лендинги наступним кроком."""
     out: list[dict] = []
     for name, cfg in HTML_SOURCES.items():
+        mode = cfg.get("mode", "fetch")
         if cfg.get("hub"):
-            out.append({"source": name, "url": cfg["hub"], "kind": "hub"})
+            out.append({"source": name, "url": cfg["hub"], "kind": "hub", "mode": mode})
         for u in cfg.get("urls", ()):                   # прямі сторінки (майбутнє, не-hub джерела)
-            out.append({"source": name, "url": u, "kind": "page"})
+            out.append({"source": name, "url": u, "kind": "page", "mode": mode})
     return out
 
 

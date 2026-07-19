@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from psycopg.rows import dict_row
 
-from api.ingest import HTML_SOURCES
+from api.ingest import COLLECT_MODE, HTML_SOURCES
 
 SOURCE_SPACING_MIN = 15   # розліт запитів по одній крамниці (хв)
 LEASE_TTL_MIN = 10        # протухання оренди (хв)
@@ -78,6 +78,8 @@ def lease_tasks(conn, worker: str, limit: int = 3) -> list[dict]:
             "SET not_before = greatest(not_before, now() + make_interval(mins => %s)) "
             "WHERE source = ANY(%s)",
             (SOURCE_SPACING_MIN, [t["source"] for t in leased]))
+        for t in leased:                    # режим збору per-source: fetch (GET) | render (WebView)
+            t["mode"] = COLLECT_MODE.get(t["source"], "fetch")
     return leased
 
 

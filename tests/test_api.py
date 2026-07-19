@@ -312,6 +312,10 @@ def main():
     lsrc = [t["source"] for t in ltasks]
     checks.append(("lease колектору → по 1 задачі на крамницю (усі джерела HTML_SOURCES)",
                    len(ltasks) == len(qingest.HTML_SOURCES) and len(lsrc) == len(set(lsrc)), lsrc))
+    checks.append(("lease віддає mode: Brain=render, Foxtrot=fetch (WebView-режим)",
+                   next((t["mode"] for t in ltasks if t["source"] == "Brain"), None) == "render"
+                   and next((t["mode"] for t in ltasks if t["source"] == "Foxtrot"), None) == "fetch",
+                   [(t["source"], t.get("mode")) for t in ltasks]))
     checks.append(("повторний lease одразу → порожньо (розліт 15 хв)",
                    client.post("/api/collect/lease", json={"limit": 20},
                                headers=chdr).json().get("tasks") == [], None))
