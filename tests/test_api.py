@@ -306,13 +306,13 @@ def main():
     # ── черга-оренда (T16 крок 1): lease → ingest(task_id) → закриття ─────────────
     checks.append(("lease простому юзеру → 401",
                    client.post("/api/collect/lease", headers=ahdr, json={}).status_code == 401, None))
-    lr = client.post("/api/collect/lease", json={"limit": 5}, headers=chdr).json()
+    lr = client.post("/api/collect/lease", json={"limit": 20}, headers=chdr).json()
     ltasks = lr.get("tasks", [])
     lsrc = [t["source"] for t in ltasks]
-    checks.append(("lease колектору → по 1 задачі на крамницю (сів з HTML_SOURCES)",
-                   len(ltasks) >= 3 and len(lsrc) == len(set(lsrc)), lsrc))
+    checks.append(("lease колектору → по 1 задачі на крамницю (усі джерела HTML_SOURCES)",
+                   len(ltasks) == len(qingest.HTML_SOURCES) and len(lsrc) == len(set(lsrc)), lsrc))
     checks.append(("повторний lease одразу → порожньо (розліт 15 хв)",
-                   client.post("/api/collect/lease", json={"limit": 5},
+                   client.post("/api/collect/lease", json={"limit": 20},
                                headers=chdr).json().get("tasks") == [], None))
 
     fox_task = next((t for t in ltasks if t["source"] == "Foxtrot"), None)
