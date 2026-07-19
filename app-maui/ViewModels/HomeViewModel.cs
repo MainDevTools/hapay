@@ -21,7 +21,7 @@ public partial class HomeViewModel : ObservableObject
     {
         new("За знижкою", "discount"),     // T14 (агрегатор): дефолт — за заявленою знижкою
         new("Найновіші", "new"),
-        new("За нашим мінімумом", "verified"),
+        new("Наш мінімум", "verified"),    // коротко — вміщається на пів-ширини поряд із ціною
     };
     public IReadOnlyList<PriceOption> PriceOptions { get; } = new List<PriceOption>
     {

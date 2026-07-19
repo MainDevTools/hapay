@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Serialization;
 
 namespace Hapay.Models;
@@ -5,8 +6,22 @@ namespace Hapay.Models;
 // Гроші — копійки (int) з API; формат у грн лише на показ (інв. A: гроші = BIGINT копійки).
 public static class Money
 {
-    public static string Grn(int? kop) =>
-        kop is null ? "—" : (kop.Value / 100m).ToString("N2") + " ₴";
+    // Український формат НЕЗАЛЕЖНО від локалі пристрою: «17 099 ₴», «1 761,20 ₴»
+    // (інакше en-US емулятор показує «17,099.00 ₴»). Тисячі — нерозривний пробіл.
+    private static readonly NumberFormatInfo _uk = new()
+    {
+        NumberGroupSeparator = " ",
+        NumberDecimalSeparator = ",",
+    };
+
+    public static string Grn(int? kop)
+    {
+        if (kop is null) return "—";
+        var uah = kop.Value / 100m;
+        // цілі гривні — без «,00» (компактніше в картці); з копійками — 2 знаки
+        var s = kop.Value % 100 == 0 ? uah.ToString("N0", _uk) : uah.ToString("N2", _uk);
+        return s + " ₴";
+    }
 }
 
 /// Одна знижкова подія з /api/discounts.

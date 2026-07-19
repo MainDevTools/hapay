@@ -20,23 +20,23 @@
 
     <Grid RowDefinitions="Auto,*" Padding="0">
 
-        <!-- панель: пошук + категорія + сорт -->
+        <!-- панель: пошук + категорія (повна ширина — найдовші підписи, без обрізання) + сорт|ціна -->
         <VerticalStackLayout Grid.Row="0" Padding="12,8" Spacing="8">
             <SearchBar Placeholder="Пошук за назвою…" Text="{Binding SearchText}" />
+            <Picker Title="Категорія"
+                    ItemsSource="{Binding Categories}"
+                    ItemDisplayBinding="{Binding Display}"
+                    SelectedItem="{Binding SelectedCategory}" />
             <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-                <Picker Grid.Column="0"
-                        ItemsSource="{Binding Categories}"
-                        ItemDisplayBinding="{Binding Display}"
-                        SelectedItem="{Binding SelectedCategory}" />
-                <Picker Grid.Column="1"
+                <Picker Grid.Column="0" Title="Сортування"
                         ItemsSource="{Binding SortOptions}"
                         ItemDisplayBinding="{Binding Label}"
                         SelectedItem="{Binding SelectedSort}" />
+                <Picker Grid.Column="1" Title="Ціна"
+                        ItemsSource="{Binding PriceOptions}"
+                        ItemDisplayBinding="{Binding Label}"
+                        SelectedItem="{Binding SelectedPrice}" />
             </Grid>
-            <Picker Title="Ціна"
-                    ItemsSource="{Binding PriceOptions}"
-                    ItemDisplayBinding="{Binding Label}"
-                    SelectedItem="{Binding SelectedPrice}" />
             <Label Text="{Binding ErrorMessage}" TextColor="#E23B3B"
                    IsVisible="{Binding ErrorMessage, Converter={StaticResource NotEmpty}}" />
         </VerticalStackLayout>
@@ -65,8 +65,13 @@
                                         CommandParameter="{Binding .}" />
                                 </Border.GestureRecognizers>
                                 <Grid ColumnDefinitions="74,*" ColumnSpacing="12">
-                                    <Image Grid.Column="0" Source="{Binding ImageUrl}" Aspect="AspectFit"
-                                           WidthRequest="74" HeightRequest="74" />
+                                    <!-- фото в рамці з фоном: биті/відсутні картинки не виглядають дірою -->
+                                    <Border Grid.Column="0" StrokeThickness="0" StrokeShape="RoundRectangle 10"
+                                            BackgroundColor="{AppThemeBinding Light=#F4F4F6, Dark=#22242A}"
+                                            WidthRequest="74" HeightRequest="74" Padding="4"
+                                            VerticalOptions="Start">
+                                        <Image Source="{Binding ImageUrl}" Aspect="AspectFit" />
+                                    </Border>
                                     <VerticalStackLayout Grid.Column="1" Spacing="3">
                                         <Label Text="{Binding Title}" MaxLines="2" LineBreakMode="TailTruncation"
                                                FontAttributes="Bold" />
