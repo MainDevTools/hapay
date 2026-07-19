@@ -220,7 +220,9 @@ def main():
     checks.append(("ingest/html Rozetka-лістинг → 3 прийнято",
                    rz.status_code == 200 and rz.json().get("accepted") == 3, rz.json()))
     s26 = client.get("/api/discounts?q=SM-S942BZKGEUC").json()
-    checks.append(("S26 у вітрині (Rozetka+Foxtrot)", len(s26) >= 1, len(s26)))
+    # дедуп стрічки: S26 — ОДНА картка (не по одній на Rozetka й Foxtrot), offers_n=2
+    checks.append(("S26 у стрічці ОДИН раз (дедуп групи), offers_n=2",
+                   len(s26) == 1 and s26[0].get("offers_n") == 2, [(len(s26), s26[0].get("offers_n") if s26 else None)]))
     if s26:
         s26_off = client.get(f"/api/product/{s26[0]['store_product_id']}/offers").json()
         checks.append(("S26 група з РЕАЛЬНИХ адаптерів: {Rozetka, Foxtrot}",
@@ -291,7 +293,8 @@ def main():
          "title": "Смартфон OPPO Reno 15 F 8/256GB Blue (CPH2801)",
          "price_now_kop": 1749900, "price_old_kop": 1899900}]})
     oppo = client.get("/api/discounts?q=CPH2801").json()
-    checks.append(("OPPO CPH2801 у вітрині (передумова дедуп-тесту)", len(oppo) >= 1, len(oppo)))
+    # дедуп: 2 кольори 1 крамниці → ОДНА картка (не дві), offers_n=1 (крамниця одна)
+    checks.append(("OPPO у стрічці ОДИН раз (дедуп кольорів)", len(oppo) == 1, len(oppo)))
     checks.append(("2 кольори 1 крамниці → offers_n=1 (не бреше про 2 крамниці)",
                    bool(oppo) and all(d.get("offers_n") == 1 for d in oppo),
                    [d.get("offers_n") for d in oppo]))

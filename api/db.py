@@ -7,15 +7,23 @@ from __future__ import annotations
 from psycopg import errors
 from psycopg.rows import dict_row
 
+# сортування — без de.-префікса: колонки беруться з CTE `best` (див. list_discounts)
 _SORTS = {
-    "verified": "de.verified_pct DESC NULLS LAST, de.computed_at DESC",
-    "discount": "de.declared_pct DESC NULLS LAST, de.computed_at DESC",
-    "new":      "de.computed_at DESC",
+    "verified": "verified_pct DESC NULLS LAST, computed_at DESC",
+    "discount": "declared_pct DESC NULLS LAST, computed_at DESC",
+    "new":      "computed_at DESC",
 }
 
 
 def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, offset=0, q=None,
                    price_min=None, price_max=None):
+    """Стрічка знижок — АГРЕГАТОРНА (T15/§17): одна картка на ТОВАР, не на крамницю.
+
+    Товари з однаковим mpn колапсуються в одну картку, яку представляє НАЙДЕШЕВША
+    пропозиція (клієнт показує «від X ₴· в N крамницях», а не назву однієї крамниці —
+    інакше «чому Foxtrot, а не Allo?»). Товари без mpn — кожен сам собі (gkey='sp:<id>').
+    `offers_n` = к-сть РІЗНИХ крамниць у групі; «Де купити» (product_offers) деталізує.
+    """
     where = ["de.ended_at IS NULL"]
     params: list = []
     if category:
@@ -30,19 +38,34 @@ def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, o
         where.append("de.current_kop <= %s"); params.append(price_max)
     order = _SORTS.get(sort, _SORTS["verified"])
     sql = f"""
-        SELECT de.discount_event_id, sp.store_product_id, sp.title, sp.url, sp.image_url,
-               sp.variant_note, s.name AS store,
-               de.current_kop, de.old_declared_kop, de.reference_kop,
-               de.declared_pct, de.verified_pct, de.badge_state,
-               CASE WHEN sp.mpn IS NULL THEN 1
+        WITH ev AS (
+            SELECT de.discount_event_id, sp.store_product_id, sp.title, sp.url, sp.image_url,
+                   sp.variant_note, sp.mpn, s.name AS store,
+                   de.current_kop, de.old_declared_kop, de.reference_kop,
+                   de.declared_pct, de.verified_pct, de.badge_state, de.computed_at,
+                   COALESCE(sp.mpn, 'sp:' || sp.store_product_id) AS gkey
+            FROM discount_event de
+            JOIN store_product sp USING (store_product_id)
+            JOIN source s USING (source_id)
+            JOIN category c ON c.category_id = sp.category_id
+            WHERE {' AND '.join(where)}
+        ),
+        best AS (   -- одна картка на групу: представляє найдешевша (в наявності пріоритетно)
+            SELECT DISTINCT ON (gkey)
+                   discount_event_id, store_product_id, title, url, image_url, variant_note,
+                   mpn, store, current_kop, old_declared_kop, reference_kop,
+                   declared_pct, verified_pct, badge_state, computed_at
+            FROM ev
+            ORDER BY gkey, current_kop, badge_state
+        )
+        SELECT b.discount_event_id, b.store_product_id, b.title, b.url, b.image_url,
+               b.variant_note, b.store, b.current_kop, b.old_declared_kop, b.reference_kop,
+               b.declared_pct, b.verified_pct, b.badge_state,
+               CASE WHEN b.mpn IS NULL THEN 1
                     ELSE (SELECT count(DISTINCT sp2.source_id)
-                          FROM store_product sp2 WHERE sp2.mpn = sp.mpn)
+                          FROM store_product sp2 WHERE sp2.mpn = b.mpn)
                END AS offers_n
-        FROM discount_event de
-        JOIN store_product sp USING (store_product_id)
-        JOIN source s USING (source_id)
-        JOIN category c ON c.category_id = sp.category_id
-        WHERE {' AND '.join(where)}
+        FROM best b
         ORDER BY {order}
         LIMIT %s OFFSET %s"""
     params += [limit, offset]

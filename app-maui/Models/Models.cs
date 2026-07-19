@@ -44,7 +44,10 @@ public class Discount
 
     // --- похідні для XAML-байндингу ---
     [JsonIgnore] public bool HasMultiStores => OffersN > 1;
+    [JsonIgnore] public bool ShowStoreLine => OffersN <= 1;              // одна крамниця → її й показуємо
     [JsonIgnore] public string StoresText => $"Наявно в {OffersN} крамницях";
+    // для групи — «від {найдешевша}» (агрегатор, §17); для однієї крамниці — просто ціна
+    [JsonIgnore] public string PriceText => HasMultiStores ? $"від {CurrentGrn}" : CurrentGrn;
     [JsonIgnore] public string CurrentGrn => Money.Grn(CurrentKop);
     [JsonIgnore] public string OldGrn => Money.Grn(OldDeclaredKop);
     [JsonIgnore] public bool HasOld => OldDeclaredKop is not null && OldDeclaredKop > CurrentKop;
