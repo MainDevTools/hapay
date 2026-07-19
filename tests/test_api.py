@@ -261,6 +261,46 @@ def main():
         po = client.get(f"/api/product/{pet[0]['store_product_id']}/offers").json()
         checks.append(("товар без MPN → offers = []", po == [], po))
 
+    # ── черга-оренда (T16 крок 1): lease → ingest(task_id) → закриття ─────────────
+    checks.append(("lease простому юзеру → 401",
+                   client.post("/api/collect/lease", headers=ahdr, json={}).status_code == 401, None))
+    lr = client.post("/api/collect/lease", json={"limit": 5}, headers=chdr).json()
+    ltasks = lr.get("tasks", [])
+    lsrc = [t["source"] for t in ltasks]
+    checks.append(("lease колектору → по 1 задачі на крамницю (сів з HTML_SOURCES)",
+                   len(ltasks) >= 3 and len(lsrc) == len(set(lsrc)), lsrc))
+    checks.append(("повторний lease одразу → порожньо (розліт 15 хв)",
+                   client.post("/api/collect/lease", json={"limit": 5},
+                               headers=chdr).json().get("tasks") == [], None))
+
+    fox_task = next((t for t in ltasks if t["source"] == "Foxtrot"), None)
+    checks.append(("у lease є задача Foxtrot", fox_task is not None, ltasks))
+    if fox_task:
+        tr = client.post("/api/ingest/html", headers=chdr, json={
+            "source": "Foxtrot", "url": fox_task["url"],
+            "html": _cas("foxtrot_listing.html"), "task_id": fox_task["task_id"]})
+        checks.append(("ingest/html із task_id → задача закрита",
+                       tr.status_code == 200 and tr.json().get("task_closed") is True, tr.json()))
+
+    allo_task = next((t for t in ltasks if t["source"] == "Allo"), None)
+    if allo_task and allo_task["kind"] == "hub":
+        hr = client.post("/api/ingest/html", headers=chdr, json={
+            "source": "Allo", "url": allo_task["url"], "html": allo_hub,
+            "task_id": allo_task["task_id"]}).json()
+        checks.append(("хаб через чергу: лендинги ENQUEUED (не лише discovered)",
+                       hr.get("enqueued", 0) >= 1 and hr.get("task_closed") is True, hr))
+
+    moyo_task = next((t for t in ltasks if t["source"] == "Moyo"), None)
+    if moyo_task:
+        fl = client.post("/api/collect/fail", headers=chdr,
+                         json={"task_id": moyo_task["task_id"], "note": "HTTP 403"})
+        checks.append(("collect/fail → ok (бекоф)", fl.status_code == 200, fl.status_code))
+
+    qs = client.get("/api/collect/queue", headers=chdr).json()
+    checks.append(("collect/queue: зріз по крамницях",
+                   {s["source"] for s in qs.get("sources", [])} >= {"Allo", "Foxtrot", "Moyo"},
+                   qs))
+
     # ── фільтр ціни (копійки) ─────────────────────────────────────────────────────
     all_now = client.get("/api/discounts?sort=new").json()
     expensive = client.get("/api/discounts?sort=new&price_min=4000000").json()   # ≥ 40 000 ₴

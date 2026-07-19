@@ -82,6 +82,8 @@ jobs:
         run: python tests/test_detect_pass.py
       - name: collect — конвеєр fetch→persist→detect_pass на касеті (§8.1)
         run: python tests/test_collect.py
+      - name: черга-оренда — розліт/протухання/бекоф (T16)
+        run: python tests/test_queue.py
       - name: read-API — перелік/історія/watchlist (§8.10.1)
         run: python tests/test_api.py
 

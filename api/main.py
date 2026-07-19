@@ -15,6 +15,7 @@ import re
 from db.pool import get_pool
 from api import db as qdb
 from api import ingest as qingest
+from api import qtasks
 from api import auth as qauth
 from api.initdata import verify_init_data, check_auth_age, InitDataError
 from detection.runner import detect_pass
@@ -202,11 +203,44 @@ def collect_plan(collector=Depends(require_collector)):
     return {"targets": qingest.collect_plan(), "collector": collector}
 
 
+# ── черга-оренда (T16): телефони ЗАБИРАЮТЬ роботу, сервер розганяє по часу ────────
+@app.post("/api/collect/lease")
+def collect_lease(body: dict | None = None, collector=Depends(require_collector),
+                  conn=Depends(get_conn)):
+    """Видати ≤limit дозрілих задач (по 1 на крамницю — розліт 15 хв/крамниця).
+    Порожньо = все зібрано нещодавно; телефон засинає до наступного опитування."""
+    qtasks.seed_tasks(conn)                 # ледачий сів: нове в HTML_SOURCES → у черзі
+    limit = (body or {}).get("limit", 3)
+    if not isinstance(limit, int):
+        raise HTTPException(400, "limit має бути int")
+    return {"tasks": qtasks.lease_tasks(conn, collector, limit), "collector": collector}
+
+
+@app.post("/api/collect/fail")
+def collect_fail(body: dict, collector=Depends(require_collector), conn=Depends(get_conn)):
+    """Телефон не зміг стягнути (403/капча/таймаут) → бекоф, не довбаємо крамницю."""
+    task_id = body.get("task_id")
+    if not isinstance(task_id, int):
+        raise HTTPException(400, "потрібен task_id (int)")
+    closed = qtasks.complete_task(conn, task_id, collector, ok=False,
+                                  note=str(body.get("note") or "fetch")[:200])
+    if not closed:
+        raise HTTPException(409, "задача не твоя або оренда протухла")
+    return {"ok": True}
+
+
+@app.get("/api/collect/queue")
+def collect_queue(collector=Depends(require_collector), conn=Depends(get_conn)):
+    """Зріз черги (для оператора/діагностики): задачі/дозрілі/збійні по крамницях."""
+    return {"sources": qtasks.queue_stats(conn), "collector": collector}
+
+
 @app.post("/api/ingest/html")
 def ingest_html(body: dict, collector=Depends(require_collector), conn=Depends(get_conn)):
     """Застосунок шле СИРИЙ HTML (зі свого резидентного IP) → СЕРВЕР парсить адаптером
     (§7.4 — не botnet; застосунок = «тупий фетчер»). Двофазно для hub: у відповіді —
-    `discovered`-лендинги, які застосунок дотягне наступними викликами."""
+    `discovered`-лендинги; вони ж лягають у ЧЕРГУ (T16) для фонових колекторів.
+    Опційний task_id — задача з черги закривається сама при успішному інджесті."""
     source, url, html = body.get("source"), body.get("url"), body.get("html")
     if not (isinstance(source, str) and isinstance(url, str) and isinstance(html, str)):
         raise HTTPException(400, "потрібні source, url, html (усі str)")
@@ -214,7 +248,14 @@ def ingest_html(body: dict, collector=Depends(require_collector), conn=Depends(g
         result = qingest.ingest_html(conn, source, url, html)
     except ValueError as e:
         raise HTTPException(400, str(e))
+    if result.get("kind") == "hub" and result.get("discovered"):
+        # лендинги — в чергу: фонові колектори розберуть їх із 15-хв розльотом,
+        # а кнопковий режим може дотягнути одразу (обидва шляхи співіснують)
+        result["enqueued"] = qtasks.enqueue_pages(conn, source, result["discovered"])
     if result.get("kind") == "page" and result.get("accepted"):
         result["events"] = detect_pass(conn)    # бейджі лише коли справді щось прийняли (§8.4)
+    task_id = body.get("task_id")
+    if isinstance(task_id, int):
+        result["task_closed"] = qtasks.complete_task(conn, task_id, collector, ok=True)
     result["collector"] = collector
     return result
