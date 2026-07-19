@@ -18,7 +18,8 @@ import sys
 
 _TABLES = ("alert_log", "watchlist", "discount_event", "price_snapshot", "scan_run",
            "http_cache", "canary", "store_product", "source_category_map",
-           "category", "source", "detection_config", "app_config", "schema_migration")
+           "category", "source", "detection_config", "app_config", "app_user",
+           "schema_migration")
 
 
 def _target(dsn: str) -> str:
