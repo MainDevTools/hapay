@@ -50,6 +50,74 @@ def test_last_paren_token_wins():
     assert extract_mpn("Xiaomi Redmi Note 15 (8/256GB) Black (2312DRA50G)") == "2312DRA50G"
 
 
+# ── інлайн-артикул: телевізори (розвідка 2026-07-20, назви з прод-бази) ───────
+
+def test_tv_inline_lg():
+    assert extract_mpn("Телевізор LG 43UA75006LA") == "43UA75006LA"
+
+
+def test_tv_inline_samsung():
+    assert extract_mpn("Телевізор SAMSUNG QE50Q7FAAUXUA") == "QE50Q7FAAUXUA"
+
+
+def test_tv_same_model_across_stores_gets_one_key():
+    """Суть фічі: 4 крамниці пишуть той самий телевізор по-різному — ключ мусить збігтись.
+    До фіксу це були 4 окремі картки (offers_n=1) по 16 499 ₴ кожна."""
+    titles = [
+        "Телевізор LED LG 43UA75006LA (Smart TV, Wi-Fi, 3840x2160)",   # KTC
+        "Телевізор LG 43UA75006LA",                                     # Citrus / Moyo
+        'Телевізор LG 43" 43UA75006LA',                                 # Rozetka
+    ]
+    keys = {extract_mpn(t) for t in titles}
+    assert keys == {"43UA75006LA"}, keys
+
+
+def test_tv_qled_haier_across_stores():
+    keys = {extract_mpn(t) for t in [
+        'Телевізор Haier QLED 50" H50S80FUX',
+        "Телевізор HAIER H50S80FUX",
+        "Телевізор QLED Haier H50S80FUX (Google TV, Wi-Fi, 3840x2160)",
+    ]}
+    assert keys == {"H50S80FUX"}, keys
+
+
+# ── Acer: артикул із КРАПКАМИ, і в дужках, і інлайн ───────────────────────────
+
+def test_acer_dotted_code_in_parens():
+    assert extract_mpn("Ноутбук Acer Extensa 15 EXO15-41 (NX.EL5EU.003)") == "NX.EL5EU.003"
+
+
+def test_acer_dotted_code_inline():
+    assert extract_mpn("Ноутбук Acer Aspire Lite AL16-54P-56ES NX.DK6EU.008 Silver") \
+        == "NX.DK6EU.008"
+
+
+# ── інлайн НЕ пересилює дужки й НЕ хапає серію ────────────────────────────────
+
+def test_paren_wins_over_inline():
+    """Дужковий артикул надійніший — інлайн вмикається лише за його відсутності."""
+    assert extract_mpn("Ноутбук HP 15-fc0312ua ABCD1234 (CS8A2EA)") == "CS8A2EA"
+
+
+def test_short_series_without_config_rejected():
+    """«65B5» — серія, СПІЛЬНА для комплектацій; ключем бути не може (перезлиття).
+    Так само «X1504VA» без конфігурації."""
+    assert extract_mpn("Телевізор LG OLED 65B5") is None
+    assert extract_mpn("Ноутбук ASUS Vivobook 15 X1504VA") is None
+
+
+def test_resolution_and_brand_not_mpn():
+    assert extract_mpn("Телевізор Samsung QLED 4K 3840x2160") is None
+    assert extract_mpn("Телевізор SAMSUNG QLED") is None
+
+
+def test_tv_sizes_stay_distinct():
+    """Різні діагоналі однієї лінійки — РІЗНІ товари; ключі мусять різнитись."""
+    a = extract_mpn('Телевізор Haier QLED 43" H43S80FUX')
+    b = extract_mpn('Телевізор Haier QLED 50" H50S80FUX')
+    assert a and b and a != b
+
+
 # ── НЕ знаходить (форм-фільтри) ───────────────────────────────────────────────
 
 def test_memory_specs_rejected():

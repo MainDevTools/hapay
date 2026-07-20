@@ -19,8 +19,18 @@ import re
 # Samsung: артикул упізнаваний і поза дужками (наскрізний ключ розвідки 2026-07-18)
 _SAMSUNG = re.compile(r"\bSM-[A-Z0-9]{4,15}\b")
 
-# родовий кандидат: останній токен У ДУЖКАХ з латиниці/цифр (Apple MG6J4, MHRV4AF/A …)
-_PAREN = re.compile(r"\(([A-Z0-9][A-Z0-9/\-]{3,24})\)")
+# родовий кандидат: останній токен У ДУЖКАХ з латиниці/цифр (Apple MG6J4, MHRV4AF/A …).
+# Крапка дозволена — Acer пише «(NX.EL5EU.003)», без неї цей артикул не ловився зовсім.
+_PAREN = re.compile(r"\(([A-Z0-9][A-Z0-9/\-.]{3,24})\)")
+
+# Артикул ІНЛАЙН, без дужок: так пишуть телевізори («LG 43UA75006LA»,
+# «SAMSUNG QE50Q7FAAUXUA», «HAIER H50S80FUX») і частина ноутбуків («NX.DK6EU.008»).
+# Без цього правила ТВ не зіставлялись узагалі (розвідка 2026-07-20: той самий
+# LG 43UA75006LA лежав 4 окремими картками в 4 крамницях).
+# Ризик перезлиття тут вищий, ніж у дужках, тому вимоги СУВОРІШІ (див. _plausible_inline):
+# лише ВЕЛИКІ літери, ≥8 символів, ≥2 літери І ≥2 цифри.
+_INLINE = re.compile(r"\b[A-Z0-9]+(?:[.\-/][A-Z0-9]+)*\b")
+_INLINE_MIN = 8
 
 # сміття, що схоже на артикул формою, але ним не є
 _STOP = {"NEW", "SALE", "LTE", "NFC", "USB", "OLED", "AMOLED", "IPS",
@@ -42,6 +52,28 @@ def _plausible(tok: str) -> bool:
     return True
 
 
+def _plausible_inline(tok: str) -> bool:
+    """Форм-фільтр ІНЛАЙН-кандидата — суворіший за дужковий, бо поза дужками навколо
+    багато сміття (роздільна здатність, діагональ, маркетинг).
+
+    Довжина ≥8 навмисна: відсікає серію без конфігурації («65B5», «X1504VA»), яка
+    СПІЛЬНА для різних комплектацій → саме на ній стається перезлиття (пастка AUXUA).
+    Вимога ≥2 цифр і ≥2 літер відсікає «3840X2160», «SAMSUNG», «QLED», «WI-FI».
+    """
+    if not (_INLINE_MIN <= len(tok) <= 25) or tok in _STOP:
+        return False
+    if tok.startswith("SM-"):
+        return False          # Samsung має власне правило (≥11); інлайн не сміє
+    # брати коротку модель — вона спільна для варіантів памʼяті/кольору (перезлиття)
+    letters = sum(c.isalpha() for c in tok)
+    digits = sum(c.isdigit() for c in tok)
+    if letters < 2 or digits < 2:
+        return False
+    if _SPEC.fullmatch(tok):
+        return False
+    return True
+
+
 def extract_mpn(title: str | None) -> str | None:
     """MPN з назви товару або None. Детермінований, без нормалізації суфіксів."""
     if not title:
@@ -58,4 +90,12 @@ def extract_mpn(title: str | None) -> str | None:
     for tok in reversed(_PAREN.findall(title)):
         if _plausible(tok):
             return tok
+    # інлайн — ЛИШЕ якщо дужкового немає (дужковий надійніший). Беремо ОСТАННІЙ,
+    # як і в дужках: заводський артикул стоїть у кінці, перед ним — модельне позначення
+    # («Acer Aspire Lite AL16-54P-56ES NX.DK6EU.008»). Вимірено на 371 назві: кандидатів
+    # кілька лише в 7, і в усіх 7 правильний саме останній. Бонус — інші крамниці пишуть
+    # цей самий заводський код У ДУЖКАХ, тож ключі сходяться між правилами.
+    inline = [t for t in _INLINE.findall(title) if _plausible_inline(t)]
+    if inline:
+        return inline[-1]
     return None
