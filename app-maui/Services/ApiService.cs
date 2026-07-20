@@ -20,7 +20,11 @@ public class ApiService
 
     public ApiService()
     {
-        _http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+        // 60 с, а не 20: /api/ingest/html вивантажує сирий HTML сторінки, і після того,
+        // як рендерер почав прокручувати сторінки до кінця (2026-07-20), тіло виросло
+        // до кількох МБ — на повільному Wi-Fi 20 с не вистачало б. Читальні запити
+        // однаково відповідають за частки секунди, тож більший таймаут їм не шкодить.
+        _http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
     }
 
     /// JWT для захищених ендпоінтів (/api/me*). null → анонім (публічні ендпоінти працюють).
