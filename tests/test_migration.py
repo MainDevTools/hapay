@@ -20,6 +20,7 @@ import psycopg                                   # noqa: E402
 from db import migrate                            # noqa: E402
 from db.store import upsert_source, persist_items, load_categories  # noqa: E402
 from adapters.pethouse import PethouseAdapter     # noqa: E402
+from adapters.base import RawItem                  # noqa: E402
 
 
 def main():
@@ -29,7 +30,7 @@ def main():
         reset(conn)
 
     applied = migrate.apply(URL)
-    checks.append(("міграції застосовані (0001…0007)", applied == [1, 2, 3, 4, 5, 6, 7], applied))
+    checks.append(("міграції застосовані (0001…0008)", applied == [1, 2, 3, 4, 5, 6, 7, 8], applied))
 
     with psycopg.connect(URL, autocommit=True) as conn:
         ps = conn.execute("SELECT count(*) FROM information_schema.tables "
@@ -68,6 +69,31 @@ def main():
         ov = conn.execute("SELECT c.slug FROM store_product sp JOIN category c USING (category_id) "
                           "WHERE sp.source_id = %s LIMIT 1", (sid2,)).fetchone()
         checks.append(("category_slug перебиває URL = smartfony", ov == ("smartfony",), ov))
+
+        # 0008 бекфіл: наявна електроніка з «Інше» → smartfony; зоо НЕ чіпається.
+        # Кладемо Comfy-товар з електронним URL БЕЗ тегу → categorize()→inshe (таксономія
+        # зоо-only), тоді проганяємо той самий UPDATE, що й міграція 0008.
+        sid3 = upsert_source(conn, "Comfy", "https://comfy.ua",
+                             adapter_kind="ssr", platform="custom", fetch_tier="A")
+        elec = [RawItem(external_ref="/smartfon/sg-x", url="https://comfy.ua/smartfon/sg-x",
+                        title="Samsung Galaxy X (SM-XXX)", price_now_kop=1_000_000,
+                        price_old_kop=1_200_000)]
+        persist_items(conn, sid3, elec, cats, source_method="satellite")   # без тегу → inshe
+        before = conn.execute("SELECT c.slug FROM store_product sp JOIN category c USING (category_id) "
+                              "WHERE sp.source_id = %s LIMIT 1", (sid3,)).fetchone()
+        checks.append(("до бекфілу: Comfy-товар у inshe", before == ("inshe",), before))
+        conn.execute(
+            "UPDATE store_product sp SET category_id="
+            "  (SELECT category_id FROM category WHERE slug='smartfony') "
+            "FROM source s WHERE sp.source_id = s.source_id "
+            "AND s.name IN ('Allo','Foxtrot','Moyo','Comfy','Rozetka','Citrus','Brain','KTC') "
+            "AND sp.category_id = (SELECT category_id FROM category WHERE slug='inshe')")
+        after = conn.execute("SELECT c.slug FROM store_product sp JOIN category c USING (category_id) "
+                             "WHERE sp.source_id = %s LIMIT 1", (sid3,)).fetchone()
+        checks.append(("0008 бекфіл: Comfy inshe→smartfony", after == ("smartfony",), after))
+        zoo = conn.execute("SELECT c.slug FROM store_product sp JOIN category c USING (category_id) "
+                           "WHERE sp.external_ref LIKE '%royal-canin-sterilised%' LIMIT 1").fetchone()
+        checks.append(("0008 бекфіл НЕ чіпає зоо (koty-suhyi-korm)", zoo == ("koty-suhyi-korm",), zoo))
 
         got = conn.execute(
             "SELECT ps.price_now_kop, ps.price_old_kop FROM price_snapshot ps "
