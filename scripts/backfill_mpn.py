@@ -11,9 +11,13 @@
 (ON CONFLICT DO UPDATE). Ідемпотентний: повторний запуск нічого не змінює.
 Історію цін (append-only `price_snapshot`) НЕ чіпає.
 
-Запуск на сервері:
-    DATABASE_URL=... /opt/hapay/venv/bin/python -m scripts.backfill_mpn --dry-run
-    DATABASE_URL=... /opt/hapay/venv/bin/python -m scripts.backfill_mpn
+Запуск на сервері (найпростіше — дати скрипту сам прочитати env-файл):
+    /opt/hapay/venv/bin/python scripts/backfill_mpn.py --env-file /etc/hapay/hapay.env --dry-run
+    /opt/hapay/venv/bin/python scripts/backfill_mpn.py --env-file /etc/hapay/hapay.env
+
+Або якщо DATABASE_URL уже в середовищі (як у deploy.sh: `set -a; . env-файл; set +a`).
+Свідомо НЕ радимо `grep|cut` — обрізає рядок на паролі з «=» і дає незрозумілий
+psycopg-трейсбек замість помилки по суті.
 """
 from __future__ import annotations
 
@@ -26,11 +30,49 @@ import psycopg                                    # noqa: E402
 from matching import extract_mpn                  # noqa: E402
 
 
+def _load_env_file(path: str) -> None:
+    """Мінімальний парсер KEY=VALUE (як `. file` у sh): коментарі, export, лапки."""
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            if line.startswith("export "):
+                line = line[len("export "):]
+            key, _, val = line.partition("=")          # partition — пароль може мати «=»
+            val = val.strip()
+            if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'":
+                val = val[1:-1]
+            os.environ.setdefault(key.strip(), val)
+
+
+def _mask(url: str) -> str:
+    """URL без пароля — щоб діагностика не витікала в лог/чат."""
+    import re
+    return re.sub(r"://([^:/@]+):[^@]*@", r"://\1:***@", url)
+
+
 def main() -> int:
-    dry = "--dry-run" in sys.argv
+    argv = sys.argv[1:]
+    dry = "--dry-run" in argv
+    if "--env-file" in argv:
+        path = argv[argv.index("--env-file") + 1]
+        if not os.path.exists(path):
+            print(f"нема env-файлу: {path}", file=sys.stderr)
+            return 1
+        _load_env_file(path)
+
     url = os.environ.get("DATABASE_URL")
     if not url:
-        print("DATABASE_URL не задано", file=sys.stderr)
+        print("DATABASE_URL не задано. Або передай --env-file /etc/hapay/hapay.env, "
+              "або завантаж env як у deploy.sh: set -a; . /etc/hapay/hapay.env; set +a",
+              file=sys.stderr)
+        return 1
+    if not url.startswith(("postgresql://", "postgres://")):
+        print(f"DATABASE_URL не схожий на URI Postgres: {_mask(url)!r}\n"
+              "Схоже, рядок обрізано (напр. `grep|cut` на паролі з «=»). "
+              "Передай --env-file /etc/hapay/hapay.env — скрипт прочитає сам.",
+              file=sys.stderr)
         return 1
 
     with psycopg.connect(url, autocommit=True) as conn:
