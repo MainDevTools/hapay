@@ -86,6 +86,9 @@
                                         <Label Text="{Binding StoresText}" FontSize="12" FontAttributes="Bold"
                                                TextColor="{AppThemeBinding Light=#512BD4, Dark=#AC99EA}"
                                                IsVisible="{Binding HasMultiStores}" />
+                                        <!-- дата кінця акції, якщо крамниця її дала (Rozetka) -->
+                                        <Label Text="{Binding PromoText}" FontSize="11" TextColor="#E23B3B"
+                                               IsVisible="{Binding HasPromo}" />
                                         <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
                                             <Label Grid.Column="0" Text="{Binding PriceText}"
                                                    FontAttributes="Bold" FontSize="17" VerticalOptions="End" />

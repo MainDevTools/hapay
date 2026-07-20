@@ -39,16 +39,16 @@ def persist_items(conn, source_id: int, items: list[RawItem], categories: dict[s
         sp = conn.execute(
             """INSERT INTO store_product
                  (source_id, external_ref, url, title, image_url, category_id,
-                  variant_note, needs_variant_resolution, mpn, last_seen_at)
-               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s, now())
+                  variant_note, needs_variant_resolution, mpn, promo_until, last_seen_at)
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, now())
                ON CONFLICT (source_id, external_ref) DO UPDATE
                  SET url = EXCLUDED.url, title = EXCLUDED.title,
                      image_url = EXCLUDED.image_url, variant_note = EXCLUDED.variant_note,
                      category_id = EXCLUDED.category_id, mpn = EXCLUDED.mpn,
-                     last_seen_at = now()
+                     promo_until = EXCLUDED.promo_until, last_seen_at = now()
                RETURNING store_product_id""",
             (source_id, it.external_ref, it.url, it.title, it.image_url, category_id,
-             it.variant_note, False, extract_mpn(it.title)),
+             it.variant_note, False, extract_mpn(it.title), it.promo_until),
         ).fetchone()
         conn.execute(
             """INSERT INTO price_snapshot

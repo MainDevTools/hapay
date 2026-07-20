@@ -14,18 +14,34 @@ MPN і в назві (дужки), і в URL-слагі → матчинг T15. 
 """
 from __future__ import annotations
 
+import re
 from urllib.parse import urlsplit
 
 from selectolax.lexbor import LexborHTMLParser
 
 from .base import RawItem, canon_ref, parse_price_to_kop
 
+# JSON-LD Offer: сама Rozetka декларує кінець дії ціни (schema.org priceValidUntil).
+# Мапимо url товару → дата. url стоїть перед offers у тому ж product-обʼєкті.
+_PVU = re.compile(
+    r'"url":"(https://rozetka\.com\.ua/[^"]+?/p\d+/)"'
+    r'.{0,400}?"offers":\{[^}]*?"priceValidUntil":"(\d{4}-\d{2}-\d{2})"'
+)
+
 
 class RozetkaAdapter:
     source_name = "Rozetka"
 
+    def _promo_map(self, html: str) -> dict[str, str]:
+        """{шлях_url: priceValidUntil} з JSON-LD (де крамниця дала реальну дату)."""
+        out: dict[str, str] = {}
+        for url, date in _PVU.findall(html):
+            out[canon_ref(urlsplit(url).path)] = date
+        return out
+
     def extract(self, html: str) -> list[RawItem]:
         tree = LexborHTMLParser(html)
+        promo = self._promo_map(html)
         items: list[RawItem] = []
         seen: set[str] = set()
 
@@ -69,5 +85,6 @@ class RozetkaAdapter:
                 in_stock=True,                # лістинг не маркує відсутність; OOS зникає з видачі
                 image_url=image_url,
                 discount_pct=pct,
+                promo_until=promo.get(ext),   # дата кінця дії ціни (якщо крамниця дала)
             ))
         return items

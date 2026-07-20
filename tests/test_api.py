@@ -371,6 +371,24 @@ def main():
                    all(cheap[i]["current_kop"] <= cheap[i+1]["current_kop"] for i in range(len(cheap)-1)),
                    [c["current_kop"] for c in cheap[:4]]))
 
+    # ── дата акції (promo_until) — показуємо лише реальну (майбутню, ≤90 днів) ─────
+    from datetime import date, timedelta
+    near = (date.today() + timedelta(days=5)).isoformat()
+    far = (date.today() + timedelta(days=200)).isoformat()
+    client.post("/api/ingest", headers=ing_tok, json={"source": "Rozetka", "items": [
+        {"external_ref": "/ua/promo-near/p1", "url": "https://rozetka.com.ua/ua/promo-near/p1/",
+         "title": "Тест акція near (SM-TESTNEAR)", "price_now_kop": 1000000,
+         "price_old_kop": 1200000, "promo_until": near},
+        {"external_ref": "/ua/promo-far/p2", "url": "https://rozetka.com.ua/ua/promo-far/p2/",
+         "title": "Тест акція far (SM-TESTFAR)", "price_now_kop": 1000000,
+         "price_old_kop": 1200000, "promo_until": far}]})
+    pn = client.get("/api/products?q=TESTNEAR").json()
+    pf = client.get("/api/products?q=TESTFAR").json()
+    checks.append(("promo_until: близька дата акції показується",
+                   len(pn) == 1 and pn[0].get("promo_until") == near, pn))
+    checks.append(("promo_until: далека (генерична) дата відсіяна",
+                   len(pf) == 1 and pf[0].get("promo_until") is None, pf))
+
     # ── фільтр ціни (копійки) ─────────────────────────────────────────────────────
     all_now = client.get("/api/discounts?sort=new").json()
     expensive = client.get("/api/discounts?sort=new&price_min=4000000").json()   # ≥ 40 000 ₴

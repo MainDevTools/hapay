@@ -41,6 +41,7 @@ public class Discount
     [JsonPropertyName("verified_pct")] public int? VerifiedPct { get; set; }
     [JsonPropertyName("badge_state")] public string BadgeState { get; set; } = "declared";
     [JsonPropertyName("offers_n")] public int OffersN { get; set; } = 1;   // розмір MPN-групи (T15)
+    [JsonPropertyName("promo_until")] public string? PromoUntil { get; set; }   // дата кінця акції (крамниця)
 
     // --- похідні для XAML-байндингу ---
     [JsonIgnore] public bool HasMultiStores => OffersN > 1;
@@ -61,6 +62,11 @@ public class Discount
 
     [JsonIgnore] public bool HasPct => Pct is not null;
     [JsonIgnore] public string PctText => Pct is int p ? $"−{p}%" : "";
+
+    // «Акція діє до DD.MM» — лише коли крамниця дала реальну дату (сервер уже відсіяв генеричні)
+    [JsonIgnore] public bool HasPromo => !string.IsNullOrEmpty(PromoUntil);
+    [JsonIgnore] public string PromoText =>
+        DateTime.TryParse(PromoUntil, out var d) ? $"Акція діє до {d:dd.MM}" : "";
 }
 
 /// Категорія з /api/categories.

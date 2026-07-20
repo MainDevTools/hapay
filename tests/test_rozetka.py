@@ -48,6 +48,14 @@ def test_refs_paths_urls_absolute_img_https():
         assert i.image_url and i.image_url.startswith("https://"), i.image_url
 
 
+def test_promo_until_from_jsonld():
+    """Rozetka декларує кінець дії ціни в JSON-LD (priceValidUntil) — витягуємо по url."""
+    s26 = next(x for x in _items() if "sm-s942bzkgeuc" in x.external_ref)
+    assert s26.promo_until == "2026-07-26"          # реальна дата акції
+    xiaomi = next(x for x in _items() if "xiaomi-1163429" in x.external_ref)
+    assert xiaomi.promo_until == "2027-01-19"       # генерична далека (сервер відсіє на показі)
+
+
 def _main():
     fns = [v for k, v in sorted(globals().items())
            if k.startswith("test_") and callable(v) and getattr(v, "__module__", None) == __name__]

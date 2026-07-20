@@ -16,6 +16,7 @@ from __future__ import annotations
 import dataclasses
 import hmac
 import os
+import re
 from urllib.parse import urlsplit
 
 from adapters.allo import HUB as ALLO_HUB, AlloAdapter
@@ -182,6 +183,10 @@ def validate_item(source: str, raw: dict) -> tuple[RawItem | None, str | None]:
     if not isinstance(in_stock, bool):
         in_stock = True
 
+    promo = raw.get("promo_until")   # ISO-дата кінця дії ціни; формат перевіряємо, зміст — ні
+    if not (isinstance(promo, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", promo)):
+        promo = None
+
     return RawItem(
         external_ref=canon_ref(ext),
         url=url,
@@ -191,6 +196,7 @@ def validate_item(source: str, raw: dict) -> tuple[RawItem | None, str | None]:
         in_stock=in_stock,
         image_url=img,
         variant_note=variant,
+        promo_until=promo,
     ), None
 
 

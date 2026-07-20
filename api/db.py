@@ -14,6 +14,12 @@ _SORTS = {
     "new":      "computed_at DESC",
 }
 
+# promo_until віддаємо лише коли дата РЕАЛЬНА: майбутня й у розумних межах (≤90 днів).
+# Так відсіюється генерична далека дата (Rozetka ставить 2027 для не-знижкових) і «сьогодні».
+_PROMO_COL = ("CASE WHEN sp0.promo_until > CURRENT_DATE "
+              "AND sp0.promo_until <= CURRENT_DATE + 90 "
+              "THEN to_char(sp0.promo_until, 'YYYY-MM-DD') END AS promo_until,")
+
 
 def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, offset=0, q=None,
                    price_min=None, price_max=None):
@@ -61,11 +67,13 @@ def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, o
         SELECT b.discount_event_id, b.store_product_id, b.title, b.url, b.image_url,
                b.variant_note, b.store, b.current_kop, b.old_declared_kop, b.reference_kop,
                b.declared_pct, b.verified_pct, b.badge_state,
+               {_PROMO_COL}
                CASE WHEN b.mpn IS NULL THEN 1
                     ELSE (SELECT count(DISTINCT sp2.source_id)
                           FROM store_product sp2 WHERE sp2.mpn = b.mpn)
                END AS offers_n
         FROM best b
+        JOIN store_product sp0 USING (store_product_id)
         ORDER BY {order}
         LIMIT %s OFFSET %s"""
     params += [limit, offset]
@@ -154,11 +162,13 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
         SELECT b.store_product_id, b.title, b.url, b.image_url, b.variant_note, b.store,
                b.current_kop, b.old_declared_kop, b.declared_pct, b.verified_pct, b.badge_state,
                (b.discount_event_id IS NOT NULL) AS has_discount,
+               {_PROMO_COL}
                CASE WHEN b.mpn IS NULL THEN 1
                     ELSE (SELECT count(DISTINCT sp2.source_id)
                           FROM store_product sp2 WHERE sp2.mpn = b.mpn)
                END AS offers_n
         FROM best b
+        JOIN store_product sp0 USING (store_product_id)
         ORDER BY {order}
         LIMIT %s OFFSET %s"""
     params += [limit, offset]
