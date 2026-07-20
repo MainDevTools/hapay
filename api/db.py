@@ -6,6 +6,7 @@
 from __future__ import annotations
 from psycopg import errors
 from psycopg.rows import dict_row
+from taxonomy import category_ui, SECTION_ORDER
 
 # сортування — без de.-префікса: колонки беруться з CTE `best` (див. list_discounts)
 _SORTS = {
@@ -221,15 +222,21 @@ def product_offers(conn, store_product_id: int):
 
 
 def categories(conn):
-    """Лише категорії з активними знижками (+ лічильник) — для селектора §9.1."""
+    """Лише категорії з активними знижками (+ лічильник) — для селектора §9.1 та
+    сітки-каталогу §17. Порожні (без знижок) НЕ повертаємо. Кожну збагачуємо розділом
+    і іконкою (taxonomy.category_ui); сортуємо за розділом, тоді за к-стю (більше — вище)."""
     with conn.cursor(row_factory=dict_row) as cur:
-        return cur.execute(
+        rows = cur.execute(
             "SELECT c.slug, c.name, count(*) AS n "
             "FROM category c "
             "JOIN store_product sp ON sp.category_id = c.category_id "
             "JOIN discount_event de ON de.store_product_id = sp.store_product_id "
             "WHERE de.ended_at IS NULL "
-            "GROUP BY c.slug, c.name ORDER BY n DESC").fetchall()
+            "GROUP BY c.slug, c.name").fetchall()
+    for r in rows:
+        r["section"], r["icon"] = category_ui(r["slug"])
+    rows.sort(key=lambda r: (SECTION_ORDER.get(r["section"], 9), -r["n"], r["name"]))
+    return rows
 
 
 def add_watchlist(conn, tg_user_id: int, kind: str, ref_id: int | None, query_text: str | None):

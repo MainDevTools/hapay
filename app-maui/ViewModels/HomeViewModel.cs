@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Hapay.Models;
@@ -10,7 +11,8 @@ namespace Hapay.ViewModels;
 public record SortOption(string Label, string Key);
 public record PriceOption(string Label, int? MinKop, int? MaxKop);   // межі — копійки (інв. A), null = без межі
 
-public partial class HomeViewModel : ObservableObject
+// IQueryAttributable — HomePage тепер пушиться з каталогу з категорією/пошуком (§17).
+public partial class HomeViewModel : ObservableObject, IQueryAttributable
 {
     private readonly ApiService _api;
     private readonly AuthService _auth;
@@ -42,6 +44,10 @@ public partial class HomeViewModel : ObservableObject
     [ObservableProperty] private bool _isRefreshing;
     [ObservableProperty] private string? _errorMessage;
     [ObservableProperty] private bool _showEmpty;
+    [ObservableProperty] private string _pageTitle = "Хапай";   // = назва категорії (пуш із каталогу)
+
+    private string? _pendingCategory;   // slug із каталогу — обрати після завантаження категорій
+    private string? _pendingQuery;      // пошук із каталогу
 
     private int _gen;          // покоління запиту: зміна фільтра інвалідує in-flight відповіді
     private int _page;
@@ -58,6 +64,17 @@ public partial class HomeViewModel : ObservableObject
         _scheduler = scheduler;
     }
 
+    // прийшли з каталогу (§17): категорія / пошук / заголовок сторінки
+    public void ApplyQueryAttributes(IDictionary<string, object> query)
+    {
+        if (query.TryGetValue("Category", out var cat) && cat is string s && s.Length > 0)
+            _pendingCategory = s;
+        if (query.TryGetValue("Query", out var q) && q is string qs && qs.Length > 0)
+            _pendingQuery = qs;
+        if (query.TryGetValue("Title", out var t) && t is string ts && ts.Length > 0)
+            PageTitle = ts;
+    }
+
     public async Task InitializeAsync()
     {
         if (_ready) return;
@@ -72,12 +89,18 @@ public partial class HomeViewModel : ObservableObject
         }
         catch { /* категорії необовʼязкові — «Усі» вже є */ }
 
-        _selectedCategory = Categories[0];   // завжди є принаймні «Усі категорії»
+        // пуш із каталогу → обрати ту категорію; інакше «Усі»
+        _selectedCategory = string.IsNullOrEmpty(_pendingCategory)
+            ? Categories[0]
+            : Categories.FirstOrDefault(c => c.Slug == _pendingCategory) ?? Categories[0];
+        if (!string.IsNullOrEmpty(_pendingQuery))
+            _searchText = _pendingQuery;         // backing-поле: не тригерити debounce-reload тут
         _selectedSort = SortOptions[0];
         _selectedPrice = PriceOptions[0];    // «Будь-яка ціна»
         OnPropertyChanged(nameof(SelectedCategory));
         OnPropertyChanged(nameof(SelectedSort));
         OnPropertyChanged(nameof(SelectedPrice));
+        OnPropertyChanged(nameof(SearchText));
 
         await ReloadAsync();
         _ready = true;

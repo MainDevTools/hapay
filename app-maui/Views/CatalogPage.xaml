@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Hapay.Views.CatalogPage"
+    x:Name="Page"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:Hapay.ViewModels"
+    xmlns:models="clr-namespace:Hapay.Models"
+    xmlns:conv="clr-namespace:Hapay.Converters"
+    x:DataType="vm:CatalogViewModel"
+    Title="Хапай">
+
+    <ContentPage.Resources>
+        <conv:StringNotEmptyConverter x:Key="NotEmpty" />
+    </ContentPage.Resources>
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Акаунт" Command="{Binding AccountCommand}" />
+    </ContentPage.ToolbarItems>
+
+    <Grid RowDefinitions="Auto,*" Padding="0">
+
+        <VerticalStackLayout Grid.Row="0" Padding="12,8" Spacing="8">
+            <SearchBar Placeholder="Пошук за назвою…" Text="{Binding SearchText}"
+                       SearchCommand="{Binding SearchCommand}" />
+            <Label Text="{Binding ErrorMessage}" TextColor="#E23B3B"
+                   IsVisible="{Binding ErrorMessage, Converter={StaticResource NotEmpty}}" />
+        </VerticalStackLayout>
+
+        <RefreshView Grid.Row="1" IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefreshCommand}">
+            <CollectionView ItemsSource="{Binding Groups}" IsGrouped="True">
+
+                <CollectionView.ItemsLayout>
+                    <GridItemsLayout Orientation="Vertical" Span="2"
+                                     HorizontalItemSpacing="10" VerticalItemSpacing="10" />
+                </CollectionView.ItemsLayout>
+
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="32" Spacing="8" VerticalOptions="Center">
+                        <Label Text="Поки немає знижок" HorizontalOptions="Center"
+                               FontAttributes="Bold" IsVisible="{Binding ShowEmpty}" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+
+                <!-- заголовок розділу (Електроніка / Зоотовари) -->
+                <CollectionView.GroupHeaderTemplate>
+                    <DataTemplate x:DataType="models:CategoryGroup">
+                        <Label Text="{Binding Title}" FontSize="16" FontAttributes="Bold"
+                               Padding="14,16,14,6" />
+                    </DataTemplate>
+                </CollectionView.GroupHeaderTemplate>
+
+                <!-- плитка категорії: іконка + назва + к-сть -->
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:Category">
+                        <Grid Padding="6,0">
+                            <Border StrokeThickness="0" StrokeShape="RoundRectangle 14"
+                                    BackgroundColor="{AppThemeBinding Light=White, Dark=#191B1F}"
+                                    Padding="14,14" MinimumHeightRequest="104">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenCategoryCommand}"
+                                        CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <VerticalStackLayout Spacing="8">
+                                    <Label Text="{Binding Icon}" FontSize="30" />
+                                    <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="14"
+                                           MaxLines="2" LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding CountText}" FontSize="12" TextColor="Gray" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+
+                <CollectionView.Footer>
+                    <BoxView HeightRequest="16" Color="Transparent" />
+                </CollectionView.Footer>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+</ContentPage>

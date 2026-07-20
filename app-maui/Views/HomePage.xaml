@@ -8,7 +8,7 @@
     xmlns:models="clr-namespace:Hapay.Models"
     xmlns:conv="clr-namespace:Hapay.Converters"
     x:DataType="vm:HomeViewModel"
-    Title="Хапай">
+    Title="{Binding PageTitle}">
 
     <ContentPage.Resources>
         <conv:StringNotEmptyConverter x:Key="NotEmpty" />

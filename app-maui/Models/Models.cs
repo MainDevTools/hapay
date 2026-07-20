@@ -75,10 +75,20 @@ public class Category
     [JsonPropertyName("slug")] public string Slug { get; set; } = "";
     [JsonPropertyName("name")] public string Name { get; set; } = "";
     [JsonPropertyName("n")] public int N { get; set; }
+    [JsonPropertyName("section")] public string Section { get; set; } = "";   // розділ сітки-каталогу
+    [JsonPropertyName("icon")] public string Icon { get; set; } = "";         // емодзі-іконка плитки
 
     // синтетичний запис «Усі категорії» має порожній slug і N=0 → без «(0)»;
     // реальні категорії з /api/categories завжди мають n≥1
     [JsonIgnore] public string Display => string.IsNullOrEmpty(Slug) ? Name : $"{Name} ({N})";
+    [JsonIgnore] public string CountText => $"{N} товарів";
+}
+
+/// Розділ сітки-каталогу (E-Katalog, §17): заголовок + категорії розділу.
+public class CategoryGroup : List<Category>
+{
+    public string Title { get; }
+    public CategoryGroup(string title, IEnumerable<Category> items) : base(items) => Title = title;
 }
 
 /// Точка історії ціни з /api/product/{id}/history.

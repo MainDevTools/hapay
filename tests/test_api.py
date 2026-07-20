@@ -58,6 +58,12 @@ def main():
     cats = client.get("/api/categories").json()
     checks.append(("категорії з активними знижками (koty-suhyi-korm)",
                    any(c["slug"] == "koty-suhyi-korm" and c["n"] > 0 for c in cats), cats))
+    # сітка-каталог (§17): кожна категорія несе розділ + іконку
+    checks.append(("категорії несуть section+icon",
+                   all(c.get("section") and c.get("icon") for c in cats), cats))
+    koty = next((c for c in cats if c["slug"] == "koty-suhyi-korm"), None)
+    checks.append(("koty-suhyi-korm → розділ «Зоотовари»",
+                   koty is not None and koty["section"] == "Зоотовари", koty))
 
     # фільтр за категорією
     only = client.get("/api/discounts?category=koty-suhyi-korm").json()

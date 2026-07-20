@@ -29,6 +29,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<ICollectScheduler, NoopCollectScheduler>();
         builder.Services.AddSingleton<IWebRenderer, NoopWebRenderer>();
 #endif
+        builder.Services.AddTransient<CatalogViewModel>();
+        builder.Services.AddTransient<CatalogPage>();
         builder.Services.AddTransient<HomeViewModel>();
         builder.Services.AddTransient<HomePage>();
         builder.Services.AddTransient<DetailViewModel>();

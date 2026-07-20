@@ -8,7 +8,7 @@
 
     <ShellContent
         Title="Хапай"
-        ContentTemplate="{DataTemplate views:HomePage}"
-        Route="HomePage" />
+        ContentTemplate="{DataTemplate views:CatalogPage}"
+        Route="CatalogPage" />
 
 </Shell>
