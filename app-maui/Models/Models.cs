@@ -116,11 +116,22 @@ public class Offer
     [JsonPropertyName("title")] public string Title { get; set; } = "";
     [JsonPropertyName("url")] public string Url { get; set; } = "";
     [JsonPropertyName("current_kop")] public int CurrentKop { get; set; }
+    [JsonPropertyName("old_declared_kop")] public int? OldDeclaredKop { get; set; }
     [JsonPropertyName("in_stock")] public bool InStock { get; set; } = true;
     [JsonPropertyName("seen_day")] public string? SeenDay { get; set; }
 
     [JsonIgnore] public string CurrentGrn => Money.Grn(CurrentKop);
     [JsonIgnore] public double Opacity => InStock ? 1.0 : 0.45;   // «немає» — приглушено
+
+    // ціна крамниці — як згори картки: поточна + перекреслена стара + −% (якщо є знижка)
+    [JsonIgnore] public string OldGrn => Money.Grn(OldDeclaredKop);
+    [JsonIgnore] public bool HasOld => OldDeclaredKop is int old && old > CurrentKop;
+    [JsonIgnore]
+    public int? Pct => (OldDeclaredKop is int old && old > CurrentKop)
+        ? (int)Math.Round((1 - (double)CurrentKop / old) * 100)
+        : null;
+    [JsonIgnore] public bool HasPct => Pct is not null;
+    [JsonIgnore] public string PctText => Pct is int p ? $"−{p}%" : "";
 }
 
 /// Задача з черги-оренди /api/collect/lease (T16): одна сторінка однієї крамниці.

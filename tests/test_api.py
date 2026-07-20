@@ -266,6 +266,16 @@ def main():
                    len(duo) == 2 and duo[0]["store"] == "Foxtrot"
                    and duo[0]["current_kop"] == 1999900
                    and duo[0]["current_kop"] <= duo[1]["current_kop"], duo))
+    # офери несуть стару ціну по крамниці (для «ціна зі знижкою + перекреслена стара» в «Де купити»)
+    fox_off = next((o for o in duo if o["store"] == "Foxtrot"), None)
+    checks.append(("Foxtrot-оффер (без старої ціни) → old_declared_kop = None",
+                   fox_off is not None and "old_declared_kop" in fox_off
+                   and fox_off["old_declared_kop"] is None, fox_off))
+    allo_off = next((o for o in duo if o["store"] == "Allo"), None)
+    checks.append(("Allo-оффер несе ту саму стару ціну, що й картка A37",
+                   allo_off is not None
+                   and allo_off["old_declared_kop"] == a37[0].get("old_declared_kop"),
+                   (allo_off.get("old_declared_kop") if allo_off else None, a37[0].get("old_declared_kop"))))
 
     # стрічка знає розмір групи: offers_n=2 у картці A37 (для «Наявно в 2 крамницях»)
     a37_after = client.get("/api/discounts?q=SM-A376BDGGEUC").json()

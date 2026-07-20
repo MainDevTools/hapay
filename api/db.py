@@ -196,7 +196,7 @@ def product_offers(conn, store_product_id: int):
         ),
         last_price AS (
             SELECT DISTINCT ON (ps.store_product_id)
-                   ps.store_product_id, ps.price_now_kop, ps.in_stock,
+                   ps.store_product_id, ps.price_now_kop, ps.price_old_kop, ps.in_stock,
                    (ps.seen_at AT TIME ZONE 'Europe/Kyiv')::date AS seen_day
             FROM price_snapshot ps
             JOIN grp USING (store_product_id)
@@ -204,16 +204,17 @@ def product_offers(conn, store_product_id: int):
         ),
         joined AS (
             SELECT g.source_id, g.store_product_id, g.store, g.title, g.url,
-                   lp.price_now_kop AS current_kop, lp.in_stock, lp.seen_day
+                   lp.price_now_kop AS current_kop, lp.price_old_kop AS old_declared_kop,
+                   lp.in_stock, lp.seen_day
             FROM grp g JOIN last_price lp USING (store_product_id)
         ),
         per_store AS (   -- одна найдешевша (та в наявності пріоритетно) пропозиція на крамницю
             SELECT DISTINCT ON (source_id) store_product_id, store, title, url,
-                   current_kop, in_stock, seen_day
+                   current_kop, old_declared_kop, in_stock, seen_day
             FROM joined
             ORDER BY source_id, in_stock DESC, current_kop
         )
-        SELECT store_product_id, store, title, url, current_kop, in_stock, seen_day
+        SELECT store_product_id, store, title, url, current_kop, old_declared_kop, in_stock, seen_day
         FROM per_store ORDER BY current_kop, store"""
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(sql, (store_product_id,)).fetchall()

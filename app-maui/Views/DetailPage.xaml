@@ -65,13 +65,27 @@
                                         CommandParameter="{Binding .}" />
                                 </Border.GestureRecognizers>
                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                                    <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                    <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
                                         <Label Text="{Binding Store}" FontAttributes="Bold" />
                                         <Label Text="Немає в наявності" FontSize="11" TextColor="Gray"
                                                IsVisible="{Binding InStock, Converter={StaticResource Invert}}" />
                                     </VerticalStackLayout>
-                                    <Label Grid.Column="1" Text="{Binding CurrentGrn}"
-                                           FontAttributes="Bold" FontSize="16" VerticalOptions="Center" />
+                                    <!-- ціна крамниці як згори картки: поточна + −% в рядок, стара перекреслена під ними -->
+                                    <VerticalStackLayout Grid.Column="1" Spacing="1" HorizontalOptions="End">
+                                        <HorizontalStackLayout Spacing="6" HorizontalOptions="End">
+                                            <Label Text="{Binding CurrentGrn}" FontAttributes="Bold"
+                                                   FontSize="16" VerticalOptions="Center" />
+                                            <Border BackgroundColor="#E23B3B" Padding="5,2" StrokeThickness="0"
+                                                    StrokeShape="RoundRectangle 6" VerticalOptions="Center"
+                                                    IsVisible="{Binding HasPct}">
+                                                <Label Text="{Binding PctText}" TextColor="White"
+                                                       FontAttributes="Bold" FontSize="10" />
+                                            </Border>
+                                        </HorizontalStackLayout>
+                                        <Label Text="{Binding OldGrn}" FontSize="12" TextColor="Gray"
+                                               TextDecorations="Strikethrough" HorizontalOptions="End"
+                                               IsVisible="{Binding HasOld}" />
+                                    </VerticalStackLayout>
                                 </Grid>
                             </Border>
                         </DataTemplate>
