@@ -10,12 +10,18 @@ public partial class ProfileViewModel : ObservableObject
     private readonly AuthService _auth;
     private readonly CollectorService _collector;
     private readonly ICollectScheduler _scheduler;
+    private readonly PriceWatchService _priceWatch;
 
-    public ProfileViewModel(AuthService auth, CollectorService collector, ICollectScheduler scheduler)
+    [ObservableProperty] private bool _checkingDrops;
+    [ObservableProperty] private string? _dropsStatus;
+
+    public ProfileViewModel(AuthService auth, CollectorService collector,
+                            ICollectScheduler scheduler, PriceWatchService priceWatch)
     {
         _auth = auth;
         _collector = collector;
         _scheduler = scheduler;
+        _priceWatch = priceWatch;
         _autoCollect = CollectPrefs.AutoEnabled;   // прямо в поле — без тригера OnChanged
     }
 
@@ -113,6 +119,35 @@ public partial class ProfileViewModel : ObservableObject
 
     [RelayCommand]
     private async Task Watchlist() => await Shell.Current.GoToAsync(nameof(WatchlistPage));
+
+    /// Ручний запуск ТІЄЇ САМОЇ перевірки, що й фоновий воркер: не чекати годину,
+    /// і не гадати, чи вона працює. Корисна й користувачеві, не лише для тесту.
+    [RelayCommand]
+    private async Task CheckDrops()
+    {
+        if (CheckingDrops) return;
+        CheckingDrops = true;
+        DropsStatus = "Перевіряю…";
+        try
+        {
+            var n = await _priceWatch.CheckAsync();
+            DropsStatus = n > 0
+                ? $"Подешевшало: {n} — глянь сповіщення"
+                : "Поки без змін — нічого не подешевшало";
+        }
+        catch (UnauthorizedException)
+        {
+            DropsStatus = "Сесія застаріла — увійди ще раз";
+        }
+        catch (Exception e)
+        {
+            DropsStatus = $"Не вдалося: {e.Message}";
+        }
+        finally
+        {
+            CheckingDrops = false;
+        }
+    }
 
     [RelayCommand]
     private async Task Logout()

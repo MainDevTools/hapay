@@ -10,6 +10,7 @@
 
     <ContentPage.Resources>
         <conv:StringNotEmptyConverter x:Key="NotEmpty" />
+        <conv:InvertBoolConverter x:Key="Invert" />
     </ContentPage.Resources>
 
     <VerticalStackLayout Padding="24" Spacing="16" VerticalOptions="Start">
@@ -47,6 +48,14 @@
                 TextColor="{AppThemeBinding Light=#512BD4, Dark=#AC99EA}"
                 BorderColor="{AppThemeBinding Light=#512BD4, Dark=#AC99EA}"
                 BorderWidth="1" HeightRequest="48" />
+
+        <!-- та сама перевірка, що й фонова, але зараз — не чекати годину -->
+        <Button Text="Перевірити зниження цін" Command="{Binding CheckDropsCommand}"
+                IsEnabled="{Binding CheckingDrops, Converter={StaticResource Invert}}"
+                BackgroundColor="Transparent" TextColor="Gray" HeightRequest="44" />
+        <Label Text="{Binding DropsStatus}" FontSize="13" TextColor="Gray"
+               HorizontalOptions="Center"
+               IsVisible="{Binding DropsStatus, Converter={StaticResource NotEmpty}}" />
 
         <Button Text="Вийти" Command="{Binding LogoutCommand}"
                 BackgroundColor="Transparent" TextColor="#E23B3B" HeightRequest="48" />

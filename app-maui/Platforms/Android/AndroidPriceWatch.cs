@@ -58,23 +58,13 @@ public class PriceWatchWorker : Worker
     {
         try
         {
-            var services = IPlatformApplication.Current?.Services;
-            var auth = services?.GetService<AuthService>();
-            var api = services?.GetService<ApiService>();
-            if (auth is null || api is null)
+            var watch = IPlatformApplication.Current?.Services?.GetService<PriceWatchService>();
+            if (watch is null)
                 return Result.InvokeRetry()!;
 
-            Task.Run(async () =>
-            {
-                await auth.LoadAsync();               // токен із SecureStorage (без UI)
-                if (!auth.IsLoggedIn) return;         // нема акаунта — нема за чим стежити
-
-                var drops = await api.DropsAsync();
-                if (drops.Count == 0) return;
-
-                PriceDropNotifier.Show(ApplicationContext!, drops);
-                await api.AckDropsAsync(drops.Select(d => d.WatchlistId));
-            }).GetAwaiter().GetResult();
+            // та сама логіка, що й за кнопкою «перевірити зараз» — один метод на обидва
+            // виклики, інакше кнопка перевіряла б не те, що працює у фоні
+            Task.Run(() => watch.CheckAsync()).GetAwaiter().GetResult();
 
             return Result.InvokeSuccess()!;
         }
@@ -87,13 +77,17 @@ public class PriceWatchWorker : Worker
 
 /// Локальне сповіщення про зниження. Текст будуємо лише з ВИМІРЯНОГО (§7.5):
 /// назва товару, нова ціна і різниця, яку порахував сервер.
-public static class PriceDropNotifier
+public class AndroidPriceNotifier : IPriceNotifier
 {
     private const string ChannelId = "hapay-price-drops";
     private const int NotificationId = 1001;
 
-    public static void Show(Context ctx, IReadOnlyList<Models.PriceDrop> drops)
+    public bool IsSupported => true;
+
+    public void ShowDrops(IReadOnlyList<Models.PriceDrop> drops)
     {
+        if (drops.Count == 0) return;
+        var ctx = global::Android.App.Application.Context!;
         EnsureChannel(ctx);
 
         var first = drops[0];
