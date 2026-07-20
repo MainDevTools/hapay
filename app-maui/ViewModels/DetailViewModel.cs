@@ -26,10 +26,13 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
     /// «Де купити» (T15): той самий товар (mpn) у крамницях, від найдешевшої.
     public ObservableCollection<Offer> Offers { get; } = new();
 
-    public DetailViewModel(ApiService api, AuthService auth)
+    private readonly IPriceWatchScheduler _watchScheduler;
+
+    public DetailViewModel(ApiService api, AuthService auth, IPriceWatchScheduler watchScheduler)
     {
         _api = api;
         _auth = auth;
+        _watchScheduler = watchScheduler;
     }
 
     /// Стежити може лише залогінений — інакше нема кому належати списку.
@@ -44,7 +47,13 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
         try
         {
             await _api.WatchAsync(Item.StoreProductId);
-            WatchNote = "Стежимо за ціною — дивись у профілі";
+            // дозвіл питаємо САМЕ тут — у момент, коли користувач попросив стежити,
+            // а не на старті застосунку «про всяк випадок»
+            var granted = await Permissions.RequestAsync<Permissions.PostNotifications>();
+            _watchScheduler.Enable();     // перевірка працює і без дозволу — просто мовчки
+            WatchNote = granted == PermissionStatus.Granted
+                ? "Стежимо — сповістимо, коли подешевшає"
+                : "Стежимо. Сповіщення вимкнені — дивись у профілі";
         }
         catch (UnauthorizedException)
         {

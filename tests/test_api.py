@@ -179,6 +179,45 @@ def main():
                    wit is not None and wit["title"] and wit["current_kop"] == prod["current_kop"]
                    and wit["delta_kop"] == 0, wit))
 
+    # ── сповіщення про зниження ціни ─────────────────────────────────────────────
+    def _drop_price(to_kop):
+        """Ціна впала. price_snapshot append-only → пишемо НОВИЙ рядок, старі не чіпаємо."""
+        with psycopg.connect(URL, autocommit=True) as c:
+            c.execute("INSERT INTO price_snapshot (store_product_id, price_now_kop, in_stock, "
+                      "source_method, seen_at, is_backfill) "
+                      "VALUES (%s,%s,TRUE,'satellite',now(),FALSE)", (spid, to_kop))
+
+    checks.append(("без руху ціни сповіщати нема про що",
+                   client.get("/api/me/watchlist/drops", headers=ahdr).json() == [], None))
+
+    _drop_price(prod["current_kop"] - 100000)          # −1000 грн
+    d1 = client.get("/api/me/watchlist/drops", headers=ahdr).json()
+    checks.append(("зниження помічено, різниця порахована",
+                   len(d1) == 1 and d1[0]["drop_kop"] == 100000, d1))
+
+    ack = client.post("/api/me/watchlist/drops/ack", headers=ahdr,
+                      json={"watchlist_ids": [d1[0]["watchlist_id"]]})
+    checks.append(("ack → 1", ack.json().get("acked") == 1, ack.json()))
+    # головне: про ТЕ САМЕ зниження не турбуємо вдруге (інакше дзвонило б щогодини)
+    checks.append(("те саме зниження вдруге НЕ турбує",
+                   client.get("/api/me/watchlist/drops", headers=ahdr).json() == [], None))
+
+    _drop_price(prod["current_kop"] - 150000)          # впало ще на 500 грн
+    d2 = client.get("/api/me/watchlist/drops", headers=ahdr).json()
+    checks.append(("подальше зниження — нове сповіщення (від попереднього рівня)",
+                   len(d2) == 1 and d2[0]["drop_kop"] == 50000, d2))
+
+    _drop_price(prod["current_kop"])                    # ціна повернулась — не сповіщаємо
+    checks.append(("подорожчання назад не сповіщає",
+                   client.get("/api/me/watchlist/drops", headers=ahdr).json() == [], None))
+
+    checks.append(("ack чужого запису нічого не змінює",
+                   client.post("/api/me/watchlist/drops/ack", headers=ahdr,
+                               json={"watchlist_ids": [999999]}).json().get("acked") == 0, None))
+    checks.append(("ack з не-списком → 400",
+                   client.post("/api/me/watchlist/drops/ack", headers=ahdr,
+                               json={"watchlist_ids": "abc"}).status_code == 400, None))
+
     # чуже стеження не видаляється — інакше будь-хто чистив би чужі списки
     other = client.post("/api/auth/register",
                         json={"email": "watcher2@hapay.today", "password": "watchpass"}).json()

@@ -182,6 +182,21 @@ public class WatchItem
     [JsonIgnore] public string StoresText => $"у {OffersN} крамницях";
 }
 
+/// Зниження ціни по відстежуваному товару з /api/me/watchlist/drops.
+/// `baseline_kop` — ціна, про яку користувачеві вже казали; різницю рахує СЕРВЕР.
+public class PriceDrop
+{
+    [JsonPropertyName("watchlist_id")] public int WatchlistId { get; set; }
+    [JsonPropertyName("ref_id")] public int RefId { get; set; }
+    [JsonPropertyName("title")] public string Title { get; set; } = "";
+    [JsonPropertyName("current_kop")] public int CurrentKop { get; set; }
+    [JsonPropertyName("baseline_kop")] public int BaselineKop { get; set; }
+    [JsonPropertyName("drop_kop")] public int DropKop { get; set; }
+
+    [JsonIgnore] public string CurrentGrn => Money.Grn(CurrentKop);
+    [JsonIgnore] public string DropGrn => Money.Grn(DropKop);
+}
+
 /// Задача з черги-оренди /api/collect/lease (T16): одна сторінка однієї крамниці.
 public class LeaseTask
 {

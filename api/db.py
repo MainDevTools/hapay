@@ -324,6 +324,58 @@ def remove_watchlist_user(conn, user_id: int, watchlist_id: int) -> bool:
     return row is not None
 
 
+def list_price_drops(conn, user_id: int):
+    """Відстежувані товари, що ПОДЕШЕВШАЛИ від часу, про який користувачеві вже казали.
+
+    Точка відліку — `last_notified_kop`, а якщо ще не повідомляли, то ціна додавання.
+    Тому повторне зниження дасть нове сповіщення, а те саме — ні (інакше телефон
+    дзвонив би щогодини про одну й ту саму знижку).
+    """
+    sql = """
+        WITH latest AS (
+            SELECT DISTINCT ON (ps.store_product_id)
+                   ps.store_product_id, ps.price_now_kop
+            FROM price_snapshot ps
+            JOIN watchlist w ON w.ref_id = ps.store_product_id
+                            AND w.user_id = %s AND w.kind = 'store_product'
+            ORDER BY ps.store_product_id, ps.seen_at DESC
+        )
+        SELECT w.watchlist_id, w.ref_id, sp.title, sp.url, sp.image_url,
+               l.price_now_kop AS current_kop,
+               COALESCE(w.last_notified_kop, w.price_at_add_kop) AS baseline_kop,
+               (COALESCE(w.last_notified_kop, w.price_at_add_kop) - l.price_now_kop) AS drop_kop
+        FROM watchlist w
+        JOIN store_product sp ON sp.store_product_id = w.ref_id
+        JOIN latest l ON l.store_product_id = w.ref_id
+        WHERE w.user_id = %s AND w.kind = 'store_product'
+          AND COALESCE(w.last_notified_kop, w.price_at_add_kop) IS NOT NULL
+          AND l.price_now_kop < COALESCE(w.last_notified_kop, w.price_at_add_kop)
+        ORDER BY drop_kop DESC"""
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(sql, (user_id, user_id)).fetchall()
+
+
+def ack_price_drops(conn, user_id: int, watchlist_ids: list[int]) -> int:
+    """Позначити, що про ці зниження вже повідомлено: `last_notified_kop` = поточна ціна.
+    Чужі рядки не зачепить (user_id у WHERE). Повертає к-сть оновлених."""
+    if not watchlist_ids:
+        return 0
+    sql = """
+        WITH latest AS (
+            SELECT DISTINCT ON (ps.store_product_id)
+                   ps.store_product_id, ps.price_now_kop
+            FROM price_snapshot ps
+            JOIN watchlist w ON w.ref_id = ps.store_product_id AND w.user_id = %s
+            ORDER BY ps.store_product_id, ps.seen_at DESC
+        )
+        UPDATE watchlist w SET last_notified_kop = l.price_now_kop
+        FROM latest l
+        WHERE w.ref_id = l.store_product_id
+          AND w.user_id = %s AND w.watchlist_id = ANY(%s)
+        RETURNING w.watchlist_id"""
+    return len(conn.execute(sql, (user_id, user_id, list(watchlist_ids))).fetchall())
+
+
 def list_watchlist_user(conn, user_id: int):
     """Список стеження, збагачений даними товару: назва/фото/поточна ціна + скільки
     крамниць у групі. `delta_kop` = поточна − на момент додавання (відʼємна = подешевшало).

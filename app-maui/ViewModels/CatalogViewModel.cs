@@ -14,6 +14,7 @@ public partial class CatalogViewModel : ObservableObject
 {
     private readonly ApiService _api;
     private readonly AuthService _auth;
+    private readonly IPriceWatchScheduler _watchScheduler;
 
     public ObservableCollection<CategoryGroup> Groups { get; } = new();
 
@@ -28,16 +29,19 @@ public partial class CatalogViewModel : ObservableObject
 
     private bool _ready;
 
-    public CatalogViewModel(ApiService api, AuthService auth)
+    public CatalogViewModel(ApiService api, AuthService auth, IPriceWatchScheduler watchScheduler)
     {
         _api = api;
         _auth = auth;
+        _watchScheduler = watchScheduler;
     }
 
     public async Task InitializeAsync()
     {
         if (_ready) return;
         await _auth.LoadAsync();   // підняти токен до першого запиту (як у HomeVM)
+        if (_auth.IsLoggedIn)
+            _watchScheduler.EnsureIfEnabled();   // відновити перевірку цін після перезапуску
         await LoadAsync();
         _ready = true;
     }

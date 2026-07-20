@@ -124,6 +124,25 @@ public class ApiService
         if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
     }
 
+    /// Товари з відстеження, що подешевшали від часу останнього сповіщення.
+    /// Опитується у фоні; сповіщення показуємо ЛОКАЛЬНО, без сторонніх push-сервісів (§7.7).
+    public async Task<List<PriceDrop>> DropsAsync(CancellationToken ct = default)
+    {
+        var resp = await _http.GetAsync($"{Base}/api/me/watchlist/drops", ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content.ReadFromJsonAsync<List<PriceDrop>>(_json, ct) ?? new();
+    }
+
+    /// Підтвердити показ — інакше про те саме зниження сповіщатимемо щогодини.
+    public async Task AckDropsAsync(IEnumerable<int> watchlistIds, CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync($"{Base}/api/me/watchlist/drops/ack",
+            new { watchlist_ids = watchlistIds.ToArray() }, ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
+    }
+
     // ── збір (S11 етап 3): застосунок = «тупий фетчер», парсить сервер ────────────────
     /// Сервер каже, ЩО тягнути (гейт ролі collector). 401 → нема прав/токен застарів.
     public async Task<CollectPlan> GetCollectPlanAsync(CancellationToken ct = default)

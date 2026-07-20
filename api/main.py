@@ -203,6 +203,23 @@ def my_watchlist_add(body: dict, claims=Depends(require_account), conn=Depends(g
                                   ref_id, body.get("query_text"))
 
 
+@app.get("/api/me/watchlist/drops")
+def my_price_drops(claims=Depends(require_account), conn=Depends(get_conn)):
+    """Відстежувані товари, що подешевшали від часу останнього сповіщення.
+    Застосунок опитує це у фоні й показує ЛОКАЛЬНЕ сповіщення (без сторонніх
+    push-сервісів — §7.7: жодної телеметрії назовні)."""
+    return qdb.list_price_drops(conn, int(claims["sub"]))
+
+
+@app.post("/api/me/watchlist/drops/ack")
+def my_price_drops_ack(body: dict, claims=Depends(require_account), conn=Depends(get_conn)):
+    """Підтвердити, що про зниження повідомлено — щоб не дзвонити вдруге про те саме."""
+    ids = (body or {}).get("watchlist_ids")
+    if not isinstance(ids, list) or not all(isinstance(i, int) for i in ids):
+        raise HTTPException(400, "watchlist_ids: список int")
+    return {"acked": qdb.ack_price_drops(conn, int(claims["sub"]), ids)}
+
+
 @app.delete("/api/me/watchlist/{watchlist_id}")
 def my_watchlist_remove(watchlist_id: int, claims=Depends(require_account),
                         conn=Depends(get_conn)):
