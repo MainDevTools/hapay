@@ -24,6 +24,7 @@ from adapters.base import RawItem, canon_ref
 from adapters.brain import BrainAdapter
 from adapters.citrus import CitrusAdapter
 from adapters.comfy import ComfyAdapter
+from adapters.eldorado import EldoradoAdapter
 from adapters.foxtrot import FoxtrotAdapter
 from adapters.ktc import KtcAdapter
 from adapters.moyo import MoyoAdapter
@@ -113,6 +114,19 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://brain.com.ua/ukr/Smartfoni_zvyazok-c297/", "smartfony"),
         ("https://brain.com.ua/ukr/category/Noutbuky-c1191/", "noutbuky"),       # 24 товари
         ("https://brain.com.ua/ukr/category/Televizory-c1098/", "tv"),           # 24 товари
+    )},
+    # Eldorado (розвідка 2026-07-20, у справжньому браузері): SPA + ЛІНИВІ ціни — без
+    # прокрутки сторінка віддає товари з НУЛЕМ цін, тому лише mode="render" і лише з
+    # новим скрол-рендерером. URL узято з навігації (вгаданий /smartfony/c1050/ → сторінка
+    # помилки). Перевірено парсингом: смартфони 32 картки / 11 із цінами (решта «Продано»
+    # чи «Незабаром» — їх адаптер пропускає), ноутбуки 40/32, ТВ 40/40.
+    # pages=5, а не 10: рендер-задачі найповільніші (скрол), а черга вже щільна —
+    # підняти можна, коли побачимо запас (див. арифметику в коментарі до пагінації).
+    "Eldorado": {"adapter": EldoradoAdapter(), "mode": "render",
+                 "page_tpl": "{base}page={n}/", "pages": 5, "urls": (
+        ("https://eldorado.ua/uk/smartphones/c1038946/", "smartfony"),
+        ("https://eldorado.ua/uk/notebooks/c1039096/", "noutbuky"),
+        ("https://eldorado.ua/uk/led/c1038962/", "tv"),
     )},
     # KTC (розвідка 2026-07-19): SSR-лістинг /smartphone/, 48 карток, 54 SM-коди —
     # S26/A07 перетини з рештою → більше груп «Де купити».
