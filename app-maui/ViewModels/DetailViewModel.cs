@@ -42,6 +42,7 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
         // до завантаження оферів — фолбек на ціну самого товару
         OnPropertyChanged(nameof(PriceRangeText));
         OnPropertyChanged(nameof(ShowSingleDiscount));
+        OnPropertyChanged(nameof(PageTitle));
     }
 
     /// «Наявно в N крамницях» — під ціною, щоб було видно без скролу до «Де купити».
@@ -67,6 +68,10 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
     /// Класичний блок «стара ціна + −%» — лише для однієї крамниці (без діапазону).
     public bool ShowSingleDiscount => !HasOffers && (Item?.HasPct ?? false);
 
+    /// Заголовок сторінки. Для ГРУПИ назва однієї крамниці ввела б в оману (товар у кількох) —
+    /// там показуємо суть сторінки; для однієї крамниці її назва доречна.
+    public string PageTitle => HasOffers ? "Порівняння цін" : (Item?.Store ?? "Товар");
+
     private async Task LoadOffers(int storeProductId)
     {
         try
@@ -78,12 +83,14 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
             OnPropertyChanged(nameof(OffersLine));
             OnPropertyChanged(nameof(PriceRangeText));       // діапазон рахується з оферів
             OnPropertyChanged(nameof(ShowSingleDiscount));
+            OnPropertyChanged(nameof(PageTitle));            // група → «Порівняння цін»
         }
         catch
         {
             HasOffers = false;              // офери — бонус; збій мережі не ламає картку
             OnPropertyChanged(nameof(PriceRangeText));       // фолбек на ціну товару
             OnPropertyChanged(nameof(ShowSingleDiscount));
+            OnPropertyChanged(nameof(PageTitle));
         }
     }
 
