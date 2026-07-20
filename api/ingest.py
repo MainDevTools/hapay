@@ -63,13 +63,15 @@ HTML_SOURCES: dict[str, dict] = {
     # вгадані лістинги раніше давали 404) і перевірено ПАРСИНГОМ адаптера, не лише 200.
     # `page_tpl`/`pages` — пагінація (розвідка 2026-07-20). Схеми взято з навігації
     # крамниць і перевірено фактом: сторінка 2 віддає ІНШІ товари, перетин з 1-ю = 0.
-    # 5 сторінок ≈ 5× даних; при розльоті 15 хв/хост повний цикл ~4 год (repeat 12 год).
-    "Foxtrot": {"adapter": FoxtrotAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
+    # Глибина 10 теж перевірена: стор. 8/10/12 віддають повні набори без повторів 1-ї.
+    # KTC — 7: далі його лістинги віддають порожньо (сенсу слати запит немає).
+    # 174 задачі / 12 год ≈ 14.6 оренд/год, тому застосунок бере по 5 за прохід (20/год).
+    "Foxtrot": {"adapter": FoxtrotAdapter(), "page_tpl": "{base}?page={n}", "pages": 10, "urls": (
         ("https://www.foxtrot.com.ua/uk/shop/mobilnye_telefony.html", "smartfony"),
         ("https://www.foxtrot.com.ua/uk/shop/noutbuki.html", "noutbuky"),        # 42 товари
         ("https://www.foxtrot.com.ua/uk/shop/led_televizory.html", "tv"),        # 42 товари
     )},
-    "Moyo": {"adapter": MoyoAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
+    "Moyo": {"adapter": MoyoAdapter(), "page_tpl": "{base}?page={n}", "pages": 10, "urls": (
         ("https://www.moyo.ua/ua/telecommunication/smart/", "smartfony"),
         ("https://www.moyo.ua/ua/comp-and-periphery/notebooks/", "noutbuky"),    # 24 товари
         ("https://www.moyo.ua/ua/foto_video/tv_audio/lcd_tv/", "tv"),            # 24 товари
@@ -83,21 +85,21 @@ HTML_SOURCES: dict[str, dict] = {
     # + .product-tile-title/.product-tile-price__current) — адаптер міняти не довелось.
     # Тому телефон рендерить Comfy у WebView, як Brain. Рендер ~1.9-2.4 МБ — під _MAX_HTML (5 МБ).
     "Comfy": {"adapter": ComfyAdapter(), "mode": "render",
-              "page_tpl": "{base}?p={n}", "pages": 5, "urls": (
+              "page_tpl": "{base}?p={n}", "pages": 10, "urls": (
         ("https://comfy.ua/smartfon/", "smartfony"),
         ("https://comfy.ua/notebook/", "noutbuky"),                              # 50 карток
         ("https://comfy.ua/flat-tvs/", "tv"),                                    # 50 карток
     )},
     # Rozetka (розвідка 2026-07-19): найбільший маркетплейс, Angular-SSR 60 карток;
     # масові перетини MPN (SM-S942BZKGEUC = Foxtrot S26, SM-A576BZVDEUC = Moyo/Allo A57).
-    "Rozetka": {"adapter": RozetkaAdapter(), "page_tpl": "{base}page={n}/", "pages": 5, "urls": (
+    "Rozetka": {"adapter": RozetkaAdapter(), "page_tpl": "{base}page={n}/", "pages": 10, "urls": (
         ("https://rozetka.com.ua/ua/mobile-phones/c80003/", "smartfony"),
         ("https://rozetka.com.ua/ua/notebooks/c80004/", "noutbuky"),             # 60 товарів
         ("https://rozetka.com.ua/ua/all-tv/c80037/", "tv"),                      # 60 товарів
     )},
     # Citrus (розвідка 2026-07-19): Next.js SSR, 47 карток, хешовані класи (префіксні
     # селектори); SM-S948BZKGEUC перетинається з Comfy → більше груп.
-    "Citrus": {"adapter": CitrusAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
+    "Citrus": {"adapter": CitrusAdapter(), "page_tpl": "{base}?page={n}", "pages": 10, "urls": (
         ("https://www.ctrs.com.ua/smartfony/", "smartfony"),
         ("https://www.ctrs.com.ua/noutbuki-i-ultrabuki/", "noutbuky"),           # 47 товарів
         ("https://www.ctrs.com.ua/televizory/", "tv"),                           # 47 товарів
@@ -114,7 +116,7 @@ HTML_SOURCES: dict[str, dict] = {
     )},
     # KTC (розвідка 2026-07-19): SSR-лістинг /smartphone/, 48 карток, 54 SM-коди —
     # S26/A07 перетини з рештою → більше груп «Де купити».
-    "KTC": {"adapter": KtcAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
+    "KTC": {"adapter": KtcAdapter(), "page_tpl": "{base}?page={n}", "pages": 7, "urls": (
         ("https://ktc.ua/smartphone/", "smartfony"),
         ("https://ktc.ua/notebook/", "noutbuky"),                                # 48 товарів
         ("https://ktc.ua/tv/", "tv"),                                            # 48 товарів

@@ -84,12 +84,16 @@ public class CollectorService
         return new CollectSummary(accepted, pages, errors);
     }
 
-    /// Один ФОНОВИЙ прохід по черзі-оренді (T16): lease ≤3 задач (по 1 на крамницю,
+    /// Один ФОНОВИЙ прохід по черзі-оренді (T16): lease ≤5 задач (по 1 на крамницю,
     /// сервер сам тримає розліт 15 хв) → fetch → ingest із task_id (закривається сам).
-    /// Не стягнулось → collect/fail (бекоф на сервері). Короткий: ~3 сторінки за прохід.
+    /// Не стягнулось → collect/fail (бекоф на сервері).
+    ///
+    /// Чому 5, а не 3: після пагінації (2026-07-20) у черзі 174 задачі; щоб оновити всі
+    /// за 12 год, треба ~14.6 оренд/год, а прохід кожні 15 хв × 3 давав лише 12/год —
+    /// черга відставала б. 5 за прохід → 20/год, із запасом.
     public async Task<QueuePassSummary> RunQueuePassAsync(CancellationToken ct = default)
     {
-        var tasks = await _api.LeaseAsync(3, ct);
+        var tasks = await _api.LeaseAsync(5, ct);
         int pages = 0, accepted = 0;
         var errors = new List<string>();
         foreach (var t in tasks)

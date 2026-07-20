@@ -105,7 +105,7 @@ def test_pagination_expands_and_inherits_category():
     tv = [u for u, c in listings if c == "tv"]
     assert tv[0] == "https://rozetka.com.ua/ua/all-tv/c80037/"
     assert "https://rozetka.com.ua/ua/all-tv/c80037/page=2/" in tv
-    assert len(tv) == 5, tv
+    assert len(tv) == ing.HTML_SOURCES["Rozetka"]["pages"], tv
     assert all(c in ("smartfony", "noutbuky", "tv") for _u, c in listings)
 
 

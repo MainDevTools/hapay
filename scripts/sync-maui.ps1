@@ -70,7 +70,8 @@ foreach ($f in $Files) {
     if (Test-Path (Join-Path $Source $f)) { Add-Item-ToPlan $f }
 }
 
-$changed = $plan | Where-Object { $_.State -ne "без змін" }
+# @() обовʼязкове: Where-Object з ОДНИМ результатом повертає скаляр, і .Count порожній
+$changed = @($plan | Where-Object { $_.State -ne "без змін" })
 
 foreach ($i in $changed) { "{0,-10} {1}" -f $i.State, $i.Rel }
 
