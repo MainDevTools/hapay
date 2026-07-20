@@ -30,7 +30,7 @@ def main():
         reset(conn)
 
     applied = migrate.apply(URL)
-    checks.append(("міграції застосовані (0001…0008)", applied == [1, 2, 3, 4, 5, 6, 7, 8], applied))
+    checks.append(("міграції застосовані (0001…0009)", applied == [1, 2, 3, 4, 5, 6, 7, 8, 9], applied))
 
     with psycopg.connect(URL, autocommit=True) as conn:
         ps = conn.execute("SELECT count(*) FROM information_schema.tables "
@@ -94,6 +94,28 @@ def main():
         zoo = conn.execute("SELECT c.slug FROM store_product sp JOIN category c USING (category_id) "
                            "WHERE sp.external_ref LIKE '%royal-canin-sterilised%' LIMIT 1").fetchone()
         checks.append(("0008 бекфіл НЕ чіпає зоо (koty-suhyi-korm)", zoo == ("koty-suhyi-korm",), zoo))
+
+        # refine (durable): кабель, тегований лістингом 'smartfony', ОДРАЗУ лягає в aksesuary
+        cable = [RawItem(external_ref="/cbl", url="https://comfy.ua/x/cbl",
+                         title="Дата кабель USB-C to USB-C 60W Baseus (CATKLF-GG1)",
+                         price_now_kop=15_600, price_old_kop=25_000)]
+        persist_items(conn, sid3, cable, cats, source_method="satellite", category_slug="smartfony")
+        cbl = conn.execute("SELECT c.slug FROM store_product sp JOIN category c USING (category_id) "
+                           "WHERE sp.external_ref = '/cbl' LIMIT 1").fetchone()
+        checks.append(("refine: кабель(лістинг smartfony) → aksesuary", cbl == ("aksesuary",), cbl))
+
+        # 0009 бекфіл: симулюємо СТАРІ дані (до refine) — вручну заганяємо кабель назад у
+        # smartfony, тоді проганяємо ті самі UPDATE, що й 0009 → має повернутись у aksesuary
+        conn.execute("UPDATE store_product SET category_id="
+                     "(SELECT category_id FROM category WHERE slug='smartfony') WHERE external_ref='/cbl'")
+        conn.execute("UPDATE store_product sp SET category_id="
+                     "(SELECT category_id FROM category WHERE slug='aksesuary') "
+                     "WHERE sp.category_id IN (SELECT category_id FROM category "
+                     "  WHERE slug IN ('smartfony','noutbuky','planshety','tv')) "
+                     "AND sp.title ILIKE '%кабель%'")
+        cbl2 = conn.execute("SELECT c.slug FROM store_product sp JOIN category c USING (category_id) "
+                            "WHERE sp.external_ref = '/cbl' LIMIT 1").fetchone()
+        checks.append(("0009 бекфіл: кабель smartfony→aksesuary", cbl2 == ("aksesuary",), cbl2))
 
         got = conn.execute(
             "SELECT ps.price_now_kop, ps.price_old_kop FROM price_snapshot ps "

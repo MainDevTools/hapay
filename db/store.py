@@ -7,7 +7,7 @@ detect_pass/бейджі — поза скоупом (S3).
 from __future__ import annotations
 from adapters.base import RawItem
 from matching import extract_mpn
-from taxonomy import categorize
+from taxonomy import categorize, refine_category
 
 
 def load_categories(conn) -> dict[str, int]:
@@ -36,12 +36,15 @@ def persist_items(conn, source_id: int, items: list[RawItem], categories: dict[s
 
     `category_slug` (з лістинга, який зібрали) має пріоритет — надійніше за вгадування з
     URL (§2.6). Якщо не задано (зоо-збір) — категорія виводиться з URL (categorize).
+    Далі `refine_category` уточнює за назвою (кабель/навушники з широкого департаменту
+    «Смартфони та зв'язок» → aksesuary/audio, а не smartfony).
     """
     fallback = categories.get("uncategorized") or categories.get("inshe")
-    fixed_cid = categories.get(category_slug) if category_slug else None
     n = 0
     for it in items:
-        category_id = fixed_cid if fixed_cid is not None else categories.get(categorize(it.url), fallback)
+        base_slug = category_slug or categorize(it.url)
+        final_slug = refine_category(base_slug, it.title)
+        category_id = categories.get(final_slug) or categories.get(base_slug) or fallback
         sp = conn.execute(
             """INSERT INTO store_product
                  (source_id, external_ref, url, title, image_url, category_id,
