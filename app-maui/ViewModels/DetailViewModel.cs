@@ -178,6 +178,10 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
             await Launcher.Default.OpenAsync(uri);
     }
 
+    /// Графік має сенс лише від двох точок. Менше — ховаємо: `GraphicsView` фіксованої
+    /// висоти інакше лишає чверть екрана порожнечі, а вимірів поки мало майже скрізь.
+    [ObservableProperty] private bool _hasChart;
+
     /// Підпис під графіком. Кажемо те, що ЗНАЄМО, а не вибачаємось загальним «замало
     /// вимірів»: якщо ціна два дні поспіль однакова — це вже корисний факт. І навпаки,
     /// на одному вимірі стверджувати «не змінювалась» не можна (§7.5) — нема з чим порівняти.
@@ -199,6 +203,7 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
             History.Clear();
             foreach (var p in pts) History.Add(p);
             HistoryNote = DescribeHistory();
+            HasChart = History.Count >= 2;
         }
         catch (Exception e)
         {

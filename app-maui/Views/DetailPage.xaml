@@ -47,7 +47,7 @@
                                HorizontalOptions="Start" />
             <Label Text="{Binding HistoryNote}" TextColor="Gray"
                    IsVisible="{Binding HistoryNote, Converter={StaticResource NotEmpty}}" />
-            <GraphicsView x:Name="Chart" HeightRequest="180" />
+            <GraphicsView x:Name="Chart" HeightRequest="180" IsVisible="{Binding HasChart}" />
 
             <!-- «Де купити» (T15/§17.5): той самий товар (mpn) у крамницях, від найдешевшої.
                  Видно лише коли є ≥2 крамниці — інакше блок не додає нічого. -->

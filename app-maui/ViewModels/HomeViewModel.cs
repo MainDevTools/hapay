@@ -21,7 +21,8 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
     public ObservableCollection<Category> Categories { get; } = new();
     public IReadOnlyList<SortOption> SortOptions { get; } = new List<SortOption>
     {
-        new("Найбільша знижка", "discount"),   // стрічка знижкова → сорт за % знижки
+        // підписи короткі: пікери тепер по третині ширини (компактна панель фільтрів)
+        new("За знижкою", "discount"),
         new("Дешевші", "cheap"),
         new("Дорожчі", "expensive"),
         new("Найновіші", "new"),
