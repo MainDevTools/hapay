@@ -100,11 +100,12 @@ def product_history(conn, store_product_id: int, days: int = 90):
 
 
 # сортування для «усіх товарів» (не лише знижок) — колонки з CTE best нижче
+# кваліфікуємо b.* — бо JOIN store_product sp0 (для promo_until) теж має first_seen_at
 _PSORTS = {
-    "discount":  "declared_pct DESC NULLS LAST, first_seen_at DESC",   # спочатку знижки
-    "new":       "first_seen_at DESC",
-    "cheap":     "current_kop ASC",
-    "expensive": "current_kop DESC",
+    "discount":  "b.declared_pct DESC NULLS LAST, b.first_seen_at DESC",   # спочатку знижки
+    "new":       "b.first_seen_at DESC",
+    "cheap":     "b.current_kop ASC",
+    "expensive": "b.current_kop DESC",
 }
 
 
