@@ -97,7 +97,7 @@
                     Margin="0,12,0,0" HeightRequest="48" />
 
             <!-- «Стежити за ціною»: доступно лише залогіненим (список належить акаунту) -->
-            <Button Text="Стежити за ціною" Command="{Binding WatchCommand}"
+            <Button Text="{Binding WatchButtonText}" Command="{Binding WatchCommand}"
                     IsEnabled="{Binding WatchBusy, Converter={StaticResource Invert}}"
                     IsVisible="{Binding CanWatch}" HeightRequest="48"
                     BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=#512BD4, Dark=#AC99EA}"

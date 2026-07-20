@@ -111,6 +111,12 @@ public partial class CatalogViewModel : ObservableObject
             new Dictionary<string, object> { ["Query"] = q, ["Title"] = $"Пошук: {q}" });
     }
 
+    /// Відстеження — з тулбара, а не трьома тапами через профіль.
+    /// Не залогінений → спершу вхід: список належить акаунту.
+    [RelayCommand]
+    private async Task Watchlist() => await Shell.Current.GoToAsync(
+        _auth.IsLoggedIn ? nameof(WatchlistPage) : nameof(LoginPage));
+
     [RelayCommand]
     private async Task Account()
     {

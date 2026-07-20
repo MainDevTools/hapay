@@ -15,6 +15,7 @@
     </ContentPage.Resources>
 
     <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Стеження" Command="{Binding WatchlistCommand}" />
         <ToolbarItem Text="Акаунт" Command="{Binding AccountCommand}" />
     </ContentPage.ToolbarItems>
 

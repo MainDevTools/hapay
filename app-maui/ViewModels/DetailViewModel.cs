@@ -16,6 +16,14 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
     [ObservableProperty] private Discount? _item;
     [ObservableProperty] private bool _watchBusy;
     [ObservableProperty] private string? _watchNote;   // результат дії — коротко, у картці
+    [ObservableProperty] private bool _isWatched;      // вже у відстеженні
+    private int? _watchlistId;                         // потрібен, щоб зняти зі стеження
+
+    /// Напис на кнопці залежить від стану — інакше після натискання екран виглядає так,
+    /// ніби нічого не сталося, і людина тисне вдруге.
+    public string WatchButtonText => IsWatched ? "Ви стежите — прибрати" : "Стежити за ціною";
+
+    partial void OnIsWatchedChanged(bool value) => OnPropertyChanged(nameof(WatchButtonText));
     [ObservableProperty] private bool _loadingHistory;
     [ObservableProperty] private string? _historyNote;
     [ObservableProperty] private bool _hasOffers;   // ≥2 крамниці — тоді блок «Де купити» видно
@@ -38,6 +46,20 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
     /// Стежити може лише залогінений — інакше нема кому належати списку.
     public bool CanWatch => _auth.IsLoggedIn;
 
+    /// Чи цей товар уже у відстеженні — щоб кнопка показувала стан, а не питання.
+    private async Task LoadWatchStateAsync(int storeProductId)
+    {
+        if (!_auth.IsLoggedIn) return;
+        try
+        {
+            var wl = await _api.WatchlistAsync();
+            var mine = wl.FirstOrDefault(w => w.Kind == "store_product" && w.RefId == storeProductId);
+            _watchlistId = mine?.WatchlistId;
+            IsWatched = mine is not null;
+        }
+        catch { /* стан кнопки — не привід ламати картку */ }
+    }
+
     [RelayCommand]
     private async Task Watch()
     {
@@ -46,7 +68,17 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
         WatchNote = null;
         try
         {
+            if (IsWatched)                       // повторний тап = зняти зі стеження
+            {
+                if (_watchlistId is int id) await _api.UnwatchAsync(id);
+                IsWatched = false;
+                _watchlistId = null;
+                WatchNote = "Прибрано зі стеження";
+                return;
+            }
             await _api.WatchAsync(Item.StoreProductId);
+            IsWatched = true;
+            await LoadWatchStateAsync(Item.StoreProductId);   // дістати watchlist_id для зняття
             // дозвіл питаємо САМЕ тут — у момент, коли користувач попросив стежити,
             // а не на старті застосунку «про всяк випадок»
             var granted = await Permissions.RequestAsync<Permissions.PostNotifications>();
@@ -82,6 +114,7 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
         {
             _ = LoadHistory(value.StoreProductId);
             _ = LoadOffers(value.StoreProductId);
+            _ = LoadWatchStateAsync(value.StoreProductId);
         }
         // до завантаження оферів — фолбек на ціну самого товару
         OnPropertyChanged(nameof(PriceRangeText));
@@ -145,6 +178,17 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
             await Launcher.Default.OpenAsync(uri);
     }
 
+    /// Підпис під графіком. Кажемо те, що ЗНАЄМО, а не вибачаємось загальним «замало
+    /// вимірів»: якщо ціна два дні поспіль однакова — це вже корисний факт. І навпаки,
+    /// на одному вимірі стверджувати «не змінювалась» не можна (§7.5) — нема з чим порівняти.
+    private string? DescribeHistory()
+    {
+        if (History.Count == 0) return "Історія ще порожня — перший вимір попереду";
+        if (History.Count == 1) return $"Поки один вимір — {History[0].Date:dd.MM}";
+        var flat = History.All(p => p.MinKop == History[0].MinKop && p.MaxKop == History[0].MinKop);
+        return flat ? $"Ціна не змінювалась з {History[0].Date:dd.MM}" : null;   // мінялась — графік сам скаже
+    }
+
     private async Task LoadHistory(int storeProductId)
     {
         LoadingHistory = true;
@@ -154,8 +198,7 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
             var pts = await _api.HistoryAsync(storeProductId);
             History.Clear();
             foreach (var p in pts) History.Add(p);
-            if (History.Count < 2)
-                HistoryNote = "Замало вимірів — історія ще накопичується";
+            HistoryNote = DescribeHistory();
         }
         catch (Exception e)
         {
