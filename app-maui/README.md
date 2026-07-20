@@ -38,6 +38,29 @@ MAUI-проєкт має купу платформного boilerplate (`Platfor
 Локальний бекенд замість прода (емулятор Android → хост): у `Services/ApiService.cs`
 `Base` = `http://10.0.2.2:8080`.
 
+## ⚠ Синхронізація з VS-проєктом (робити ПЕРЕД кожною перезбіркою)
+
+Ця тека — **лише вихідники, без `.csproj`**. APK збирається з окремого VS-проєкту
+(типово `C:\Users\<user>\source\repos\Hapay\Hapay`), і **`git pull` його НЕ оновлює**.
+Без копіювання оператор перезбирає стару версію — виглядає, ніби зміни відкотились
+(2026-07-20 так сталось двічі: «повернувся» перемикач, не було сторінки каталогу —
+трьох нових файлів у VS-проєкті просто не існувало).
+
+```powershell
+pwsh scripts/sync-maui.ps1            # скопіювати змінені + нові
+pwsh scripts/sync-maui.ps1 -DryRun    # лише показати, що змінилось би
+pwsh scripts/sync-maui.ps1 -Target "D:\інший\шлях\Hapay"
+```
+
+Скрипт копіює лише наші файли (`Models/ Services/ ViewModels/ Views/ Drawables/
+Converters/ Platforms/Android/ Resources/{AppIcon,Splash}/` + `MauiProgram.cs`,
+`AppShell.xaml{,.cs}`), звіряє хеші після копіювання і **не чіпає `.csproj`**
+(пакети/версії веде оператор вручну). Нові файли `.csproj` підхопить сам — явних
+`<MauiXaml Include>` там немає, працює SDK-глобінг.
+
+Якщо збірка каже `file is locked by "Microsoft Visual Studio"` — зупини дебаг у VS
+(**Shift+F5**), тоді збирай.
+
 ## Структура (мої файли)
 
 - `Models/` — Discount, Category, HistoryPoint (System.Text.Json, snake_case);
