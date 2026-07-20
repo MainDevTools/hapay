@@ -17,9 +17,13 @@ public partial class CatalogViewModel : ObservableObject
 
     public ObservableCollection<CategoryGroup> Groups { get; } = new();
 
+    /// «Популярні моделі» (§17): товари, які продають найбільше крамниць — «від X ₴».
+    public ObservableCollection<Discount> Popular { get; } = new();
+
     [ObservableProperty] private bool _isRefreshing;
     [ObservableProperty] private string? _errorMessage;
     [ObservableProperty] private bool _showEmpty;
+    [ObservableProperty] private bool _hasPopular;
     [ObservableProperty] private string _searchText = "";
 
     private bool _ready;
@@ -64,6 +68,26 @@ public partial class CatalogViewModel : ObservableObject
             ErrorMessage = e.Message;
             ShowEmpty = Groups.Count == 0;
         }
+
+        try
+        {
+            var pop = await _api.ProductsAsync(sort: "popular", onlyDiscounts: true);
+            Popular.Clear();
+            foreach (var p in pop.Take(12)) Popular.Add(p);
+            HasPopular = Popular.Count > 0;
+        }
+        catch
+        {
+            HasPopular = Popular.Count > 0;   // блок — бонус; збій не ламає каталог
+        }
+    }
+
+    [RelayCommand]
+    private async Task OpenProduct(Discount? d)
+    {
+        if (d is null) return;
+        await Shell.Current.GoToAsync(nameof(DetailPage),
+            new Dictionary<string, object> { ["Discount"] = d });
     }
 
     [RelayCommand]

@@ -58,9 +58,11 @@ def main():
     cats = client.get("/api/categories").json()
     checks.append(("категорії з активними знижками (koty-suhyi-korm)",
                    any(c["slug"] == "koty-suhyi-korm" and c["n"] > 0 for c in cats), cats))
-    # сітка-каталог (§17): кожна категорія несе розділ + іконку
+    # сітка-каталог (§17): кожна категорія несе розділ + іконку + поле фото-представника
     checks.append(("категорії несуть section+icon",
                    all(c.get("section") and c.get("icon") for c in cats), cats))
+    checks.append(("категорії несуть image_url (фото плитки; може бути null)",
+                   all("image_url" in c for c in cats), [list(c) for c in cats[:2]]))
     koty = next((c for c in cats if c["slug"] == "koty-suhyi-korm"), None)
     checks.append(("koty-suhyi-korm → розділ «Зоотовари»",
                    koty is not None and koty["section"] == "Зоотовари", koty))
@@ -291,6 +293,13 @@ def main():
     pet_n = client.get("/api/discounts?q=Royal").json()
     checks.append(("товар без MPN → offers_n = 1",
                    all(d.get("offers_n") == 1 for d in pet_n), [d.get("offers_n") for d in pet_n]))
+
+    # «Популярні моделі» (§17): сорт за розміром групи — найбільша к-сть крамниць першою
+    pop = client.get("/api/products?sort=popular").json()
+    checks.append(("sort=popular: найбільша група першою",
+                   len(pop) >= 1
+                   and pop[0].get("offers_n", 0) == max(d.get("offers_n", 0) for d in pop),
+                   [d.get("offers_n") for d in pop[:5]]))
 
     # регіональний суфікс НЕ зливається (пастка AUXUA): третя позиція з іншим суфіксом
     client.post("/api/ingest", headers=ing_tok, json={"source": "Moyo", "items": [

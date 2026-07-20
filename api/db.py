@@ -107,6 +107,9 @@ _PSORTS = {
     "new":       "b.first_seen_at DESC",
     "cheap":     "b.current_kop ASC",
     "expensive": "b.current_kop DESC",
+    # «популярні моделі» (§17): товар, який продають НАЙБІЛЬШЕ крамниць — його найкраще
+    # порівнювати (offers_n — вихідний алias, Postgres дозволяє ORDER BY по ньому)
+    "popular":   "offers_n DESC NULLS LAST, b.declared_pct DESC NULLS LAST",
 }
 
 
@@ -225,9 +228,13 @@ def categories(conn):
     """Лише категорії з активними знижками (+ лічильник) — для селектора §9.1 та
     сітки-каталогу §17. Порожні (без знижок) НЕ повертаємо. Кожну збагачуємо розділом
     і іконкою (taxonomy.category_ui); сортуємо за розділом, тоді за к-стю (більше — вище)."""
+    # image_url — фото товару-представника (найбільша знижка в категорії): плитка
+    # каталогу з реальним фото, як в E-Katalog. Це ВКАЗІВНИК (hotlink), байти не зберігаємо (§7.4).
     with conn.cursor(row_factory=dict_row) as cur:
         rows = cur.execute(
-            "SELECT c.slug, c.name, count(*) AS n "
+            "SELECT c.slug, c.name, count(*) AS n, "
+            "       (array_agg(sp.image_url ORDER BY de.declared_pct DESC NULLS LAST) "
+            "        FILTER (WHERE sp.image_url IS NOT NULL))[1] AS image_url "
             "FROM category c "
             "JOIN store_product sp ON sp.category_id = c.category_id "
             "JOIN discount_event de ON de.store_product_id = sp.store_product_id "

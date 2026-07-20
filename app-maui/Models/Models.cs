@@ -77,11 +77,15 @@ public class Category
     [JsonPropertyName("n")] public int N { get; set; }
     [JsonPropertyName("section")] public string Section { get; set; } = "";   // розділ сітки-каталогу
     [JsonPropertyName("icon")] public string Icon { get; set; } = "";         // емодзі-іконка плитки
+    // фото товару-представника (hotlink-вказівник, НЕ байти — §7.4); емодзі — фолбек
+    [JsonPropertyName("image_url")] public string? ImageUrl { get; set; }
 
     // синтетичний запис «Усі категорії» має порожній slug і N=0 → без «(0)»;
     // реальні категорії з /api/categories завжди мають n≥1
     [JsonIgnore] public string Display => string.IsNullOrEmpty(Slug) ? Name : $"{Name} ({N})";
     [JsonIgnore] public string CountText => $"{N} товарів";
+    [JsonIgnore] public bool HasImage => !string.IsNullOrEmpty(ImageUrl);
+    [JsonIgnore] public bool NoImage => string.IsNullOrEmpty(ImageUrl);
 }
 
 /// Розділ сітки-каталогу (E-Katalog, §17): заголовок + категорії розділу.
