@@ -107,13 +107,17 @@ HTML_SOURCES: dict[str, dict] = {
     )},
     # Brain (розвідка 2026-07-19): SPA — ціни лише після JS → mode="render" (телефон
     # рендерить у WebView). Дані з data-атрибутів; A07 SM-A075FZKGSEK перетин із Moyo/Rozetka.
-    # БЕЗ пагінації (перевірено 2026-07-20 у браузері): посилань на сторінки нема
-    # (нескінченний скрол), `page=2/` → 404, `?page=2` → 200 але без товарів у HTML.
-    # Потрібен скрол у WebView — окрема робота; поки лишається 1 сторінка на категорію.
-    "Brain": {"adapter": BrainAdapter(), "mode": "render", "urls": (
-        ("https://brain.com.ua/ukr/Smartfoni_zvyazok-c297/", "smartfony"),
-        ("https://brain.com.ua/ukr/category/Noutbuky-c1191/", "noutbuky"),       # 24 товари
-        ("https://brain.com.ua/ukr/category/Televizory-c1098/", "tv"),           # 24 товари
+    # Пагінація Є, але лише для адрес форми `/ukr/category/…` (перевірено 2026-07-20:
+    # `Televizory-c1098/page=10/` → 24 товари з цінами, пейджер аж до 34 сторінок;
+    # `Noutbuky-c1191/page=2/` → 24 ІНШІ товари, перетин із 1-ю нульовий).
+    # Раніше я помилково записав Brain як «нескінченний скрол без пагінації» — насправді
+    # 404 давала стара форма адреси `Smartfoni_zvyazok-c297/page=2/`, а не сайт узагалі.
+    # Смартфонний запис — це ДЕПАРТАМЕНТ (15 товарів), він не пагінується → глибина 1.
+    "Brain": {"adapter": BrainAdapter(), "mode": "render",
+              "page_tpl": "{base}page={n}/", "pages": 10, "urls": (
+        ("https://brain.com.ua/ukr/Smartfoni_zvyazok-c297/", "smartfony", 1),    # департамент
+        ("https://brain.com.ua/ukr/category/Noutbuky-c1191/", "noutbuky"),       # 24/стор.
+        ("https://brain.com.ua/ukr/category/Televizory-c1098/", "tv"),           # 24/стор., 34 стор.
     )},
     # Eldorado (розвідка 2026-07-20, у справжньому браузері): SPA + ЛІНИВІ ціни — без
     # прокрутки сторінка віддає товари з НУЛЕМ цін, тому лише mode="render" і лише з
@@ -145,8 +149,17 @@ COLLECT_MODE = {name: cfg.get("mode", "fetch") for name, cfg in HTML_SOURCES.ite
 
 
 def _url_cat(entry):
-    """url-запис — рядок або (url, category_slug). → (url, slug|None)."""
-    return (entry, None) if isinstance(entry, str) else (entry[0], entry[1])
+    """url-запис — рядок, (url, slug) або (url, slug, pages). → (url, slug|None, pages|None).
+
+    Третій елемент — ГЛИБИНА саме цього лістинга; перекриває `pages` джерела. Потрібен,
+    бо в межах однієї крамниці лістинги пагінуються по-різному: у Brain адреси форми
+    `/ukr/category/…` дають `page=N/`, а старий департамент `Smartfoni_zvyazok-c297` — ні.
+    """
+    if isinstance(entry, str):
+        return entry, None, None
+    if len(entry) == 2:
+        return entry[0], entry[1], None
+    return entry[0], entry[1], entry[2]
 
 
 def source_listings(cfg) -> list[tuple[str, str | None]]:
@@ -160,10 +173,11 @@ def source_listings(cfg) -> list[tuple[str, str | None]]:
     out: list[tuple[str, str | None]] = []
     tpl, pages = cfg.get("page_tpl"), cfg.get("pages", 1)
     for entry in cfg.get("urls", ()):
-        u, c = _url_cat(entry)
+        u, c, own = _url_cat(entry)
         out.append((u, c))
-        if tpl:
-            out += [(tpl.format(base=u, n=n), c) for n in range(2, pages + 1)]
+        depth = own if own is not None else pages     # поштучна глибина > джерельної
+        if tpl and depth > 1:
+            out += [(tpl.format(base=u, n=n), c) for n in range(2, depth + 1)]
     return out
 
 

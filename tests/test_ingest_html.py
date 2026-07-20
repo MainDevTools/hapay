@@ -116,9 +116,21 @@ def test_pagination_scheme_is_per_store():
 
 
 def test_source_without_pagination_stays_single_page():
-    """Brain — SPA без URL-пагінації (перевірено: page=2/ → 404, ?page=2 → без товарів)."""
-    listings = ing.source_listings(ing.HTML_SOURCES["Brain"])
+    """Eldorado — пагінація клієнтська: пряме завантаження page=N/ віддає ПЕРШУ сторінку
+    (звірено за SKU), тому в нього рівно по одному лістингу на категорію."""
+    listings = ing.source_listings(ing.HTML_SOURCES["Eldorado"])
     assert len(listings) == 3, listings
+
+
+def test_per_url_depth_overrides_source_depth():
+    """У Brain адреси `/ukr/category/…` пагінуються, а старий департамент
+    `Smartfoni_zvyazok-c297` — ні. Тому глибина задається поштучно."""
+    listings = ing.source_listings(ing.HTML_SOURCES["Brain"])
+    smart = [u for u, c in listings if c == "smartfony"]
+    tv = [u for u, c in listings if c == "tv"]
+    assert len(smart) == 1, smart                     # департамент — без сторінок
+    assert len(tv) == ing.HTML_SOURCES["Brain"]["pages"], tv
+    assert "https://brain.com.ua/ukr/category/Televizory-c1098/page=2/" in tv
 
 
 def test_paginated_urls_are_registered_for_category():
