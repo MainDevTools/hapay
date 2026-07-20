@@ -59,6 +59,44 @@ def test_all_categorize_slugs_are_seeded():
         assert categorize("https://x/" + url) in seeded
 
 
+def _seeded_slugs():
+    """slug-и, реально засіяні міграціями (0001 uncategorized, 0002 зоо, 0007 електроніка)."""
+    import glob
+    import re
+    mig = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "migrations")
+    slugs = set()
+    for path in glob.glob(os.path.join(mig, "*.sql")):
+        sql = open(path, encoding="utf-8").read()
+        if "INSERT INTO category" not in sql:
+            continue
+        for _name, slug in re.findall(r"\('([^']+)',\s*'([^']+)'\)", sql):
+            slugs.add(slug)
+    return slugs
+
+
+def test_catalog_meta_slugs_are_seeded():
+    """CATEGORY_UI не має посилатись на категорію, якої нема в міграціях —
+    інакше плитка каталогу просто ніколи не зʼявиться."""
+    from taxonomy import CATEGORY_UI
+    missing = sorted(set(CATEGORY_UI) - _seeded_slugs())
+    assert not missing, f"у CATEGORY_UI є незасіяні slug-и: {missing}"
+
+
+def test_listing_categories_are_known():
+    """Кожна категорія, якою тегнуто лістинг у HTML_SOURCES, мусить бути і засіяна
+    міграцією, і мати метадані каталогу (розділ+іконку). Ловить друкарську помилку
+    в slug: без цього товари тихо падали б у «Інше»."""
+    from api.ingest import HTML_SOURCES, URL_CATEGORY
+    from taxonomy import CATEGORY_UI
+    seeded = _seeded_slugs()
+    used = set(URL_CATEGORY.values())
+    # джерело-рівневі дефолти (hub, напр. Allo) — теж категорії
+    used |= {cfg["category"] for cfg in HTML_SOURCES.values() if cfg.get("category")}
+    assert used, "жоден лістинг не тегнуто категорією"
+    assert not (used - seeded), f"не засіяні міграцією: {sorted(used - seeded)}"
+    assert not (used - set(CATEGORY_UI)), f"без розділу/іконки: {sorted(used - set(CATEGORY_UI))}"
+
+
 def _main():
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failed = 0

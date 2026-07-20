@@ -59,14 +59,24 @@ HTML_SOURCES: dict[str, dict] = {
     # база T15-матчингу. З ДЦ — 403, тому лише через колектора (резидентний IP).
     # Категорії = смартфони (перетин з Allo за MPN доведено розвідкою); сервер —
     # авторитет над списком: додати категорію = дописати URL тут.
+    # Ноутбуки/ТВ (розвідка 2026-07-20): URL узято з НАВІГАЦІЇ крамниць (не вгадано —
+    # вгадані лістинги раніше давали 404) і перевірено ПАРСИНГОМ адаптера, не лише 200.
     "Foxtrot": {"adapter": FoxtrotAdapter(), "urls": (
         ("https://www.foxtrot.com.ua/uk/shop/mobilnye_telefony.html", "smartfony"),
+        ("https://www.foxtrot.com.ua/uk/shop/noutbuki.html", "noutbuky"),        # 42 товари
+        ("https://www.foxtrot.com.ua/uk/shop/led_televizory.html", "tv"),        # 42 товари
     )},
     "Moyo": {"adapter": MoyoAdapter(), "urls": (
         ("https://www.moyo.ua/ua/telecommunication/smart/", "smartfony"),
+        ("https://www.moyo.ua/ua/comp-and-periphery/notebooks/", "noutbuky"),    # 24 товари
+        ("https://www.moyo.ua/ua/foto_video/tv_audio/lcd_tv/", "tv"),            # 24 товари
     )},
     # Comfy (розвідка 2026-07-19): SSR-лістинг, 50 карток, MPN у назвах — перетин із
     # Allo/Foxtrot/Moyo (напр. SM-A376BLVGEUC) → групи «Де купити» ширшають.
+    # ⚠ 2026-07-20: Comfy почав віддавати анти-бот заглушку («Pardon Our Interruption»,
+    # 6 КБ, challenge) НА ВСІ програмні GET — навіть на робочий смартфон-лістинг.
+    # Тому ноутбуки/ТВ сюди не додано: URL не перевірити парсингом. Ймовірний фікс —
+    # mode="render" (WebView справжнього браузера, як для Brain); чекає рішення.
     "Comfy": {"adapter": ComfyAdapter(), "urls": (
         ("https://comfy.ua/smartfon/", "smartfony"),
     )},
@@ -74,21 +84,29 @@ HTML_SOURCES: dict[str, dict] = {
     # масові перетини MPN (SM-S942BZKGEUC = Foxtrot S26, SM-A576BZVDEUC = Moyo/Allo A57).
     "Rozetka": {"adapter": RozetkaAdapter(), "urls": (
         ("https://rozetka.com.ua/ua/mobile-phones/c80003/", "smartfony"),
+        ("https://rozetka.com.ua/ua/notebooks/c80004/", "noutbuky"),             # 60 товарів
+        ("https://rozetka.com.ua/ua/all-tv/c80037/", "tv"),                      # 60 товарів
     )},
     # Citrus (розвідка 2026-07-19): Next.js SSR, 47 карток, хешовані класи (префіксні
     # селектори); SM-S948BZKGEUC перетинається з Comfy → більше груп.
     "Citrus": {"adapter": CitrusAdapter(), "urls": (
         ("https://www.ctrs.com.ua/smartfony/", "smartfony"),
+        ("https://www.ctrs.com.ua/noutbuki-i-ultrabuki/", "noutbuky"),           # 47 товарів
+        ("https://www.ctrs.com.ua/televizory/", "tv"),                           # 47 товарів
     )},
     # Brain (розвідка 2026-07-19): SPA — ціни лише після JS → mode="render" (телефон
     # рендерить у WebView). Дані з data-атрибутів; A07 SM-A075FZKGSEK перетин із Moyo/Rozetka.
     "Brain": {"adapter": BrainAdapter(), "mode": "render", "urls": (
         ("https://brain.com.ua/ukr/Smartfoni_zvyazok-c297/", "smartfony"),
+        ("https://brain.com.ua/ukr/category/Noutbuky-c1191/", "noutbuky"),       # 24 товари
+        ("https://brain.com.ua/ukr/category/Televizory-c1098/", "tv"),           # 24 товари
     )},
     # KTC (розвідка 2026-07-19): SSR-лістинг /smartphone/, 48 карток, 54 SM-коди —
     # S26/A07 перетини з рештою → більше груп «Де купити».
     "KTC": {"adapter": KtcAdapter(), "urls": (
         ("https://ktc.ua/smartphone/", "smartfony"),
+        ("https://ktc.ua/notebook/", "noutbuky"),                                # 48 товарів
+        ("https://ktc.ua/tv/", "tv"),                                            # 48 товарів
     )},
 }
 # режим збору per-source: 'fetch' (plain GET) | 'render' (WebView — SPA-крамниці).
