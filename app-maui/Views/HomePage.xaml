@@ -37,6 +37,13 @@
                         ItemDisplayBinding="{Binding Label}"
                         SelectedItem="{Binding SelectedPrice}" />
             </Grid>
+            <!-- у пошуку правила інші, ніж при гортанні — кажемо це прямо -->
+            <Label Text="Пошук — по всьому каталогу, не лише знижки" FontSize="12"
+                   TextColor="Gray" IsVisible="{Binding IsSearching}" />
+            <!-- і окремо: чому видача вийшла за межі обраної категорії -->
+            <Label Text="{Binding SearchNote}" FontSize="12"
+                   TextColor="{AppThemeBinding Light=#512BD4, Dark=#AC99EA}"
+                   IsVisible="{Binding SearchNote, Converter={StaticResource NotEmpty}}" />
             <Label Text="{Binding ErrorMessage}" TextColor="#E23B3B"
                    IsVisible="{Binding ErrorMessage, Converter={StaticResource NotEmpty}}" />
         </VerticalStackLayout>

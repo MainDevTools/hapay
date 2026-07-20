@@ -49,6 +49,13 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
     private string? _pendingCategory;   // slug із каталогу — обрати після завантаження категорій
     private string? _pendingQuery;      // пошук із каталогу
 
+    private bool _searchWidened;        // пошук вийшов за межі обраної категорії
+
+    [ObservableProperty] private string? _searchNote;   // пояснення, чому видача ширша
+
+    /// Режим пошуку: інші правила видачі, ніж при гортанні (див. FetchAsync).
+    public bool IsSearching => !string.IsNullOrWhiteSpace(SearchText);
+
     private int _gen;          // покоління запиту: зміна фільтра інвалідує in-flight відповіді
     private int _page;
     private bool _more = true;
@@ -113,6 +120,7 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
 
     partial void OnSearchTextChanged(string value)
     {
+        OnPropertyChanged(nameof(IsSearching));   // підказка про режим пошуку
         _searchCts?.Cancel();
         var cts = new CancellationTokenSource();
         _searchCts = cts;
@@ -164,6 +172,8 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
         var gen = ++_gen;              // нове покоління → будь-який in-flight запит застарілий
         _page = 0;
         _more = true;
+        _searchWidened = false;        // новий запит — знову поважаємо обрану категорію
+        SearchNote = null;
         ErrorMessage = null;
         Items.Clear();
         IsLoading = true;
@@ -174,15 +184,41 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
     {
         try
         {
+            var cat = string.IsNullOrEmpty(SelectedCategory?.Slug) ? null : SelectedCategory!.Slug;
+            if (_searchWidened) cat = null;          // вже розширили — тримаємось цього й далі
+
             var batch = await _api.ProductsAsync(
-                category: string.IsNullOrEmpty(SelectedCategory?.Slug) ? null : SelectedCategory!.Slug,
+                category: cat,
                 q: SearchText,
                 sort: SelectedSort?.Key ?? "discount",
                 page: _page,
                 priceMinKop: SelectedPrice?.MinKop,
                 priceMaxKop: SelectedPrice?.MaxKop,
-                onlyDiscounts: true);   // стрічка «Хапай» = лише знижки (перемикач прибрано)
+                // Гортаємо — лише знижки (ідентичність «Хапай»). ШУКАЄМО — по всьому
+                // каталогу: коли людина ввела назву, вона хоче саме цей товар, а не
+                // «нічого не знайдено» через те, що на нього зараз немає знижки.
+                // Заміряно 2026-07-21: знижкові — лише 48% зібраного (2673 товари
+                // були недосяжні пошуком).
+                onlyDiscounts: !IsSearching);
             if (gen != _gen) return;   // фільтр змінився під час запиту → відповідь застаріла
+
+            // Глухий кут: шукали всередині категорії й нічого. Замість «нічого не
+            // знайдено» розширюємо пошук на всі категорії й прямо кажемо про це —
+            // «ASUS» у «Смартфони» справді порожньо, але 280 ноутбуків у нас є.
+            if (batch.Count == 0 && _page == 0 && IsSearching && cat is not null)
+            {
+                batch = await _api.ProductsAsync(
+                    category: null, q: SearchText, sort: SelectedSort?.Key ?? "discount",
+                    page: 0, priceMinKop: SelectedPrice?.MinKop,
+                    priceMaxKop: SelectedPrice?.MaxKop, onlyDiscounts: false);
+                if (gen != _gen) return;
+                if (batch.Count > 0)
+                {
+                    _searchWidened = true;
+                    SearchNote = $"У «{SelectedCategory?.Name}» нічого — показуємо з усіх категорій";
+                }
+            }
+
             foreach (var d in batch) Items.Add(d);
             _more = batch.Count >= 50;
             _page++;
