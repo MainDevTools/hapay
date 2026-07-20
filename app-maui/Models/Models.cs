@@ -76,7 +76,9 @@ public class Category
     [JsonPropertyName("name")] public string Name { get; set; } = "";
     [JsonPropertyName("n")] public int N { get; set; }
 
-    [JsonIgnore] public string Display => $"{Name} ({N})";
+    // синтетичний запис «Усі категорії» має порожній slug і N=0 → без «(0)»;
+    // реальні категорії з /api/categories завжди мають n≥1
+    [JsonIgnore] public string Display => string.IsNullOrEmpty(Slug) ? Name : $"{Name} ({N})";
 }
 
 /// Точка історії ціни з /api/product/{id}/history.

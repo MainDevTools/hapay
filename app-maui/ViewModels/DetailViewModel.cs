@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Hapay.Models;
@@ -38,10 +39,33 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
             _ = LoadHistory(value.StoreProductId);
             _ = LoadOffers(value.StoreProductId);
         }
+        // до завантаження оферів — фолбек на ціну самого товару
+        OnPropertyChanged(nameof(PriceRangeText));
+        OnPropertyChanged(nameof(ShowSingleDiscount));
     }
 
     /// «Наявно в N крамницях» — під ціною, щоб було видно без скролу до «Де купити».
     public string OffersLine => $"Наявно в {Offers.Count} крамницях";
+
+    /// Діапазон цін по крамницях (згори картки, §17): «5 999 – 6 499 ₴» або одна ціна.
+    /// З тих самих оферів, що й «Де купити» → узгоджено. Показує, що навіть без «знижки»
+    /// в іншій крамниці може бути дешевше (навіщо тоді знижка).
+    public string PriceRangeText
+    {
+        get
+        {
+            if (Offers.Count >= 1)
+            {
+                var min = Offers.Min(o => o.CurrentKop);
+                var max = Offers.Max(o => o.CurrentKop);
+                return min == max ? Money.Grn(min) : $"{Money.Grn(min)} – {Money.Grn(max)}";
+            }
+            return Item?.CurrentGrn ?? "—";
+        }
+    }
+
+    /// Класичний блок «стара ціна + −%» — лише для однієї крамниці (без діапазону).
+    public bool ShowSingleDiscount => !HasOffers && (Item?.HasPct ?? false);
 
     private async Task LoadOffers(int storeProductId)
     {
@@ -52,10 +76,14 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
             foreach (var o in offers) Offers.Add(o);
             HasOffers = Offers.Count > 1;   // група з 1 = сам товар, блок не потрібен
             OnPropertyChanged(nameof(OffersLine));
+            OnPropertyChanged(nameof(PriceRangeText));       // діапазон рахується з оферів
+            OnPropertyChanged(nameof(ShowSingleDiscount));
         }
         catch
         {
             HasOffers = false;              // офери — бонус; збій мережі не ламає картку
+            OnPropertyChanged(nameof(PriceRangeText));       // фолбек на ціну товару
+            OnPropertyChanged(nameof(ShowSingleDiscount));
         }
     }
 

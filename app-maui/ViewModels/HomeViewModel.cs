@@ -19,7 +19,7 @@ public partial class HomeViewModel : ObservableObject
     public ObservableCollection<Category> Categories { get; } = new();
     public IReadOnlyList<SortOption> SortOptions { get; } = new List<SortOption>
     {
-        new("Спочатку знижки", "discount"),   // усі товари, знижкові вгорі
+        new("Найбільша знижка", "discount"),   // стрічка знижкова → сорт за % знижки
         new("Дешевші", "cheap"),
         new("Дорожчі", "expensive"),
         new("Найновіші", "new"),
@@ -37,7 +37,6 @@ public partial class HomeViewModel : ObservableObject
     [ObservableProperty] private Category? _selectedCategory;
     [ObservableProperty] private SortOption? _selectedSort;
     [ObservableProperty] private PriceOption? _selectedPrice;
-    [ObservableProperty] private bool _onlyDiscounts;      // false = усі товари (повний агрегатор)
     [ObservableProperty] private string _searchText = "";
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private bool _isRefreshing;
@@ -88,7 +87,6 @@ public partial class HomeViewModel : ObservableObject
     partial void OnSelectedCategoryChanged(Category? value) { if (_ready) _ = ReloadAsync(); }
     partial void OnSelectedSortChanged(SortOption? value) { if (_ready) _ = ReloadAsync(); }
     partial void OnSelectedPriceChanged(PriceOption? value) { if (_ready) _ = ReloadAsync(); }
-    partial void OnOnlyDiscountsChanged(bool value) { if (_ready) _ = ReloadAsync(); }
 
     partial void OnSearchTextChanged(string value)
     {
@@ -160,7 +158,7 @@ public partial class HomeViewModel : ObservableObject
                 page: _page,
                 priceMinKop: SelectedPrice?.MinKop,
                 priceMaxKop: SelectedPrice?.MaxKop,
-                onlyDiscounts: OnlyDiscounts);
+                onlyDiscounts: true);   // стрічка «Хапай» = лише знижки (перемикач прибрано)
             if (gen != _gen) return;   // фільтр змінився під час запиту → відповідь застаріла
             foreach (var d in batch) Items.Add(d);
             _more = batch.Count >= 50;

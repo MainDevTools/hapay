@@ -37,11 +37,6 @@
                         ItemDisplayBinding="{Binding Label}"
                         SelectedItem="{Binding SelectedPrice}" />
             </Grid>
-            <!-- усі товари за замовчуванням; перемикач — лише знижкові -->
-            <HorizontalStackLayout Spacing="6">
-                <Switch IsToggled="{Binding OnlyDiscounts}" VerticalOptions="Center" />
-                <Label Text="Лише знижки" FontSize="14" VerticalOptions="Center" />
-            </HorizontalStackLayout>
             <Label Text="{Binding ErrorMessage}" TextColor="#E23B3B"
                    IsVisible="{Binding ErrorMessage, Converter={StaticResource NotEmpty}}" />
         </VerticalStackLayout>
