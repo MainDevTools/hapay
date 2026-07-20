@@ -46,7 +46,7 @@ if (-not (Get-ChildItem -Path $Target -Filter "*.csproj" -ErrorAction SilentlyCo
 
 # те, що пишемо ми. Усе інше (csproj, Platforms/Android/Resources, obj, bin) — не наше.
 $Dirs  = @("Models", "Services", "ViewModels", "Views", "Drawables", "Converters",
-           "Platforms\Android", "Resources\AppIcon", "Resources\Splash")
+           "Platforms\Android", "Resources\AppIcon", "Resources\Splash", "Resources\Images")
 $Files = @("MauiProgram.cs", "AppShell.xaml", "AppShell.xaml.cs")
 
 $plan = [System.Collections.Generic.List[object]]::new()

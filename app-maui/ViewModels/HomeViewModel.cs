@@ -29,7 +29,7 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
     };
     public IReadOnlyList<PriceOption> PriceOptions { get; } = new List<PriceOption>
     {
-        new("Будь-яка ціна", null, null),
+        new("Будь-яка", null, null),   // «ціна» зайве — пікер і так підписаний; довше різалось
         new("до 500 ₴", null, 50_000),
         new("500–2 000 ₴", 50_000, 200_000),
         new("2 000–10 000 ₴", 200_000, 1_000_000),

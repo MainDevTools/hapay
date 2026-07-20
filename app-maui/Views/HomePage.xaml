@@ -15,7 +15,8 @@
     </ContentPage.Resources>
 
     <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Акаунт" Command="{Binding AccountCommand}" />
+        <ToolbarItem Text="Акаунт" Command="{Binding AccountCommand}"
+                     IconImageSource="{AppThemeBinding Light=ic_account_light.png, Dark=ic_account_dark.png}" />
     </ContentPage.ToolbarItems>
 
     <Grid RowDefinitions="Auto,*" Padding="0">
@@ -95,17 +96,22 @@
                                         <!-- дата кінця акції, якщо крамниця її дала (Rozetka) -->
                                         <Label Text="{Binding PromoText}" FontSize="11" TextColor="#E23B3B"
                                                IsVisible="{Binding HasPromo}" />
-                                        <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
+                                        <!-- Ціна, стара ціна й −% — ОДНА думка, тож стоять поруч зліва.
+                                             Раніше бейдж був притиснутий до правого краю (колонка «*»
+                                             між ними), і око мусило стрибати через усю ширину картки,
+                                             щоб зібрати «22 999 замість 42 999, це −47%». Порядок
+                                             читання й ієрархія розмірів (18 → 12) роблять решту. -->
+                                        <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="7">
                                             <Label Grid.Column="0" Text="{Binding PriceText}"
-                                                   FontAttributes="Bold" FontSize="17" VerticalOptions="End" />
-                                            <Label Grid.Column="1" Text="{Binding OldGrn}" FontSize="13"
+                                                   FontAttributes="Bold" FontSize="18" VerticalOptions="End" />
+                                            <Label Grid.Column="1" Text="{Binding OldGrn}" FontSize="12"
                                                    TextColor="Gray" TextDecorations="Strikethrough"
                                                    VerticalOptions="End" IsVisible="{Binding HasOld}" />
-                                            <Border Grid.Column="3" BackgroundColor="#E23B3B" Padding="7,3"
+                                            <Border Grid.Column="2" BackgroundColor="#E23B3B" Padding="6,3"
                                                     StrokeThickness="0" StrokeShape="RoundRectangle 7"
                                                     IsVisible="{Binding HasPct}" VerticalOptions="End">
                                                 <Label Text="{Binding PctText}" TextColor="White"
-                                                       FontAttributes="Bold" FontSize="12" />
+                                                       FontAttributes="Bold" FontSize="11" />
                                             </Border>
                                         </Grid>
                                     </VerticalStackLayout>

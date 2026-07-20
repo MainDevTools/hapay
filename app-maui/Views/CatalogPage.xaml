@@ -14,9 +14,14 @@
         <conv:StringNotEmptyConverter x:Key="NotEmpty" />
     </ContentPage.Resources>
 
+    <!-- Дії тулбара — іконками (Material: у top app bar дії саме значки, текст там
+         нестандартний). Text лишаємо: Android бере його для overflow-меню й для
+         підказки на довгий тап, тож доступність не втрачається. -->
     <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Стеження" Command="{Binding WatchlistCommand}" />
-        <ToolbarItem Text="Акаунт" Command="{Binding AccountCommand}" />
+        <ToolbarItem Text="Стеження" Command="{Binding WatchlistCommand}"
+                     IconImageSource="{AppThemeBinding Light=ic_watch_light.png, Dark=ic_watch_dark.png}" />
+        <ToolbarItem Text="Акаунт" Command="{Binding AccountCommand}"
+                     IconImageSource="{AppThemeBinding Light=ic_account_light.png, Dark=ic_account_dark.png}" />
     </ContentPage.ToolbarItems>
 
     <Grid RowDefinitions="Auto,*" Padding="0">
