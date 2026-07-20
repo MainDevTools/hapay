@@ -98,6 +98,32 @@ public class ApiService
         return (await resp.Content.ReadFromJsonAsync<UserProfile>(_json, ct))!;
     }
 
+    // ── «Стежити за ціною» ────────────────────────────────────────────────────────
+    /// Додати товар у відстеження. Ціну на момент додавання фіксує СЕРВЕР — тут її
+    /// свідомо не передаємо (клієнт не має диктувати, від чого рахувати економію).
+    public async Task WatchAsync(int storeProductId, CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync($"{Base}/api/me/watchlist",
+            new { kind = "store_product", ref_id = storeProductId }, ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
+    }
+
+    public async Task<List<WatchItem>> WatchlistAsync(CancellationToken ct = default)
+    {
+        var resp = await _http.GetAsync($"{Base}/api/me/watchlist", ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content.ReadFromJsonAsync<List<WatchItem>>(_json, ct) ?? new();
+    }
+
+    public async Task UnwatchAsync(int watchlistId, CancellationToken ct = default)
+    {
+        var resp = await _http.DeleteAsync($"{Base}/api/me/watchlist/{watchlistId}", ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
+    }
+
     // ── збір (S11 етап 3): застосунок = «тупий фетчер», парсить сервер ────────────────
     /// Сервер каже, ЩО тягнути (гейт ролі collector). 401 → нема прав/токен застарів.
     public async Task<CollectPlan> GetCollectPlanAsync(CancellationToken ct = default)

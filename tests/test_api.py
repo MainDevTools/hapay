@@ -152,6 +152,44 @@ def main():
     checks.append(("/api/me/watchlist повертає запис юзера",
                    len(mwl) == 1 and mwl[0]["query_text"] == "iphone", mwl))
 
+    # ── «Стежити за ціною»: ціну фіксує СЕРВЕР, не клієнт ─────────────────────────
+    prod = client.get("/api/discounts?q=QE55QN80F").json()[0]
+    spid = prod["store_product_id"]
+    w1 = client.post("/api/me/watchlist",
+                     json={"kind": "store_product", "ref_id": spid}, headers=ahdr)
+    checks.append(("watch товару → ціну зафіксовано сервером",
+                   w1.status_code == 200
+                   and w1.json().get("price_at_add_kop") == prod["current_kop"], w1.json()))
+    # клієнт НЕ може продиктувати «стару» ціну (інакше намалював би фейкову економію)
+    w_fake = client.post("/api/me/watchlist", headers=ahdr,
+                         json={"kind": "store_product", "ref_id": spid,
+                               "price_at_add_kop": 99999999})
+    checks.append(("ціну з тіла запиту ігноруємо",
+                   w_fake.json().get("price_at_add_kop") == prod["current_kop"], w_fake.json()))
+    checks.append(("повторний watch не дублює запис",
+                   w_fake.json().get("watchlist_id") == w1.json().get("watchlist_id"),
+                   (w1.json().get("watchlist_id"), w_fake.json().get("watchlist_id"))))
+    checks.append(("store_product без ref_id → 400",
+                   client.post("/api/me/watchlist", json={"kind": "store_product"},
+                               headers=ahdr).status_code == 400, None))
+
+    wl = client.get("/api/me/watchlist", headers=ahdr).json()
+    wit = next((x for x in wl if x["kind"] == "store_product"), None)
+    checks.append(("список стеження збагачено (назва/ціна/delta)",
+                   wit is not None and wit["title"] and wit["current_kop"] == prod["current_kop"]
+                   and wit["delta_kop"] == 0, wit))
+
+    # чуже стеження не видаляється — інакше будь-хто чистив би чужі списки
+    other = client.post("/api/auth/register",
+                        json={"email": "watcher2@hapay.today", "password": "watchpass"}).json()
+    ohdr = {"Authorization": f"Bearer {other.get('token', '')}"}
+    checks.append(("чужий запис стеження не видаляється → 404",
+                   client.delete(f"/api/me/watchlist/{wit['watchlist_id']}",
+                                 headers=ohdr).status_code == 404, None))
+    checks.append(("свій запис видаляється → 200",
+                   client.delete(f"/api/me/watchlist/{wit['watchlist_id']}",
+                                 headers=ahdr).status_code == 200, None))
+
     # ── html-ingest (S11 етап 3): гейт ролі collector + сервер парсить переслане HTML ──
     # ролі роздає власник напряму в БД (trusted-people) — робимо акаунт колектором
     client.post("/api/auth/register", json={"email": "collector@hapay.today", "password": "collectorpass"})

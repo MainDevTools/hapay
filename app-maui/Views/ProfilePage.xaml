@@ -42,6 +42,12 @@
 
         <BoxView HeightRequest="1" Color="#22808080" Margin="0,8" />
 
+        <Button Text="Мої відстеження" Command="{Binding WatchlistCommand}"
+                BackgroundColor="Transparent"
+                TextColor="{AppThemeBinding Light=#512BD4, Dark=#AC99EA}"
+                BorderColor="{AppThemeBinding Light=#512BD4, Dark=#AC99EA}"
+                BorderWidth="1" HeightRequest="48" />
+
         <Button Text="Вийти" Command="{Binding LogoutCommand}"
                 BackgroundColor="Transparent" TextColor="#E23B3B" HeightRequest="48" />
 

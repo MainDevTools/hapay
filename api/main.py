@@ -196,8 +196,20 @@ def my_watchlist_add(body: dict, claims=Depends(require_account), conn=Depends(g
     kind = body.get("kind")
     if kind not in ("category", "store_product", "query"):
         raise HTTPException(400, "kind ∈ category|store_product|query")
+    ref_id = body.get("ref_id")
+    if kind == "store_product" and not isinstance(ref_id, int):
+        raise HTTPException(400, "ref_id обовʼязковий для store_product")
     return qdb.add_watchlist_user(conn, int(claims["sub"]), kind,
-                                  body.get("ref_id"), body.get("query_text"))
+                                  ref_id, body.get("query_text"))
+
+
+@app.delete("/api/me/watchlist/{watchlist_id}")
+def my_watchlist_remove(watchlist_id: int, claims=Depends(require_account),
+                        conn=Depends(get_conn)):
+    """Прибрати зі стеження. Чужий рядок не видалиться (user_id у WHERE) → 404."""
+    if not qdb.remove_watchlist_user(conn, int(claims["sub"]), watchlist_id):
+        raise HTTPException(404, "нема такого запису")
+    return {"ok": True}
 
 
 @app.post("/api/ingest")

@@ -11,8 +11,11 @@ namespace Hapay.ViewModels;
 public partial class DetailViewModel : ObservableObject, IQueryAttributable
 {
     private readonly ApiService _api;
+    private readonly AuthService _auth;
 
     [ObservableProperty] private Discount? _item;
+    [ObservableProperty] private bool _watchBusy;
+    [ObservableProperty] private string? _watchNote;   // результат дії — коротко, у картці
     [ObservableProperty] private bool _loadingHistory;
     [ObservableProperty] private string? _historyNote;
     [ObservableProperty] private bool _hasOffers;   // ≥2 крамниці — тоді блок «Де купити» видно
@@ -23,7 +26,39 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
     /// «Де купити» (T15): той самий товар (mpn) у крамницях, від найдешевшої.
     public ObservableCollection<Offer> Offers { get; } = new();
 
-    public DetailViewModel(ApiService api) => _api = api;
+    public DetailViewModel(ApiService api, AuthService auth)
+    {
+        _api = api;
+        _auth = auth;
+    }
+
+    /// Стежити може лише залогінений — інакше нема кому належати списку.
+    public bool CanWatch => _auth.IsLoggedIn;
+
+    [RelayCommand]
+    private async Task Watch()
+    {
+        if (Item is null || WatchBusy) return;
+        WatchBusy = true;
+        WatchNote = null;
+        try
+        {
+            await _api.WatchAsync(Item.StoreProductId);
+            WatchNote = "Стежимо за ціною — дивись у профілі";
+        }
+        catch (UnauthorizedException)
+        {
+            WatchNote = "Треба увійти в акаунт";
+        }
+        catch (Exception e)
+        {
+            WatchNote = $"Не вдалося: {e.Message}";
+        }
+        finally
+        {
+            WatchBusy = false;
+        }
+    }
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)
     {

@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Hapay.Services;
+using Hapay.Views;
 
 namespace Hapay.ViewModels;
 
@@ -109,6 +110,9 @@ public partial class ProfileViewModel : ObservableObject
         if (url is not null && Uri.TryCreate(url, UriKind.Absolute, out var uri))
             await Launcher.Default.OpenAsync(uri);
     }
+
+    [RelayCommand]
+    private async Task Watchlist() => await Shell.Current.GoToAsync(nameof(WatchlistPage));
 
     [RelayCommand]
     private async Task Logout()

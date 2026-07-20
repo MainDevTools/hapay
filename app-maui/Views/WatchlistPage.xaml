@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Hapay.Views.WatchlistPage"
+    x:Name="Page"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:Hapay.ViewModels"
+    xmlns:models="clr-namespace:Hapay.Models"
+    xmlns:conv="clr-namespace:Hapay.Converters"
+    x:DataType="vm:WatchlistViewModel"
+    Title="Мої відстеження">
+
+    <ContentPage.Resources>
+        <conv:StringNotEmptyConverter x:Key="NotEmpty" />
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*">
+
+        <Label Grid.Row="0" Text="{Binding ErrorMessage}" TextColor="#E23B3B" Padding="14,10"
+               IsVisible="{Binding ErrorMessage, Converter={StaticResource NotEmpty}}" />
+
+        <RefreshView Grid.Row="1" IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefreshCommand}">
+            <CollectionView ItemsSource="{Binding Items}">
+
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="32" Spacing="10" VerticalOptions="Center"
+                                         IsVisible="{Binding ShowEmpty}">
+                        <Label Text="Поки нічого не відстежуєш" FontAttributes="Bold"
+                               HorizontalOptions="Center" />
+                        <Label Text="Відкрий товар і натисни «Стежити за ціною» — тут буде видно, як вона змінилась."
+                               TextColor="Gray" HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:WatchItem">
+                        <Grid Padding="12,6">
+                            <Border StrokeThickness="0" StrokeShape="RoundRectangle 15" Padding="10"
+                                    BackgroundColor="{AppThemeBinding Light=White, Dark=#191B1F}">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenCommand}"
+                                        CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="74,*,Auto" ColumnSpacing="12">
+                                    <Border Grid.Column="0" StrokeThickness="0" StrokeShape="RoundRectangle 10"
+                                            BackgroundColor="{AppThemeBinding Light=#F4F4F6, Dark=#22242A}"
+                                            WidthRequest="74" HeightRequest="74" Padding="4"
+                                            VerticalOptions="Start">
+                                        <Image Source="{Binding ImageUrl}" Aspect="AspectFit" />
+                                    </Border>
+
+                                    <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                        <Label Text="{Binding Title}" MaxLines="2"
+                                               LineBreakMode="TailTruncation" FontAttributes="Bold" />
+                                        <Label Text="{Binding StoresText}" FontSize="12" FontAttributes="Bold"
+                                               TextColor="{AppThemeBinding Light=#512BD4, Dark=#AC99EA}"
+                                               IsVisible="{Binding HasMultiStores}" />
+                                        <Label Text="{Binding CurrentGrn}" FontAttributes="Bold" FontSize="17" />
+                                        <!-- рух ціни показуємо ЛИШЕ коли є з чим порівняти -->
+                                        <Label Text="{Binding DeltaText}" FontSize="12"
+                                               TextColor="{Binding DeltaColor}"
+                                               IsVisible="{Binding HasDelta}" />
+                                        <Label Text="{Binding SinceText}" FontSize="11" TextColor="Gray" />
+                                    </VerticalStackLayout>
+
+                                    <Button Grid.Column="2" Text="✕" WidthRequest="40" HeightRequest="40"
+                                            Padding="0" BackgroundColor="Transparent" TextColor="Gray"
+                                            VerticalOptions="Start"
+                                            Command="{Binding Source={x:Reference Page}, Path=BindingContext.RemoveCommand}"
+                                            CommandParameter="{Binding .}" />
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+</ContentPage>

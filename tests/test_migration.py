@@ -30,7 +30,7 @@ def main():
         reset(conn)
 
     applied = migrate.apply(URL)
-    checks.append(("міграції застосовані (0001…0009)", applied == [1, 2, 3, 4, 5, 6, 7, 8, 9], applied))
+    checks.append(("міграції застосовані (0001…0010)", applied == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], applied))
 
     with psycopg.connect(URL, autocommit=True) as conn:
         ps = conn.execute("SELECT count(*) FROM information_schema.tables "

@@ -292,15 +292,64 @@ def get_user(conn, user_id: int):
 
 # watchlist на app-юзера (окремо від Telegram-версії вище)
 def add_watchlist_user(conn, user_id: int, kind: str, ref_id: int | None, query_text: str | None):
+    """Додає у відстеження. Для товару СЕРВЕР сам фіксує поточну ціну (`price_at_add_kop`)
+    з останнього снапшота — клієнт її не диктує, інакше можна було б намалювати неіснуючу
+    економію (§7.5). Повторне додавання того самого товару НЕ дублюємо."""
     with conn.cursor(row_factory=dict_row) as cur:
+        if kind == "store_product" and ref_id is not None:
+            dup = cur.execute(
+                "SELECT watchlist_id, kind, ref_id, query_text, price_at_add_kop FROM watchlist "
+                "WHERE user_id = %s AND kind = 'store_product' AND ref_id = %s",
+                (user_id, ref_id)).fetchone()
+            if dup:
+                return dup
+        price = None
+        if kind == "store_product" and ref_id is not None:
+            row = cur.execute(
+                "SELECT price_now_kop FROM price_snapshot WHERE store_product_id = %s "
+                "ORDER BY seen_at DESC LIMIT 1", (ref_id,)).fetchone()
+            price = row["price_now_kop"] if row else None
         return cur.execute(
-            "INSERT INTO watchlist (user_id, kind, ref_id, query_text) VALUES (%s,%s,%s,%s) "
-            "RETURNING watchlist_id, kind, ref_id, query_text",
-            (user_id, kind, ref_id, query_text)).fetchone()
+            "INSERT INTO watchlist (user_id, kind, ref_id, query_text, price_at_add_kop) "
+            "VALUES (%s,%s,%s,%s,%s) "
+            "RETURNING watchlist_id, kind, ref_id, query_text, price_at_add_kop",
+            (user_id, kind, ref_id, query_text, price)).fetchone()
+
+
+def remove_watchlist_user(conn, user_id: int, watchlist_id: int) -> bool:
+    """Прибрати зі стеження. Чужий рядок не видалиться — user_id у WHERE."""
+    row = conn.execute(
+        "DELETE FROM watchlist WHERE watchlist_id = %s AND user_id = %s RETURNING watchlist_id",
+        (watchlist_id, user_id)).fetchone()
+    return row is not None
 
 
 def list_watchlist_user(conn, user_id: int):
+    """Список стеження, збагачений даними товару: назва/фото/поточна ціна + скільки
+    крамниць у групі. `delta_kop` = поточна − на момент додавання (відʼємна = подешевшало).
+    Для kind='category'/'query' товарні поля порожні."""
+    sql = """
+        WITH latest AS (
+            SELECT DISTINCT ON (ps.store_product_id)
+                   ps.store_product_id, ps.price_now_kop
+            FROM price_snapshot ps
+            JOIN watchlist w ON w.ref_id = ps.store_product_id
+                            AND w.user_id = %s AND w.kind = 'store_product'
+            ORDER BY ps.store_product_id, ps.seen_at DESC
+        )
+        SELECT w.watchlist_id, w.kind, w.ref_id, w.query_text, w.created_at,
+               w.price_at_add_kop, sp.title, sp.url, sp.image_url,
+               s.name AS store, l.price_now_kop AS current_kop,
+               (l.price_now_kop - w.price_at_add_kop) AS delta_kop,
+               CASE WHEN sp.mpn IS NULL THEN 1
+                    ELSE (SELECT count(DISTINCT sp2.source_id)
+                          FROM store_product sp2 WHERE sp2.mpn = sp.mpn)
+               END AS offers_n
+        FROM watchlist w
+        LEFT JOIN store_product sp ON w.kind = 'store_product' AND sp.store_product_id = w.ref_id
+        LEFT JOIN source s USING (source_id)
+        LEFT JOIN latest l ON l.store_product_id = w.ref_id
+        WHERE w.user_id = %s
+        ORDER BY w.created_at DESC"""
     with conn.cursor(row_factory=dict_row) as cur:
-        return cur.execute(
-            "SELECT watchlist_id, kind, ref_id, query_text, created_at FROM watchlist "
-            "WHERE user_id = %s ORDER BY created_at DESC", (user_id,)).fetchall()
+        return cur.execute(sql, (user_id, user_id)).fetchall()

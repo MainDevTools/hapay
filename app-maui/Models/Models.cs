@@ -148,6 +148,40 @@ public class Offer
     [JsonIgnore] public string PctText => Pct is int p ? $"−{p}%" : "";
 }
 
+/// Запис відстеження ціни з /api/me/watchlist.
+/// `price_at_add_kop` фіксує СЕРВЕР при додаванні — застосунок її не диктує,
+/// інакше можна було б намалювати неіснуючу економію (§7.5).
+public class WatchItem
+{
+    [JsonPropertyName("watchlist_id")] public int WatchlistId { get; set; }
+    [JsonPropertyName("kind")] public string Kind { get; set; } = "";
+    [JsonPropertyName("ref_id")] public int? RefId { get; set; }
+    [JsonPropertyName("title")] public string? Title { get; set; }
+    [JsonPropertyName("url")] public string? Url { get; set; }
+    [JsonPropertyName("image_url")] public string? ImageUrl { get; set; }
+    [JsonPropertyName("store")] public string? Store { get; set; }
+    [JsonPropertyName("current_kop")] public int? CurrentKop { get; set; }
+    [JsonPropertyName("price_at_add_kop")] public int? PriceAtAddKop { get; set; }
+    [JsonPropertyName("delta_kop")] public int? DeltaKop { get; set; }
+    [JsonPropertyName("offers_n")] public int OffersN { get; set; } = 1;
+
+    [JsonIgnore] public string CurrentGrn => Money.Grn(CurrentKop);
+    [JsonIgnore] public string AddedGrn => Money.Grn(PriceAtAddKop);
+
+    // ЧЕСНО: показуємо рух ціни лише коли є з чим порівнювати (§7.5) —
+    // без обох цін не вигадуємо ні «вигоду», ні «подорожчання».
+    [JsonIgnore] public bool HasDelta => DeltaKop is int d && d != 0 && PriceAtAddKop is not null;
+    [JsonIgnore] public bool Dropped => DeltaKop is int d && d < 0;
+    [JsonIgnore] public string DeltaText => DeltaKop is int d && d != 0
+        ? (d < 0 ? $"↓ подешевшало на {Money.Grn(-d)}" : $"↑ подорожчало на {Money.Grn(d)}")
+        : "";
+    [JsonIgnore] public Color DeltaColor => Dropped ? Colors.Green : Color.FromArgb("#E23B3B");
+    [JsonIgnore] public string SinceText => PriceAtAddKop is null
+        ? "" : $"додано за {AddedGrn}";
+    [JsonIgnore] public bool HasMultiStores => OffersN > 1;
+    [JsonIgnore] public string StoresText => $"у {OffersN} крамницях";
+}
+
 /// Задача з черги-оренди /api/collect/lease (T16): одна сторінка однієї крамниці.
 public class LeaseTask
 {
