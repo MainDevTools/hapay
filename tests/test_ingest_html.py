@@ -96,6 +96,40 @@ def test_oversized_html_rejected():
     _raises(lambda: ing.ingest_html(None, "Allo", HUB, big), "завеликий")
 
 
+# ── пагінація (розвідка 2026-07-20) ──────────────────────────────────────────
+
+def test_pagination_expands_and_inherits_category():
+    """Сторінки 2..N будуються за схемою крамниці й УСПАДКОВУЮТЬ категорію першої —
+    інакше товари з 2-ї сторінки тихо падали б у «Інше»."""
+    listings = ing.source_listings(ing.HTML_SOURCES["Rozetka"])
+    tv = [u for u, c in listings if c == "tv"]
+    assert tv[0] == "https://rozetka.com.ua/ua/all-tv/c80037/"
+    assert "https://rozetka.com.ua/ua/all-tv/c80037/page=2/" in tv
+    assert len(tv) == 5, tv
+    assert all(c in ("smartfony", "noutbuky", "tv") for _u, c in listings)
+
+
+def test_pagination_scheme_is_per_store():
+    """Схеми різні (?page= / ?p= / page=N/) — беруться з конфігу крамниці, не вгадуються."""
+    comfy = [u for u, c in ing.source_listings(ing.HTML_SOURCES["Comfy"]) if c == "smartfony"]
+    assert "https://comfy.ua/smartfon/?p=2" in comfy
+
+
+def test_source_without_pagination_stays_single_page():
+    """Brain — SPA без URL-пагінації (перевірено: page=2/ → 404, ?page=2 → без товарів)."""
+    listings = ing.source_listings(ing.HTML_SOURCES["Brain"])
+    assert len(listings) == 3, listings
+
+
+def test_paginated_urls_are_registered_for_category():
+    """Кожна згенерована сторінка мусить бути в URL_CATEGORY — саме звідти
+    `ingest_html` бере категорію для персисту."""
+    for name, cfg in ing.HTML_SOURCES.items():
+        for u, c in ing.source_listings(cfg):
+            if c:
+                assert ing.URL_CATEGORY.get((name, u)) == c, (name, u)
+
+
 def _main():
     fns = [v for k, v in sorted(globals().items())
            if k.startswith("test_") and callable(v) and getattr(v, "__module__", None) == __name__]

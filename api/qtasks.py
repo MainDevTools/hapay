@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from psycopg.rows import dict_row
 
-from api.ingest import COLLECT_MODE, HTML_SOURCES
+from api.ingest import COLLECT_MODE, HTML_SOURCES, source_listings
 
 SOURCE_SPACING_MIN = 15   # розліт запитів по одній крамниці (хв)
 LEASE_TTL_MIN = 10        # протухання оренди (хв)
@@ -32,8 +32,7 @@ def seed_tasks(conn) -> int:
         rows = []
         if cfg.get("hub"):
             rows.append((source, cfg["hub"], "hub", HUB_REPEAT_MIN))
-        for entry in cfg.get("urls", ()):               # (url, категорія) або просто url
-            u = entry if isinstance(entry, str) else entry[0]
+        for u, _cat in source_listings(cfg):            # лістинги + їхня пагінація
             rows.append((source, u, "page", PAGE_REPEAT_MIN))
         for source_, url, kind, rep in rows:
             got = conn.execute(

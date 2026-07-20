@@ -61,12 +61,15 @@ HTML_SOURCES: dict[str, dict] = {
     # авторитет над списком: додати категорію = дописати URL тут.
     # Ноутбуки/ТВ (розвідка 2026-07-20): URL узято з НАВІГАЦІЇ крамниць (не вгадано —
     # вгадані лістинги раніше давали 404) і перевірено ПАРСИНГОМ адаптера, не лише 200.
-    "Foxtrot": {"adapter": FoxtrotAdapter(), "urls": (
+    # `page_tpl`/`pages` — пагінація (розвідка 2026-07-20). Схеми взято з навігації
+    # крамниць і перевірено фактом: сторінка 2 віддає ІНШІ товари, перетин з 1-ю = 0.
+    # 5 сторінок ≈ 5× даних; при розльоті 15 хв/хост повний цикл ~4 год (repeat 12 год).
+    "Foxtrot": {"adapter": FoxtrotAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
         ("https://www.foxtrot.com.ua/uk/shop/mobilnye_telefony.html", "smartfony"),
         ("https://www.foxtrot.com.ua/uk/shop/noutbuki.html", "noutbuky"),        # 42 товари
         ("https://www.foxtrot.com.ua/uk/shop/led_televizory.html", "tv"),        # 42 товари
     )},
-    "Moyo": {"adapter": MoyoAdapter(), "urls": (
+    "Moyo": {"adapter": MoyoAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
         ("https://www.moyo.ua/ua/telecommunication/smart/", "smartfony"),
         ("https://www.moyo.ua/ua/comp-and-periphery/notebooks/", "noutbuky"),    # 24 товари
         ("https://www.moyo.ua/ua/foto_video/tv_audio/lcd_tv/", "tv"),            # 24 товари
@@ -79,27 +82,31 @@ HTML_SOURCES: dict[str, dict] = {
     # віддають по 50 карток, і всі 50 читаються нашими ж селекторами (product-tile-catalog
     # + .product-tile-title/.product-tile-price__current) — адаптер міняти не довелось.
     # Тому телефон рендерить Comfy у WebView, як Brain. Рендер ~1.9-2.4 МБ — під _MAX_HTML (5 МБ).
-    "Comfy": {"adapter": ComfyAdapter(), "mode": "render", "urls": (
+    "Comfy": {"adapter": ComfyAdapter(), "mode": "render",
+              "page_tpl": "{base}?p={n}", "pages": 5, "urls": (
         ("https://comfy.ua/smartfon/", "smartfony"),
         ("https://comfy.ua/notebook/", "noutbuky"),                              # 50 карток
         ("https://comfy.ua/flat-tvs/", "tv"),                                    # 50 карток
     )},
     # Rozetka (розвідка 2026-07-19): найбільший маркетплейс, Angular-SSR 60 карток;
     # масові перетини MPN (SM-S942BZKGEUC = Foxtrot S26, SM-A576BZVDEUC = Moyo/Allo A57).
-    "Rozetka": {"adapter": RozetkaAdapter(), "urls": (
+    "Rozetka": {"adapter": RozetkaAdapter(), "page_tpl": "{base}page={n}/", "pages": 5, "urls": (
         ("https://rozetka.com.ua/ua/mobile-phones/c80003/", "smartfony"),
         ("https://rozetka.com.ua/ua/notebooks/c80004/", "noutbuky"),             # 60 товарів
         ("https://rozetka.com.ua/ua/all-tv/c80037/", "tv"),                      # 60 товарів
     )},
     # Citrus (розвідка 2026-07-19): Next.js SSR, 47 карток, хешовані класи (префіксні
     # селектори); SM-S948BZKGEUC перетинається з Comfy → більше груп.
-    "Citrus": {"adapter": CitrusAdapter(), "urls": (
+    "Citrus": {"adapter": CitrusAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
         ("https://www.ctrs.com.ua/smartfony/", "smartfony"),
         ("https://www.ctrs.com.ua/noutbuki-i-ultrabuki/", "noutbuky"),           # 47 товарів
         ("https://www.ctrs.com.ua/televizory/", "tv"),                           # 47 товарів
     )},
     # Brain (розвідка 2026-07-19): SPA — ціни лише після JS → mode="render" (телефон
     # рендерить у WebView). Дані з data-атрибутів; A07 SM-A075FZKGSEK перетин із Moyo/Rozetka.
+    # БЕЗ пагінації (перевірено 2026-07-20 у браузері): посилань на сторінки нема
+    # (нескінченний скрол), `page=2/` → 404, `?page=2` → 200 але без товарів у HTML.
+    # Потрібен скрол у WebView — окрема робота; поки лишається 1 сторінка на категорію.
     "Brain": {"adapter": BrainAdapter(), "mode": "render", "urls": (
         ("https://brain.com.ua/ukr/Smartfoni_zvyazok-c297/", "smartfony"),
         ("https://brain.com.ua/ukr/category/Noutbuky-c1191/", "noutbuky"),       # 24 товари
@@ -107,7 +114,7 @@ HTML_SOURCES: dict[str, dict] = {
     )},
     # KTC (розвідка 2026-07-19): SSR-лістинг /smartphone/, 48 карток, 54 SM-коди —
     # S26/A07 перетини з рештою → більше груп «Де купити».
-    "KTC": {"adapter": KtcAdapter(), "urls": (
+    "KTC": {"adapter": KtcAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
         ("https://ktc.ua/smartphone/", "smartfony"),
         ("https://ktc.ua/notebook/", "noutbuky"),                                # 48 товарів
         ("https://ktc.ua/tv/", "tv"),                                            # 48 товарів
@@ -122,12 +129,29 @@ def _url_cat(entry):
     return (entry, None) if isinstance(entry, str) else (entry[0], entry[1])
 
 
+def source_listings(cfg) -> list[tuple[str, str | None]]:
+    """Усі лістинг-URL джерела з категоріями, ВКЛЮЧНО з пагінацією.
+
+    Сторінки 2..N будуються за схемою самої крамниці (`page_tpl`), перевіреною фактом:
+    сторінка 2 має віддавати ІНШІ товари (розвідка 2026-07-20 — перетин з 1-ю усюди 0).
+    Категорія успадковується від першої сторінки, тож окремо її ніде реєструвати не треба.
+    Джерело без `page_tpl` (SPA-крамниці на кшталт Brain) лишається з однією сторінкою.
+    """
+    out: list[tuple[str, str | None]] = []
+    tpl, pages = cfg.get("page_tpl"), cfg.get("pages", 1)
+    for entry in cfg.get("urls", ()):
+        u, c = _url_cat(entry)
+        out.append((u, c))
+        if tpl:
+            out += [(tpl.format(base=u, n=n), c) for n in range(2, pages + 1)]
+    return out
+
+
 # (source, url) → категорія: категорія береться з ЛІСТИНГА, який зібрали (надійно),
 # а не вгадується з product-URL. Hub-лендинги (Allo) тут відсутні → падають на categorize().
 URL_CATEGORY: dict[tuple[str, str], str] = {}
 for _name, _cfg in HTML_SOURCES.items():
-    for _entry in _cfg.get("urls", ()):
-        _u, _c = _url_cat(_entry)
+    for _u, _c in source_listings(_cfg):
         if _c:
             URL_CATEGORY[(_name, _u)] = _c
 
@@ -298,8 +322,7 @@ def collect_plan() -> list[dict]:
         mode = cfg.get("mode", "fetch")
         if cfg.get("hub"):
             out.append({"source": name, "url": cfg["hub"], "kind": "hub", "mode": mode})
-        for entry in cfg.get("urls", ()):               # (url, категорія) або просто url
-            u, _ = _url_cat(entry)
+        for u, _ in source_listings(cfg):               # лістинги + їхня пагінація
             out.append({"source": name, "url": u, "kind": "page", "mode": mode})
     return out
 
