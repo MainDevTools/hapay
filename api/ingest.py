@@ -73,12 +73,16 @@ HTML_SOURCES: dict[str, dict] = {
     )},
     # Comfy (розвідка 2026-07-19): SSR-лістинг, 50 карток, MPN у назвах — перетин із
     # Allo/Foxtrot/Moyo (напр. SM-A376BLVGEUC) → групи «Де купити» ширшають.
-    # ⚠ 2026-07-20: Comfy почав віддавати анти-бот заглушку («Pardon Our Interruption»,
-    # 6 КБ, challenge) НА ВСІ програмні GET — навіть на робочий смартфон-лістинг.
-    # Тому ноутбуки/ТВ сюди не додано: URL не перевірити парсингом. Ймовірний фікс —
-    # mode="render" (WebView справжнього браузера, як для Brain); чекає рішення.
-    "Comfy": {"adapter": ComfyAdapter(), "urls": (
+    # Comfy → render (2026-07-20): почав віддавати анти-бот заглушку («Pardon Our
+    # Interruption», 6 КБ, challenge) на ВСІ прості GET — навіть на смартфон-лістинг,
+    # який доти працював. У СПРАВЖНЬОМУ браузері блоку немає (перевірено): сторінки
+    # віддають по 50 карток, і всі 50 читаються нашими ж селекторами (product-tile-catalog
+    # + .product-tile-title/.product-tile-price__current) — адаптер міняти не довелось.
+    # Тому телефон рендерить Comfy у WebView, як Brain. Рендер ~1.9-2.4 МБ — під _MAX_HTML (5 МБ).
+    "Comfy": {"adapter": ComfyAdapter(), "mode": "render", "urls": (
         ("https://comfy.ua/smartfon/", "smartfony"),
+        ("https://comfy.ua/notebook/", "noutbuky"),                              # 50 карток
+        ("https://comfy.ua/flat-tvs/", "tv"),                                    # 50 карток
     )},
     # Rozetka (розвідка 2026-07-19): найбільший маркетплейс, Angular-SSR 60 карток;
     # масові перетини MPN (SM-S942BZKGEUC = Foxtrot S26, SM-A576BZVDEUC = Moyo/Allo A57).
