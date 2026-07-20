@@ -30,12 +30,18 @@ def upsert_source(conn, name: str, base_url: str, *, adapter_kind: str = "ssr",
 
 
 def persist_items(conn, source_id: int, items: list[RawItem], categories: dict[str, int], *,
-                  source_method: str = "css", scan_run_id: int | None = None) -> int:
-    """Upsert товарів (категорія за URL, §2.6) + insert снапшотів. Повертає к-сть снапшотів."""
-    fallback = categories.get("uncategorized")
+                  source_method: str = "css", scan_run_id: int | None = None,
+                  category_slug: str | None = None) -> int:
+    """Upsert товарів + insert снапшотів. Повертає к-сть снапшотів.
+
+    `category_slug` (з лістинга, який зібрали) має пріоритет — надійніше за вгадування з
+    URL (§2.6). Якщо не задано (зоо-збір) — категорія виводиться з URL (categorize).
+    """
+    fallback = categories.get("uncategorized") or categories.get("inshe")
+    fixed_cid = categories.get(category_slug) if category_slug else None
     n = 0
     for it in items:
-        category_id = categories.get(categorize(it.url), fallback)
+        category_id = fixed_cid if fixed_cid is not None else categories.get(categorize(it.url), fallback)
         sp = conn.execute(
             """INSERT INTO store_product
                  (source_id, external_ref, url, title, image_url, category_id,

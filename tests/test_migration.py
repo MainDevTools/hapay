@@ -29,7 +29,7 @@ def main():
         reset(conn)
 
     applied = migrate.apply(URL)
-    checks.append(("міграції застосовані (0001…0006)", applied == [1, 2, 3, 4, 5, 6], applied))
+    checks.append(("міграції застосовані (0001…0007)", applied == [1, 2, 3, 4, 5, 6, 7], applied))
 
     with psycopg.connect(URL, autocommit=True) as conn:
         ps = conn.execute("SELECT count(*) FROM information_schema.tables "
@@ -59,6 +59,15 @@ def main():
         cat_ok = conn.execute("SELECT c.slug FROM store_product sp JOIN category c USING (category_id) "
                               "WHERE sp.external_ref LIKE '%royal-canin-sterilised%' LIMIT 1").fetchone()
         checks.append(("категорія за URL = koty-suhyi-korm", cat_ok == ("koty-suhyi-korm",), cat_ok))
+
+        # category_slug (з лістинга) перебиває categorize() — товар з зоо-URL, але тег «smartfony».
+        # Окреме джерело, щоб не чіпати попередній round-trip (UNIQUE source_id+external_ref).
+        sid2 = upsert_source(conn, "Foxtrot", "https://www.foxtrot.com.ua",
+                             adapter_kind="ssr", platform="custom", fetch_tier="A")
+        persist_items(conn, sid2, items, cats, source_method="css", category_slug="smartfony")
+        ov = conn.execute("SELECT c.slug FROM store_product sp JOIN category c USING (category_id) "
+                          "WHERE sp.source_id = %s LIMIT 1", (sid2,)).fetchone()
+        checks.append(("category_slug перебиває URL = smartfony", ov == ("smartfony",), ov))
 
         got = conn.execute(
             "SELECT ps.price_now_kop, ps.price_old_kop FROM price_snapshot ps "

@@ -207,6 +207,16 @@ def main():
         "html": _cas("foxtrot_listing.html")})
     checks.append(("ingest/html Foxtrot-лістинг → 3 прийнято",
                    fr.status_code == 200 and fr.json().get("accepted") == 3, fr.json()))
+    # категорія-з-лістинга: смартфон-URL Foxtrot тегнутий «smartfony» → 3 товари лягли туди
+    # (а не в «Інше», як було, коли таксономія була зоо-only). TV вище зайшов JSON-ingest
+    # без тегу → categorize()→inshe, тож рахуємо саме smartfony-товари цього джерела.
+    with psycopg.connect(URL, autocommit=True) as conn:
+        fox_smart = conn.execute(
+            "SELECT count(*) FROM store_product sp "
+            "JOIN category c USING (category_id) JOIN source s USING (source_id) "
+            "WHERE s.name='Foxtrot' AND c.slug='smartfony'").fetchone()[0]
+    checks.append(("Foxtrot html-лістинг → 3 товари в smartfony (не Інше)",
+                   fox_smart == 3, fox_smart))
     mr = client.post("/api/ingest/html", headers=chdr, json={
         "source": "Moyo", "url": "https://www.moyo.ua/ua/telecommunication/smart/",
         "html": _cas("moyo_listing.html")})

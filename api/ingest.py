@@ -51,45 +51,63 @@ INGEST_SOURCES: dict[str, dict] = {
 # застосунку в сторах. Лише джерела з РОБОЧИМ серверним адаптером; host-політика — з
 # INGEST_SOURCES вище. `hub` → дворівневий discovery (сервер робить discover, не застосунок).
 HTML_SOURCES: dict[str, dict] = {
-    "Allo": {"adapter": AlloAdapter(), "hub": ALLO_HUB, "max_pages": 20},
+    # `category` — джерело-рівневий дефолт: hub-лендинги відкриваються динамічно,
+    # їх не пре-тегувати поіменно, але весь Allo-хаб — смартфони.
+    "Allo": {"adapter": AlloAdapter(), "hub": ALLO_HUB, "max_pages": 20,
+             "category": "smartfony"},
     # Foxtrot/Moyo (2026-07-19): лістинги категорій SSR-лять картки з MPN у назвах —
     # база T15-матчингу. З ДЦ — 403, тому лише через колектора (резидентний IP).
     # Категорії = смартфони (перетин з Allo за MPN доведено розвідкою); сервер —
     # авторитет над списком: додати категорію = дописати URL тут.
     "Foxtrot": {"adapter": FoxtrotAdapter(), "urls": (
-        "https://www.foxtrot.com.ua/uk/shop/mobilnye_telefony.html",
+        ("https://www.foxtrot.com.ua/uk/shop/mobilnye_telefony.html", "smartfony"),
     )},
     "Moyo": {"adapter": MoyoAdapter(), "urls": (
-        "https://www.moyo.ua/ua/telecommunication/smart/",
+        ("https://www.moyo.ua/ua/telecommunication/smart/", "smartfony"),
     )},
     # Comfy (розвідка 2026-07-19): SSR-лістинг, 50 карток, MPN у назвах — перетин із
     # Allo/Foxtrot/Moyo (напр. SM-A376BLVGEUC) → групи «Де купити» ширшають.
     "Comfy": {"adapter": ComfyAdapter(), "urls": (
-        "https://comfy.ua/smartfon/",
+        ("https://comfy.ua/smartfon/", "smartfony"),
     )},
     # Rozetka (розвідка 2026-07-19): найбільший маркетплейс, Angular-SSR 60 карток;
     # масові перетини MPN (SM-S942BZKGEUC = Foxtrot S26, SM-A576BZVDEUC = Moyo/Allo A57).
     "Rozetka": {"adapter": RozetkaAdapter(), "urls": (
-        "https://rozetka.com.ua/ua/mobile-phones/c80003/",
+        ("https://rozetka.com.ua/ua/mobile-phones/c80003/", "smartfony"),
     )},
     # Citrus (розвідка 2026-07-19): Next.js SSR, 47 карток, хешовані класи (префіксні
     # селектори); SM-S948BZKGEUC перетинається з Comfy → більше груп.
     "Citrus": {"adapter": CitrusAdapter(), "urls": (
-        "https://www.ctrs.com.ua/smartfony/",
+        ("https://www.ctrs.com.ua/smartfony/", "smartfony"),
     )},
     # Brain (розвідка 2026-07-19): SPA — ціни лише після JS → mode="render" (телефон
     # рендерить у WebView). Дані з data-атрибутів; A07 SM-A075FZKGSEK перетин із Moyo/Rozetka.
     "Brain": {"adapter": BrainAdapter(), "mode": "render", "urls": (
-        "https://brain.com.ua/ukr/Smartfoni_zvyazok-c297/",
+        ("https://brain.com.ua/ukr/Smartfoni_zvyazok-c297/", "smartfony"),
     )},
     # KTC (розвідка 2026-07-19): SSR-лістинг /smartphone/, 48 карток, 54 SM-коди —
     # S26/A07 перетини з рештою → більше груп «Де купити».
     "KTC": {"adapter": KtcAdapter(), "urls": (
-        "https://ktc.ua/smartphone/",
+        ("https://ktc.ua/smartphone/", "smartfony"),
     )},
 }
 # режим збору per-source: 'fetch' (plain GET) | 'render' (WebView — SPA-крамниці).
 COLLECT_MODE = {name: cfg.get("mode", "fetch") for name, cfg in HTML_SOURCES.items()}
+
+
+def _url_cat(entry):
+    """url-запис — рядок або (url, category_slug). → (url, slug|None)."""
+    return (entry, None) if isinstance(entry, str) else (entry[0], entry[1])
+
+
+# (source, url) → категорія: категорія береться з ЛІСТИНГА, який зібрали (надійно),
+# а не вгадується з product-URL. Hub-лендинги (Allo) тут відсутні → падають на categorize().
+URL_CATEGORY: dict[tuple[str, str], str] = {}
+for _name, _cfg in HTML_SOURCES.items():
+    for _entry in _cfg.get("urls", ()):
+        _u, _c = _url_cat(_entry)
+        if _c:
+            URL_CATEGORY[(_name, _u)] = _c
 
 PRICE_MIN_KOP = 100                 # 1 грн — нижче майже напевно помилка парсингу
 PRICE_MAX_KOP = 100_000_000         # 1 000 000 грн — стеля здорового глузду
@@ -200,7 +218,7 @@ def validate_item(source: str, raw: dict) -> tuple[RawItem | None, str | None]:
     ), None
 
 
-def ingest_batch(conn, source: str, items: list) -> dict:
+def ingest_batch(conn, source: str, items: list, category_slug: str | None = None) -> dict:
     """Валідує й персистить батч від колектора. Погані елементи ВІДКИДАЄ (не валить добрі).
 
     `scan_run` — песимістично 'failed'→'ok' (T13). `source_method='satellite'` фіксує
@@ -233,8 +251,8 @@ def ingest_batch(conn, source: str, items: list) -> dict:
         "RETURNING scan_run_id", (source_id,)).fetchone()[0]
 
     categories = load_categories(conn)
-    n = persist_items(conn, source_id, valid, categories,
-                      source_method="satellite", scan_run_id=scan_run_id)
+    n = persist_items(conn, source_id, valid, categories, source_method="satellite",
+                      scan_run_id=scan_run_id, category_slug=category_slug)
 
     status = "ok" if valid and not rejected else ("partial" if valid else "failed")
     conn.execute("UPDATE scan_run SET finished_at = now(), items_seen = %s, status = %s "
@@ -258,7 +276,8 @@ def collect_plan() -> list[dict]:
         mode = cfg.get("mode", "fetch")
         if cfg.get("hub"):
             out.append({"source": name, "url": cfg["hub"], "kind": "hub", "mode": mode})
-        for u in cfg.get("urls", ()):                   # прямі сторінки (майбутнє, не-hub джерела)
+        for entry in cfg.get("urls", ()):               # (url, категорія) або просто url
+            u, _ = _url_cat(entry)
             out.append({"source": name, "url": u, "kind": "page", "mode": mode})
     return out
 
@@ -308,6 +327,9 @@ def ingest_html(conn, source: str, url: str, html: str) -> dict:
     except Exception as e:
         raise ValueError(f"extract: {type(e).__name__}: {e}")
     items = [dataclasses.asdict(it) for it in extracted]
-    result = ingest_batch(conn, source, items)
+    # категорія — з ЛІСТИНГА, який зібрали (надійно): спершу поіменний тег URL, тоді
+    # джерело-рівневий дефолт (hub); нема — persist_items вгадає з URL (categorize).
+    category_slug = URL_CATEGORY.get((source, url)) or cfg.get("category")
+    result = ingest_batch(conn, source, items, category_slug=category_slug)
     result["kind"] = "page"
     return result

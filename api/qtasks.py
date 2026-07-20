@@ -32,7 +32,8 @@ def seed_tasks(conn) -> int:
         rows = []
         if cfg.get("hub"):
             rows.append((source, cfg["hub"], "hub", HUB_REPEAT_MIN))
-        for u in cfg.get("urls", ()):
+        for entry in cfg.get("urls", ()):               # (url, категорія) або просто url
+            u = entry if isinstance(entry, str) else entry[0]
             rows.append((source, u, "page", PAGE_REPEAT_MIN))
         for source_, url, kind, rep in rows:
             got = conn.execute(
