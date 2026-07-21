@@ -553,6 +553,25 @@ def main():
     checks.append(("товар без MPN → бейджа нема",
                    len(rl) >= 1 and all(d.get("cheaper_kop") is None for d in rl), rl))
 
+    # ── фото плитки категорії: обличчям не може бути уцінка/комплект ──────────────
+    # Знижка −89% навмисне найбільша в базі: за СТАРИМ правилом («найбільша знижка»)
+    # саме вона очолила б плитку. Так 2026-07-21 і сталось на проді — категорію
+    # «Телевізори» представляв уцінений Samsung.
+    client.post("/api/ingest", headers=ing_tok, json={"source": "Rozetka", "items": [
+        {"external_ref": "/ua/tile-ucinka/p9", "url": "https://rozetka.com.ua/ua/tile-ucinka/p9/",
+         "title": "УЦІНКА Смартфон TILE Test (SM-TILEUCINKA)",
+         "price_now_kop": 100000, "price_old_kop": 900000,
+         "image_url": "https://content.rozetka.com.ua/goods/images/big_tile/ucinka-tile.jpg"}]})
+    cats_t = client.get("/api/categories").json()
+    bad_tile = [c["slug"] for c in cats_t if (c.get("image_url") or "").find("ucinka-tile") >= 0]
+    checks.append(("уцінений товар не стає обличчям категорії", bad_tile == [], bad_tile))
+    checks.append(("плитки далі мають фото (правило не лишило їх порожніми)",
+                   any(c.get("image_url") for c in cats_t),
+                   [(c["slug"], bool(c.get("image_url"))) for c in cats_t[:4]]))
+    # лічильник не залежить від того, чи знайшлось фото
+    checks.append(("лічильник категорій не змінився через фільтр фото",
+                   all(c["n"] >= 1 for c in cats_t), [(c["slug"], c["n"]) for c in cats_t[:4]]))
+
     # ── «знижка нічого не дає»: гучна знижка при ринковій ціні ────────────────────
     # Сіємо еталонний випадок Moyo/ASUS: три крамниці тримають ОДНАКОВУ ціну, і лише
     # одна вбирає її в «−56%» від вигаданої старої. Ціни рівні → бейдж «дешевше в

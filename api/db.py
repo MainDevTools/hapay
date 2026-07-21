@@ -319,22 +319,69 @@ def product_offers(conn, store_product_id: int):
         return cur.execute(sql, (store_product_id,)).fetchall()
 
 
+# Товари, які не можуть бути обличчям категорії: інший стан (уцінка/відновлене) або
+# взагалі не той товар (комплект/набір — у нього спільний артикул із самим ТВ).
+_TILE_SKIP_RE = r'уцінк|уценк|відновлен|восстановлен|refurbish|комплект|набір|набор'
+
+# Перевага за розміром фото. Заміряно 2026-07-21 (по одному ТВ-фото з кожної крамниці):
+#   Comfy 1307x880 · Brain 700x700 · Rozetka 400x264 · Foxtrot 220x220 · Moyo 200x128
+#   · Citrus 180x119 (1.1 КБ — на плитці шириною ~380 px це мило)
+# Крамниці поза списком — у кінець: краще відоме дрібне, ніж невідоме.
+_TILE_SOURCE_RANK = {"Comfy": 0, "Brain": 0, "Rozetka": 1, "Foxtrot": 2, "Moyo": 2, "Citrus": 3}
+
+
 def categories(conn):
     """Лише категорії з активними знижками (+ лічильник) — для селектора §9.1 та
     сітки-каталогу §17. Порожні (без знижок) НЕ повертаємо. Кожну збагачуємо розділом
     і іконкою (taxonomy.category_ui); сортуємо за розділом, тоді за к-стю (більше — вище)."""
-    # image_url — фото товару-представника (найбільша знижка в категорії): плитка
-    # каталогу з реальним фото, як в E-Katalog. Це ВКАЗІВНИК (hotlink), байти не зберігаємо (§7.4).
+    # image_url — фото товару-представника. Це ВКАЗІВНИК (hotlink), байти не зберігаємо (§7.4).
+    #
+    # Було «найбільша знижка в категорії» — і це давало три вади одразу:
+    #   1) НЕСТАБІЛЬНІСТЬ: обличчя категорії стрибало щоразу, коли мінялись знижки;
+    #   2) УЦІНКА: 2026-07-21 плитку «Телевізори» очолював уцінений Samsung;
+    #   3) БАНЕРИ: найгучніші акції мають найбільше маркетингу у фото, тобто правило
+    #      системно обирало саме рекламні картинки.
+    # Тепер: спершу крамниці з великими фото, тоді канонічність (скільки крамниць
+    # продають цю модель), тоді стабільний tie-break по id.
+    #
+    # ЧОГО ЦЕ НЕ ЛІКУЄ: рекламний напис ЗАПЕЧЕНИЙ у саму картинку (телевізор на фото
+    # показує «ЛІТНІЙ СЕЙЛ −30%»). Заміряно: таке фото трапилось у Rozetka, а чисте —
+    # у Brain, тобто від крамниці не залежить. Визначити це з метаданих неможливо,
+    # потрібен аналіз пікселів — свідомо не робимо (§7.4: чужих байтів не тягнемо).
+    ranks = _TILE_SOURCE_RANK
+    order_rank = " ".join(f"WHEN '{k}' THEN {v}" for k, v in ranks.items())
+    sql = f"""
+        WITH cnt AS (
+            SELECT c.category_id, c.slug, c.name, count(*) AS n
+            FROM category c
+            JOIN store_product sp ON sp.category_id = c.category_id
+            JOIN discount_event de ON de.store_product_id = sp.store_product_id
+            WHERE de.ended_at IS NULL
+            GROUP BY c.category_id, c.slug, c.name
+        ),
+        grp AS (   -- канонічність моделі: скільки РІЗНИХ крамниць її продають
+            SELECT mpn, count(DISTINCT source_id) AS stores
+            FROM store_product WHERE mpn IS NOT NULL GROUP BY mpn
+        )
+        SELECT cnt.slug, cnt.name, cnt.n, pic.image_url
+        FROM cnt
+        LEFT JOIN LATERAL (
+            SELECT sp.image_url
+            FROM store_product sp
+            JOIN source s USING (source_id)
+            JOIN discount_event de ON de.store_product_id = sp.store_product_id
+                                  AND de.ended_at IS NULL
+            LEFT JOIN grp g ON g.mpn = sp.mpn
+            WHERE sp.category_id = cnt.category_id
+              AND sp.image_url IS NOT NULL
+              AND sp.title !~* %s
+            ORDER BY CASE s.name {order_rank} ELSE 9 END,
+                     COALESCE(g.stores, 1) DESC,
+                     sp.store_product_id
+            LIMIT 1
+        ) pic ON TRUE"""
     with conn.cursor(row_factory=dict_row) as cur:
-        rows = cur.execute(
-            "SELECT c.slug, c.name, count(*) AS n, "
-            "       (array_agg(sp.image_url ORDER BY de.declared_pct DESC NULLS LAST) "
-            "        FILTER (WHERE sp.image_url IS NOT NULL))[1] AS image_url "
-            "FROM category c "
-            "JOIN store_product sp ON sp.category_id = c.category_id "
-            "JOIN discount_event de ON de.store_product_id = sp.store_product_id "
-            "WHERE de.ended_at IS NULL "
-            "GROUP BY c.slug, c.name").fetchall()
+        rows = cur.execute(sql, (_TILE_SKIP_RE,)).fetchall()
     for r in rows:
         r["section"], r["icon"] = category_ui(r["slug"])
     rows.sort(key=lambda r: (SECTION_ORDER.get(r["section"], 9), -r["n"], r["name"]))
