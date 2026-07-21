@@ -106,7 +106,11 @@ def test_pagination_expands_and_inherits_category():
     assert tv[0] == "https://rozetka.com.ua/ua/all-tv/c80037/"
     assert "https://rozetka.com.ua/ua/all-tv/c80037/page=2/" in tv
     assert len(tv) == ing.HTML_SOURCES["Rozetka"]["pages"], tv
-    assert all(c in ("smartfony", "noutbuky", "tv") for _u, c, _p in listings)
+    # звіряємось із ТАКСОНОМІЄЮ, а не з переліком у тесті: інакше кожна нова
+    # категорія валить перевірку, яка до неї стосунку не має (так і сталось,
+    # коли додали планшети й навушники)
+    from taxonomy import CATEGORY_UI
+    assert all(c in CATEGORY_UI for _u, c, _p in listings), listings
 
 
 def test_pagination_scheme_is_per_store():

@@ -93,7 +93,12 @@ public class CollectorService
     /// черга відставала б. 5 за прохід → 20/год, із запасом.
     public async Task<QueuePassSummary> RunQueuePassAsync(CancellationToken ct = default)
     {
-        var tasks = await _api.LeaseAsync(5, ct);
+        // Просимо БІЛЬШЕ, ніж крамниць (зараз 9): оренда однаково віддає максимум ОДНУ
+        // задачу на крамницю, тож ліміт обмежує не навантаження на магазин, а лише
+        // скільки РІЗНИХ крамниць ми обслужимо за прохід. З лімітом 5 чотири крамниці
+        // щоразу лишались необслуженими — при тому що розліт 15 хв нікуди не дівається.
+        // Заміряно 2026-07-21: фон дає ~6 задач/год замість можливих ~11.
+        var tasks = await _api.LeaseAsync(12, ct);
         int pages = 0, accepted = 0;
         var errors = new List<string>();
         foreach (var t in tasks)

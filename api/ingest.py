@@ -74,6 +74,8 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/products/mobile/klass-kommunikator_smartfon/", "smartfony"),
                  ("https://allo.ua/ua/products/notebooks/", "noutbuky"),
                  ("https://allo.ua/ua/televizory/", "tv"),
+                 ("https://allo.ua/ua/products/internet-planshety/", "planshety", 3),
+                 ("https://allo.ua/ua/naushniki/", "audio", 3),
              )},
     # Foxtrot/Moyo (2026-07-19): лістинги категорій SSR-лять картки з MPN у назвах —
     # база T15-матчингу. З ДЦ — 403, тому лише через колектора (резидентний IP).
@@ -93,11 +95,15 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/mobilnye_telefony.html", "smartfony"),
         ("https://www.foxtrot.com.ua/uk/shop/noutbuki.html", "noutbuky"),        # 42 товари
         ("https://www.foxtrot.com.ua/uk/shop/led_televizory.html", "tv"),        # 42 товари
+        ("https://www.foxtrot.com.ua/uk/shop/planshety.html", "planshety", 3),    # 42 товари
+        ("https://www.foxtrot.com.ua/uk/shop/naushniki.html", "audio", 3),        # 42 товари
     )},
     "Moyo": {"adapter": MoyoAdapter(), "page_tpl": "{base}?page={n}", "pages": 10, "urls": (
         ("https://www.moyo.ua/ua/telecommunication/smart/", "smartfony"),
         ("https://www.moyo.ua/ua/comp-and-periphery/notebooks/", "noutbuky"),    # 24 товари
         ("https://www.moyo.ua/ua/foto_video/tv_audio/lcd_tv/", "tv"),            # 24 товари
+        ("https://www.moyo.ua/ua/tablet_el_knigi/tablet/", "planshety", 3),       # 24 товари
+        ("https://www.moyo.ua/ua/acsessor/ipod_headphones/", "audio", 3),         # 24 товари
     )},
     # Comfy (розвідка 2026-07-19): SSR-лістинг, 50 карток, MPN у назвах — перетин із
     # Allo/Foxtrot/Moyo (напр. SM-A376BLVGEUC) → групи «Де купити» ширшають.
@@ -119,6 +125,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/mobile-phones/c80003/", "smartfony"),
         ("https://rozetka.com.ua/ua/notebooks/c80004/", "noutbuky"),             # 60 товарів
         ("https://rozetka.com.ua/ua/all-tv/c80037/", "tv"),                      # 60 товарів
+        ("https://rozetka.com.ua/ua/tablets/c130309/", "planshety", 3),           # 60 товарів
+        ("https://rozetka.com.ua/ua/headphones/c80027/", "audio", 3),             # 60 товарів
     )},
     # Citrus (розвідка 2026-07-19): Next.js SSR, 47 карток, хешовані класи (префіксні
     # селектори); SM-S948BZKGEUC перетинається з Comfy → більше груп.
@@ -126,6 +134,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.ctrs.com.ua/smartfony/", "smartfony"),
         ("https://www.ctrs.com.ua/noutbuki-i-ultrabuki/", "noutbuky"),           # 47 товарів
         ("https://www.ctrs.com.ua/televizory/", "tv"),                           # 47 товарів
+        ("https://www.ctrs.com.ua/planshety/", "planshety", 3),                  # 47 товарів
+        ("https://www.ctrs.com.ua/naushniki/", "audio", 3),                      # 47 товарів
     )},
     # Brain (розвідка 2026-07-19): SPA — ціни лише після JS → mode="render" (телефон
     # рендерить у WebView). Дані з data-атрибутів; A07 SM-A075FZKGSEK перетин із Moyo/Rozetka.
@@ -164,6 +174,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://ktc.ua/smartphone/", "smartfony"),
         ("https://ktc.ua/notebook/", "noutbuky"),                                # 48 товарів
         ("https://ktc.ua/tv/", "tv"),                                            # 48 товарів
+        ("https://ktc.ua/headphones/", "audio", 3),                              # 48 товарів
     )},
 }
 # режим збору per-source: 'fetch' (plain GET) | 'render' (WebView — SPA-крамниці).
