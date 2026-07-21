@@ -45,7 +45,11 @@ def main():
         conn.execute("INSERT INTO collect_task (source, url, kind, priority) VALUES "
                      "('Allo', 'https://allo.ua/ua/events-and-discounts/test-action/', 'page', 50)")
         qtasks.seed_tasks(conn)
-        ghost = conn.execute("SELECT count(*) FROM collect_task WHERE url LIKE '%page=9%'").fetchone()[0]
+        # точний URL, а не LIKE: `page=9` є в КОНФІЗІ у Rozetka та інших (pages=10),
+        # і широкий шаблон ловив законні задачі — тест падав на 14 замість 0
+        ghost = conn.execute(
+            "SELECT count(*) FROM collect_task WHERE url = %s",
+            ("https://eldorado.ua/uk/led/c1038962/page=9/",)).fetchone()[0]
         found = conn.execute("SELECT count(*) FROM collect_task WHERE url LIKE '%test-action%'").fetchone()[0]
         checks.append(("сів прибирає задачу, якої вже нема в конфігу", ghost == 0, ghost))
         checks.append(("лендинг із hub-discovery сів НЕ чіпає (priority=50)", found == 1, found))
