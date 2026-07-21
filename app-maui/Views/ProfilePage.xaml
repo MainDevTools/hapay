@@ -34,6 +34,31 @@
             </Grid>
             <Label Text="{Binding TodayText}" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}" />
 
+            <!-- Стан збору З СЕРВЕРА. Рядок вище рахує лише цей пристрій і мовчить
+                 однаково і при справному зборі, і при мертвому — саме через це
+                 двогодинна зупинка 2026-07-21 лишалась непоміченою. Коли збір
+                 мовчить довше за поріг, рядок стає бурштиновою пігулкою. -->
+            <!-- справний збір — зелена пігулка (той самий колір, що «вигода» в стрічці) -->
+            <Border Style="{StaticResource PillSave}" Padding="10,7" HorizontalOptions="Fill"
+                    IsVisible="{Binding ShowHealthOk}">
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="{Binding HealthNote}" FontSize="13" FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light={StaticResource SaveFgLight}, Dark={StaticResource SaveFgDark}}" />
+                    <Label Text="{Binding HealthDetail}" FontSize="11"
+                           TextColor="{AppThemeBinding Light={StaticResource SaveFgLight}, Dark={StaticResource SaveFgDark}}" />
+                </VerticalStackLayout>
+            </Border>
+            <!-- мовчить довше за поріг — бурштинова, як і решта «щось не так» -->
+            <Border Style="{StaticResource PillWarn}" Padding="10,7" HorizontalOptions="Fill"
+                    IsVisible="{Binding ShowHealthWarn}">
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="{Binding HealthNote}" FontSize="13" FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light={StaticResource WarnFgLight}, Dark={StaticResource WarnFgDark}}" />
+                    <Label Text="{Binding HealthDetail}" FontSize="11"
+                           TextColor="{AppThemeBinding Light={StaticResource WarnFgLight}, Dark={StaticResource WarnFgDark}}" />
+                </VerticalStackLayout>
+            </Border>
+
             <Button Text="Зібрати ціни зараз" Command="{Binding CollectCommand}" HeightRequest="48" />
             <ActivityIndicator IsRunning="{Binding IsCollecting}" IsVisible="{Binding IsCollecting}"
                                HorizontalOptions="Center" />

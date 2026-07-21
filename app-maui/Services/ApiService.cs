@@ -145,6 +145,14 @@ public class ApiService
 
     // ── збір (S11 етап 3): застосунок = «тупий фетчер», парсить сервер ────────────────
     /// Сервер каже, ЩО тягнути (гейт ролі collector). 401 → нема прав/токен застарів.
+    /// Стан збору (гейт колектора). Не кидає на 401 — профіль просто не покаже рядок.
+    public async Task<CollectHealth?> GetCollectHealthAsync(CancellationToken ct = default)
+    {
+        var resp = await _http.GetAsync($"{Base}/api/collect/health", ct);
+        if (!resp.IsSuccessStatusCode) return null;
+        return await resp.Content.ReadFromJsonAsync<CollectHealth>(_json, ct);
+    }
+
     public async Task<CollectPlan> GetCollectPlanAsync(CancellationToken ct = default)
     {
         var resp = await _http.GetAsync($"{Base}/api/collect/plan", ct);

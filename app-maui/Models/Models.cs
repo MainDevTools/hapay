@@ -53,14 +53,16 @@ public class Discount
     [JsonIgnore] public bool HasMultiStores => OffersN > 1;
     [JsonIgnore] public bool ShowStoreLine => OffersN <= 1;              // одна крамниця → її й показуємо
     [JsonIgnore] public string StoresText => $"Наявно в {OffersN} крамницях";
-    // Для групи — «від {найдешевша}» (агрегатор, §17); для однієї крамниці — просто ціна.
-    // АЛЕ «від» обіцяє, що дешевше вже нема, а представника групи обирає ЗНИЖКА, не ціна
-    // (див. best у list_products). Тож коли поруч є дешевша пропозиція, «від» — брехня,
-    // яку викриває наш же бейдж «Дешевше в Comfy на 5 419 ₴». Побачено на живому кадрі.
     /// Усі крамниці групи тримають ту саму ціну → діапазону нема, «від» обіцяє неіснуюче.
     /// Знаємо це точно: SamePriceN — це крамниці з такою самою ціною, плюс ми самі.
     [JsonIgnore] public bool AllSamePrice => SamePriceN is int n && n + 1 >= OffersN;
 
+    /// Для групи — «від {найдешевша}» (агрегатор, §17); для однієї крамниці — просто ціна.
+    ///
+    /// АЛЕ «від» обіцяє, що дешевше вже нема, а представника групи обирає ЗНИЖКА, не ціна
+    /// (див. best у list_products). Тож слово знімаємо у ДВОХ випадках, обидва побачені
+    /// на живих кадрах: коли поруч є дешевша пропозиція (її викриває наш же бейдж
+    /// «Дешевше в Comfy на 5 419 ₴») і коли всі крамниці стоять в одній ціні.
     [JsonIgnore] public string PriceText =>
         HasMultiStores && !HasCheaper && !AllSamePrice ? $"від {CurrentGrn}" : CurrentGrn;
     [JsonIgnore] public string CurrentGrn => Money.Grn(CurrentKop);
@@ -224,6 +226,30 @@ public class Offer
 /// Запис відстеження ціни з /api/me/watchlist.
 /// `price_at_add_kop` фіксує СЕРВЕР при додаванні — застосунок її не диктує,
 /// інакше можна було б намалювати неіснуючу економію (§7.5).
+/// Здоров'я збору з /api/collect/health — щоб тиха зупинка колектора була ВИДНОЮ.
+/// Народилось із реальної відмови 2026-07-21: збір стояв дві години, і помітили це
+/// випадково. Профіль доти показував лічильник САМОГО ПРИСТРОЮ, який після
+/// перевстановлення застосунку обнулився й про стан системи не знав нічого.
+public class CollectHealth
+{
+    [JsonPropertyName("ok")] public bool Ok { get; set; }
+    [JsonPropertyName("note")] public string Note { get; set; } = "";
+    [JsonPropertyName("silent_min")] public int? SilentMin { get; set; }
+    [JsonPropertyName("tasks_done_1h")] public int TasksDone1h { get; set; }
+    [JsonPropertyName("tasks_done_24h")] public int TasksDone24h { get; set; }
+    [JsonPropertyName("tasks_total")] public int TasksTotal { get; set; }
+    [JsonPropertyName("failing")] public int Failing { get; set; }
+    [JsonPropertyName("overdue")] public int Overdue { get; set; }
+
+    // «задач», а не «запусків»: у рядку черги зберігається лише ОСТАННІЙ збір, тож
+    // стеля цих чисел — розмір черги. Плутанина тут уже дала хибний висновок.
+    [JsonIgnore] public string Detail =>
+        $"{TasksDone1h} задач за годину · {TasksDone24h} за добу з {TasksTotal}"
+        + (Failing > 0 ? $" · збійних {Failing}" : "")
+        + (Overdue > 0 ? $" · прострочено {Overdue}" : "");
+}
+
+
 public class WatchItem
 {
     [JsonPropertyName("watchlist_id")] public int WatchlistId { get; set; }

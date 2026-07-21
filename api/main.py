@@ -285,6 +285,13 @@ def collect_queue(collector=Depends(require_collector), conn=Depends(get_conn)):
     return {"sources": qtasks.queue_stats(conn), "collector": collector}
 
 
+@app.get("/api/collect/health")
+def collect_health(collector=Depends(require_collector), conn=Depends(get_conn)):
+    """Чи живий збір — щоб тиха зупинка колектора не лишалась непоміченою годинами.
+    Гейт колектора: показує внутрішній стан черги, не для сторонніх очей."""
+    return qtasks.collect_health(conn)
+
+
 @app.post("/api/ingest/html")
 def ingest_html(body: dict, collector=Depends(require_collector), conn=Depends(get_conn)):
     """Застосунок шле СИРИЙ HTML (зі свого резидентного IP) → СЕРВЕР парсить адаптером

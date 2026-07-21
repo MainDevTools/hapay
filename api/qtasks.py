@@ -176,6 +176,50 @@ def enqueue_pages(conn, source: str, urls: list[str], *, priority: int = 50) -> 
     return n
 
 
+# Скільки хвилин тиші вважати відмовою. Збір іде проходами приблизно раз на годину,
+# тож 90 хв — це вже «пропущено щонайменше один», а не природна пауза.
+COLLECT_SILENT_MIN = 90
+
+
+def collect_health(conn) -> dict:
+    """Чи живий збір. Народилось із реальної відмови 2026-07-21: колектор стояв дві
+    години (я сам зніс застосунок разом із токеном), і помітив це лише тому, що
+    випадково дивився в базу. Оператор такої видимості не мав узагалі, а застосунок
+    тим часом показував учорашні ціни як поточні — тобто рівно те, за що ми критикуємо
+    крамниці.
+
+    ОБЕРЕЖНО з `tasks_done_*`: це к-сть ЗАДАЧ, яких торкались у вікні, а не к-сть
+    ЗАПУСКІВ. Стеля дорівнює розміру черги, бо в рядку зберігається лише останній
+    збір. Я вже раз сплутав це і зробив хибний висновок про пропускну здатність.
+    """
+    with conn.cursor(row_factory=dict_row) as cur:
+        row = cur.execute(
+            """SELECT max(last_done_at) AS last_done_at,
+                      round(EXTRACT(epoch FROM now() - max(last_done_at)) / 60)::int
+                          AS silent_min,
+                      count(*) FILTER (WHERE last_done_at > now() - interval '1 hour')
+                          AS tasks_done_1h,
+                      count(*) FILTER (WHERE last_done_at > now() - interval '24 hours')
+                          AS tasks_done_24h,
+                      count(*) AS tasks_total,
+                      count(*) FILTER (WHERE fail_count > 0) AS failing,
+                      -- «дозріла давно й досі не зібрана» — ознака, що черга не встигає
+                      count(*) FILTER (WHERE not_before < now() - interval '6 hours'
+                                        AND (leased_until IS NULL OR leased_until < now()))
+                          AS overdue
+               FROM collect_task""").fetchone()
+    silent = row["silent_min"]
+    row["ok"] = silent is not None and silent <= COLLECT_SILENT_MIN
+    row["silent_limit_min"] = COLLECT_SILENT_MIN
+    if silent is None:
+        row["note"] = "Збір ще не запускався"
+    elif not row["ok"]:
+        row["note"] = f"Збір мовчить {silent} хв — перевір колектор"
+    else:
+        row["note"] = f"Збір працює · останній {silent} хв тому"
+    return row
+
+
 def queue_stats(conn) -> list[dict]:
     """Зріз черги для оператора: скільки задач/дозрілих/збійних по крамницях."""
     with conn.cursor(row_factory=dict_row) as cur:

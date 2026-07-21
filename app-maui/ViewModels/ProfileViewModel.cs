@@ -11,17 +11,20 @@ public partial class ProfileViewModel : ObservableObject
     private readonly CollectorService _collector;
     private readonly ICollectScheduler _scheduler;
     private readonly PriceWatchService _priceWatch;
+    private readonly ApiService _api;
 
     [ObservableProperty] private bool _checkingDrops;
     [ObservableProperty] private string? _dropsStatus;
 
     public ProfileViewModel(AuthService auth, CollectorService collector,
-                            ICollectScheduler scheduler, PriceWatchService priceWatch)
+                            ICollectScheduler scheduler, PriceWatchService priceWatch,
+                            ApiService api)
     {
         _auth = auth;
         _collector = collector;
         _scheduler = scheduler;
         _priceWatch = priceWatch;
+        _api = api;
         _autoCollect = CollectPrefs.AutoEnabled;   // прямо в поле — без тригера OnChanged
     }
 
@@ -43,7 +46,44 @@ public partial class ProfileViewModel : ObservableObject
     [ObservableProperty] private bool _autoCollect;
 
     public bool AutoCollectSupported => _scheduler.IsSupported && IsCollector;
-    public string TodayText => $"Сьогодні зібрано: {CollectPrefs.TodayCount()} стор.";
+    public string TodayText => $"Сьогодні зібрано: {CollectPrefs.TodayCount()} стор. (цим пристроєм)";
+
+    /// Стан збору З СЕРВЕРА — на відміну від TodayText, який рахує лише цей пристрій
+    /// і після перевстановлення застосунку показує 0, хоч збір може йти з іншого
+    /// телефона. Саме через цю сліпоту двогодинна зупинка 2026-07-21 лишалась
+    /// непоміченою: локальний лічильник мовчить так само, як і справний збір.
+    [ObservableProperty] private string? _healthNote;
+    [ObservableProperty] private string? _healthDetail;
+    [ObservableProperty] private bool _healthOk = true;
+
+    // Видимість залежить від ДВОХ умов: чи є що показувати і який стан. Без цього
+    // при порожньому HealthNote (не колектор / запит не вдався) показалась би порожня
+    // зелена пігулка — бо HealthOk за замовчуванням true.
+    public bool ShowHealthOk => HealthOk && !string.IsNullOrEmpty(HealthNote);
+    public bool ShowHealthWarn => !HealthOk && !string.IsNullOrEmpty(HealthNote);
+
+    partial void OnHealthNoteChanged(string? value) => NotifyHealth();
+    partial void OnHealthOkChanged(bool value) => NotifyHealth();
+
+    private void NotifyHealth()
+    {
+        OnPropertyChanged(nameof(ShowHealthOk));
+        OnPropertyChanged(nameof(ShowHealthWarn));
+    }
+
+    public async Task LoadHealthAsync()
+    {
+        if (!IsCollector) return;
+        try
+        {
+            var h = await _api.GetCollectHealthAsync();
+            if (h is null) return;              // 401/збій — просто не показуємо рядок
+            HealthOk = h.Ok;
+            HealthNote = h.Note;
+            HealthDetail = h.Detail;
+        }
+        catch { /* діагностика не має ламати профіль */ }
+    }
 
     partial void OnAutoCollectChanged(bool value)
     {
@@ -75,7 +115,9 @@ public partial class ProfileViewModel : ObservableObject
         if (!alive)
         {
             try { await Shell.Current.GoToAsync(".."); } catch { /* уже пішли */ }
+            return;
         }
+        await LoadHealthAsync();                            // стан збору — з сервера
     }
 
     // збір: тягнемо HTML крамниць зі свого IP і шлемо серверу (він парсить). Лише collector+.

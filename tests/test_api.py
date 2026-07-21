@@ -489,6 +489,30 @@ def main():
                          json={"task_id": moyo_task["task_id"], "note": "HTTP 403"})
         checks.append(("collect/fail → ok (бекоф)", fl.status_code == 200, fl.status_code))
 
+    # ── здоров'я збору: тиха зупинка мусить бути ВИДНОЮ ──────────────────────────
+    # 2026-07-21 колектор стояв дві години, і помітили це випадково. Профіль доти
+    # показував лічильник самого пристрою, який мовчить однаково і при справному
+    # зборі, і при мертвому.
+    checks.append(("collect/health простому юзеру → 401",
+                   client.get("/api/collect/health", headers=ahdr).status_code == 401, None))
+    h = client.get("/api/collect/health", headers=chdr).json()
+    checks.append(("health: щойно збирали → ok",
+                   h.get("ok") is True and h.get("silent_min") is not None
+                   and h["silent_min"] <= h["silent_limit_min"], h))
+    checks.append(("health несе числа черги",
+                   h.get("tasks_total", 0) > 0 and "tasks_done_1h" in h
+                   and "failing" in h and "overdue" in h, h))
+
+    # відсуваємо ОСТАННІЙ збір за поріг — показник мусить це побачити
+    with psycopg.connect(URL, autocommit=True) as c:
+        c.execute("UPDATE collect_task SET last_done_at = now() - interval '5 hours' "
+                  "WHERE last_done_at IS NOT NULL")
+    h2 = client.get("/api/collect/health", headers=chdr).json()
+    checks.append(("health: тиша понад поріг → not ok + пояснення",
+                   h2.get("ok") is False and "мовчить" in (h2.get("note") or ""), h2))
+    checks.append(("health рахує хвилини тиші (≈300)",
+                   280 <= (h2.get("silent_min") or 0) <= 320, h2.get("silent_min")))
+
     qs = client.get("/api/collect/queue", headers=chdr).json()
     checks.append(("collect/queue: зріз по крамницях",
                    {s["source"] for s in qs.get("sources", [])} >= {"Allo", "Foxtrot", "Moyo"},
