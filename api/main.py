@@ -307,5 +307,10 @@ def ingest_html(body: dict, collector=Depends(require_collector), conn=Depends(g
     task_id = body.get("task_id")
     if isinstance(task_id, int):
         result["task_closed"] = qtasks.complete_task(conn, task_id, collector, ok=True)
+    else:
+        # Без task_id — це ручний прохід «зібрати все» (ходить за планом, не за чергою).
+        # Сторінку таки зібрано, тож закриваємо задачу за (source, url): інакше черга
+        # перезбирала б її вдруге, а last_done_at показував би «ще не брали».
+        result["task_closed"] = qtasks.complete_by_url(conn, source, url)
     result["collector"] = collector
     return result

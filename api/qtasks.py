@@ -134,6 +134,34 @@ def complete_task(conn, task_id: int, worker: str, ok: bool, note: str | None = 
     return row is not None
 
 
+def complete_by_url(conn, source: str, url: str) -> bool:
+    """Закрити задачу за (source, url) — коли колектор зібрав сторінку БЕЗ task_id.
+
+    Навіщо: у застосунку два шляхи збору. Черговий (`RunQueuePassAsync`) шле task_id,
+    а ручний «зібрати все» (`RunAsync`) ходить за планом і task_id не має. Через це
+    зібрані ним сторінки лишались у черзі «ще не брали»: черга перезбирала їх удруге,
+    а `last_done_at` брехав. Заміряно 2026-07-21: ручний прохід приніс 623 товари Allo,
+    і при цьому всі 30 задач Allo рахувались незібраними.
+
+    Робимо це на СЕРВЕРІ, а не в застосунку, свідомо: оновлення застосунку йде через
+    стори й доходить не до всіх, а сервер знає (source, url) → задача вже зараз.
+
+    Оренду не вимагаємо (на відміну від complete_task): сторінку справді зібрано, і
+    колектор автентифікований токеном. Але задачу, яку ЗАРАЗ орендує ХТОСЬ ІНШИЙ, не
+    чіпаємо — інакше два колектори збивали б одне одному розклад.
+    """
+    row = conn.execute(
+        """UPDATE collect_task
+           SET last_done_at = now(), last_status = 'ok', fail_count = 0,
+               leased_by = NULL, leased_until = NULL,
+               not_before = now() + make_interval(mins => repeat_min)
+           WHERE source = %s AND url = %s
+             AND (leased_until IS NULL OR leased_until < now())
+           RETURNING task_id""",
+        (source, url)).fetchone()
+    return row is not None
+
+
 def enqueue_pages(conn, source: str, urls: list[str], *, priority: int = 50) -> int:
     """Дочірні сторінки з hub-discovery → у чергу (замість миттєвого бурсту з телефона).
     not_before = +розліт (не бити крамницю одразу після хаба); наявним розклад не чіпаємо."""

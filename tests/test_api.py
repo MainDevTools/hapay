@@ -441,6 +441,35 @@ def main():
         checks.append(("ingest/html із task_id → задача закрита",
                        tr.status_code == 200 and tr.json().get("task_closed") is True, tr.json()))
 
+    # Ручний прохід «зібрати все» ходить за ПЛАНОМ і task_id не має. Сторінку він таки
+    # збирає, тож задача мусить закритись за (source, url) — інакше черга перезбирала б
+    # її вдруге, а last_done_at показував би «ще не брали». Так і було на проді
+    # 2026-07-21: ручний прохід приніс 623 товари Allo при 30 «незібраних» задачах.
+    with psycopg.connect(URL, autocommit=True) as c:
+        c.execute("UPDATE collect_task SET last_done_at = NULL, last_status = NULL, "
+                  "leased_by = NULL, leased_until = NULL WHERE source='Moyo'")
+        moyo_url = c.execute("SELECT url FROM collect_task WHERE source='Moyo' "
+                             "ORDER BY task_id LIMIT 1").fetchone()[0]
+    nr = client.post("/api/ingest/html", headers=chdr, json={
+        "source": "Moyo", "url": moyo_url, "html": _cas("moyo_listing.html")})
+    checks.append(("ingest/html БЕЗ task_id теж закриває задачу (ручний прохід)",
+                   nr.status_code == 200 and nr.json().get("task_closed") is True, nr.json()))
+    with psycopg.connect(URL, autocommit=True) as c:
+        done = c.execute("SELECT last_done_at IS NOT NULL, last_status FROM collect_task "
+                         "WHERE source='Moyo' AND url=%s", (moyo_url,)).fetchone()
+    checks.append(("після ручного проходу задача має час і статус ok",
+                   done[0] is True and done[1] == "ok", done))
+    # чужа орендована задача не закривається побічно — інакше два колектори збивали б
+    # одне одному розклад
+    with psycopg.connect(URL, autocommit=True) as c:
+        c.execute("UPDATE collect_task SET leased_by='other-phone', "
+                  "leased_until = now() + interval '5 minutes', last_done_at = NULL "
+                  "WHERE source='Moyo' AND url=%s", (moyo_url,))
+    nr2 = client.post("/api/ingest/html", headers=chdr, json={
+        "source": "Moyo", "url": moyo_url, "html": _cas("moyo_listing.html")})
+    checks.append(("задачу, орендовану іншим колектором, не чіпаємо",
+                   nr2.json().get("task_closed") is False, nr2.json()))
+
     allo_task = next((t for t in ltasks if t["source"] == "Allo"), None)
     if allo_task and allo_task["kind"] == "hub":
         hr = client.post("/api/ingest/html", headers=chdr, json={
