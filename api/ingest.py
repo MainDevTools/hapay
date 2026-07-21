@@ -82,6 +82,7 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/otdel-no-stojaschie-posudomoechnye-mashiny/", "pobut-tehnika", 1),
                  ("https://allo.ua/ua/igrovye-pristavki/", "konsoli", 2),
                  ("https://allo.ua/ua/universalnye-mobilnye-batarei/", "aksesuary", 3),
+                 ("https://allo.ua/ua/products/pylesosy/", "pylososy", 3),
              )},
     # Foxtrot/Moyo (2026-07-19): лістинги категорій SSR-лять картки з MPN у назвах —
     # база T15-матчингу. З ДЦ — 403, тому лише через колектора (резидентний IP).
@@ -107,6 +108,10 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/holodilniki.html", "pobut-tehnika", 3),
         ("https://www.foxtrot.com.ua/uk/shop/stiralki.html", "pobut-tehnika", 1),   # 42
         ("https://www.foxtrot.com.ua/uk/shop/igrovye_pristavki.html", "konsoli", 2),# 9
+        ("https://www.foxtrot.com.ua/uk/shop/mikrovolnovki.html", "mikrohvylovky", 3),
+        ("https://www.foxtrot.com.ua/uk/shop/pylesosy.html", "pylososy", 3),
+        ("https://www.foxtrot.com.ua/uk/shop/cofevarki.html", "kavomashyny", 3),
+        ("https://www.foxtrot.com.ua/uk/shop/mobilnye_telefony_telefon.html", "knopkovi-telefony", 3),
     )},
     "Moyo": {"adapter": MoyoAdapter(), "page_tpl": "{base}?page={n}", "pages": 10, "urls": (
         ("https://www.moyo.ua/ua/telecommunication/smart/", "smartfony"),
@@ -121,6 +126,10 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.moyo.ua/ua/foto_video/photo_video/cameras/", "foto", 3),       # 24
         ("https://www.moyo.ua/ua/game_zone/game_console/", "konsoli", 2),            # 24
         ("https://www.moyo.ua/ua/acsessor/acum/accu_univers/", "aksesuary", 3),      # 24
+        ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/microvolnovie-pechi/", "mikrohvylovky", 3),
+        ("https://www.moyo.ua/ua/bt/mbt/pylesosy/", "pylososy", 3),
+        ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/kofevarki/", "kavomashyny", 3),
+        ("https://www.moyo.ua/ua/telecommunication/cell_phones/", "knopkovi-telefony", 3),
     )},
     # Comfy (розвідка 2026-07-19): SSR-лістинг, 50 карток, MPN у назвах — перетин із
     # Allo/Foxtrot/Moyo (напр. SM-A376BLVGEUC) → групи «Де купити» ширшають.
@@ -171,6 +180,10 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.ctrs.com.ua/cameras/", "foto", 3),                        # 35 товарів
         ("https://www.ctrs.com.ua/igrovye-pristavki/", "konsoli", 2),           # 47 товарів
         ("https://www.ctrs.com.ua/portativnye-batarei/", "aksesuary", 3),       # 47 товарів
+        ("https://www.ctrs.com.ua/mikrovolnovki/", "mikrohvylovky", 3),        # 47 товарів
+        ("https://www.ctrs.com.ua/pylesosy/", "pylososy", 3),                  # 47 товарів
+        ("https://www.ctrs.com.ua/kofemashiny/", "kavomashyny", 3),            # 47 товарів
+        ("https://www.ctrs.com.ua/mobilnye-telefony/", "knopkovi-telefony", 3),# 47 товарів
     )},
     # Brain (розвідка 2026-07-19): SPA — ціни лише після JS → mode="render" (телефон
     # рендерить у WebView). Дані з data-атрибутів; A07 SM-A075FZKGSEK перетин із Moyo/Rozetka.
