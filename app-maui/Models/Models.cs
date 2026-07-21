@@ -50,8 +50,12 @@ public class Discount
     [JsonIgnore] public bool HasMultiStores => OffersN > 1;
     [JsonIgnore] public bool ShowStoreLine => OffersN <= 1;              // одна крамниця → її й показуємо
     [JsonIgnore] public string StoresText => $"Наявно в {OffersN} крамницях";
-    // для групи — «від {найдешевша}» (агрегатор, §17); для однієї крамниці — просто ціна
-    [JsonIgnore] public string PriceText => HasMultiStores ? $"від {CurrentGrn}" : CurrentGrn;
+    // Для групи — «від {найдешевша}» (агрегатор, §17); для однієї крамниці — просто ціна.
+    // АЛЕ «від» обіцяє, що дешевше вже нема, а представника групи обирає ЗНИЖКА, не ціна
+    // (див. best у list_products). Тож коли поруч є дешевша пропозиція, «від» — брехня,
+    // яку викриває наш же бейдж «Дешевше в Comfy на 5 419 ₴». Побачено на живому кадрі.
+    [JsonIgnore] public string PriceText =>
+        HasMultiStores && !HasCheaper ? $"від {CurrentGrn}" : CurrentGrn;
     [JsonIgnore] public string CurrentGrn => Money.Grn(CurrentKop);
     [JsonIgnore] public string OldGrn => Money.Grn(OldDeclaredKop);
     [JsonIgnore] public bool HasOld => OldDeclaredKop is not null && OldDeclaredKop > CurrentKop;
