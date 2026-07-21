@@ -150,6 +150,29 @@ def test_paginated_urls_are_registered_for_category():
                 assert ing.URL_CATEGORY.get((name, u)) == c, (name, u)
 
 
+def test_queue_load_fits_collector_capacity():
+    """Конфіг не має замовляти більше запусків, ніж колектор фізично встигає.
+
+    Черга — ресурс зі стелею: розліт 15 хв на крамницю дає ~384 запуски/добу. Якщо
+    конфіг просить більше, нічого не «ламається» — задачі просто оновлюються рідше,
+    ніж раз на 3 доби, і товари ТИХО зникають з каталогу як несвіжі. Мовчазна
+    деградація найгірша, бо помітна аж через дні, тож ловимо її тут.
+
+    Поріг рахуємо моделлю, а не «відсотком на око»: стеля 384 (замір ~20 задач/год),
+    мінус ~30 на хаб-лендинги, яких у конфігу НЕМАЄ (крамниці віддають їх динамічно,
+    а черга однаково їх виконує), мінус 5% на повтори після збоїв.
+    """
+    from api.qtasks import repeat_for_page
+    capacity, hub = 384, 30
+    budget = (capacity - hub) * 0.95
+    runs = sum(1440.0 / repeat_for_page(p)
+               for cfg in ing.HTML_SOURCES.values()
+               for _u, _c, p in ing.source_listings(cfg))
+    assert runs <= budget, (
+        f"конфіг просить {runs:.0f} запусків/добу при бюджеті {budget:.0f} — зріж "
+        f"глибину (`pages`) або прибери лістинги, перш ніж додавати нові")
+
+
 def _main():
     fns = [v for k, v in sorted(globals().items())
            if k.startswith("test_") and callable(v) and getattr(v, "__module__", None) == __name__]

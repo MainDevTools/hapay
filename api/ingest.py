@@ -70,7 +70,7 @@ HTML_SOURCES: dict[str, dict] = {
     # фактом на всіх трьох категоріях: стор. 2 і 10 → по 60 позицій, перетин з 1-ю ≈ 0.
     "Allo": {"adapter": AlloAdapter(), "hub": ALLO_HUB, "max_pages": 20,
              "category": "smartfony",
-             "page_tpl": "{base}?p={n}", "pages": 10, "urls": (
+             "page_tpl": "{base}?p={n}", "pages": 5, "urls": (
                  ("https://allo.ua/ua/products/mobile/klass-kommunikator_smartfon/", "smartfony"),
                  ("https://allo.ua/ua/products/notebooks/", "noutbuky"),
                  ("https://allo.ua/ua/televizory/", "tv"),
@@ -81,8 +81,15 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/stiralnye-mashiny/", "pobut-tehnika", 1),
                  ("https://allo.ua/ua/otdel-no-stojaschie-posudomoechnye-mashiny/", "pobut-tehnika", 1),
                  ("https://allo.ua/ua/igrovye-pristavki/", "konsoli", 2),
-                 ("https://allo.ua/ua/universalnye-mobilnye-batarei/", "aksesuary", 3),
+                 ("https://allo.ua/ua/universalnye-mobilnye-batarei/", "aksesuary", 1),
                  ("https://allo.ua/ua/products/pylesosy/", "pylososy", 3),
+                 ("https://allo.ua/ua/roboty-pylesosy/", "pylososy", 1),
+                 ("https://allo.ua/ua/sushil-nye-mashiny/", "pobut-tehnika", 1),
+                 ("https://allo.ua/ua/monitory/", "monitory", 3),
+                 ("https://allo.ua/ua/products/kondicionery/", "kondycionery", 3),
+                 ("https://allo.ua/ua/wi-fi-routery/", "routery", 3),
+                 ("https://allo.ua/ua/mul-tipechi/", "multypechi", 3),
+                 ("https://allo.ua/ua/products/vodonagrevateli/", "boylery", 3),
              )},
     # Foxtrot/Moyo (2026-07-19): лістинги категорій SSR-лять картки з MPN у назвах —
     # база T15-матчингу. З ДЦ — 403, тому лише через колектора (резидентний IP).
@@ -92,13 +99,24 @@ HTML_SOURCES: dict[str, dict] = {
     # вгадані лістинги раніше давали 404) і перевірено ПАРСИНГОМ адаптера, не лише 200.
     # `page_tpl`/`pages` — пагінація (розвідка 2026-07-20). Схеми взято з навігації
     # крамниць і перевірено фактом: сторінка 2 віддає ІНШІ товари, перетин з 1-ю = 0.
-    # Глибина 10 теж перевірена: стор. 8/10/12 віддають повні набори без повторів 1-ї.
+    # Глибина 10 теж була перевірена: стор. 8/10/12 віддають повні набори без повторів 1-ї.
     # KTC — 7: далі його лістинги віддають порожньо (сенсу слати запит немає).
-    # ЄМНІСТЬ ЧЕРГИ (заміряно 2026-07-21): колектор дає ~20 задач/год ≈ 480/добу.
-    # Рівний розклад 720 хв вимагав 496 — впритул. Тому періодичність розведено за
-    # глибиною (qtasks.repeat_for_page): потреба ~293/добу, запас ≈1.6×. Додавати
-    # лістинги тепер можна, але кожні +10 сторінок це ще ~10 запусків на добу.
-    "Foxtrot": {"adapter": FoxtrotAdapter(), "page_tpl": "{base}?page={n}", "pages": 10, "urls": (
+    #
+    # ГЛИБИНА 10 → 5 (2026-07-21). Дефолт зрізано, і це свідомий обмін, а не економія
+    # «про всяк випадок». Бюджет черги скінченний: колектор дає ~20 задач/год ≈ 480/добу,
+    # рівний розклад 720 хв тримає ~384. Глибокі сторінки з'їдали 47% усього бюджету на
+    # три категорії (ноутбуки 51.5 запусків/добу, ТВ 51.5, смартфони 46) — і саме вони
+    # дають найгірший приріст: хвіст лістинга це рідкісні позиції, яких у сусідніх
+    # крамницях немає, тобто НУЛЬ порівнянь. А порівняння — єдина причина, чому «Хапай»
+    # існує. Ті самі запуски, віддані новим категоріям, дають товари, що перетинаються.
+    # Ціна рішення чесна: три найбільші категорії з часом зменшаться приблизно вдвічі.
+    # Відкотити — одне число. Дефолт стосується лише лістингів БЕЗ власної глибини;
+    # у нових категорій вона задана поштучно третім елементом запису.
+    #
+    # ЄМНІСТЬ ЧЕРГИ (заміряно 2026-07-21): періодичність розведено за глибиною
+    # (qtasks.repeat_for_page). Додавати лістинги можна, але кожні +3 сторінки це ще
+    # ~3 запуски на добу — рахуй перед тим, як дописати рядок.
+    "Foxtrot": {"adapter": FoxtrotAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
         ("https://www.foxtrot.com.ua/uk/shop/mobilnye_telefony.html", "smartfony"),
         ("https://www.foxtrot.com.ua/uk/shop/noutbuki.html", "noutbuky"),        # 42 товари
         ("https://www.foxtrot.com.ua/uk/shop/led_televizory.html", "tv"),        # 42 товари
@@ -112,8 +130,16 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/pylesosy.html", "pylososy", 3),
         ("https://www.foxtrot.com.ua/uk/shop/cofevarki.html", "kavomashyny", 3),
         ("https://www.foxtrot.com.ua/uk/shop/mobilnye_telefony_telefon.html", "knopkovi-telefony", 3),
+        ("https://www.foxtrot.com.ua/uk/shop/roboti_pilesosi.html", "pylososy", 1),
+        ("https://www.foxtrot.com.ua/uk/shop/drymachine.html", "pobut-tehnika", 1),
+        ("https://www.foxtrot.com.ua/uk/shop/gk-monitory.html", "monitory", 3),
+        ("https://www.foxtrot.com.ua/uk/shop/kondicyonery.html", "kondycionery", 3),
+        ("https://www.foxtrot.com.ua/uk/shop/marshrutizatory.html", "routery", 3),
+        ("https://www.foxtrot.com.ua/uk/shop/multivarki_multipech.html", "multypechi", 3),
+        ("https://www.foxtrot.com.ua/uk/shop/blendery.html", "blendery", 3),
+        ("https://www.foxtrot.com.ua/uk/shop/bojlery.html", "boylery", 3),
     )},
-    "Moyo": {"adapter": MoyoAdapter(), "page_tpl": "{base}?page={n}", "pages": 10, "urls": (
+    "Moyo": {"adapter": MoyoAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
         ("https://www.moyo.ua/ua/telecommunication/smart/", "smartfony"),
         ("https://www.moyo.ua/ua/comp-and-periphery/notebooks/", "noutbuky"),    # 24 товари
         ("https://www.moyo.ua/ua/foto_video/tv_audio/lcd_tv/", "tv"),            # 24 товари
@@ -125,11 +151,19 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.moyo.ua/ua/bt/kbt/posudomoechnie-mashi/", "pobut-tehnika", 1), # 24
         ("https://www.moyo.ua/ua/foto_video/photo_video/cameras/", "foto", 3),       # 24
         ("https://www.moyo.ua/ua/game_zone/game_console/", "konsoli", 2),            # 24
-        ("https://www.moyo.ua/ua/acsessor/acum/accu_univers/", "aksesuary", 3),      # 24
+        ("https://www.moyo.ua/ua/acsessor/acum/accu_univers/", "aksesuary", 1),      # 24
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/microvolnovie-pechi/", "mikrohvylovky", 3),
         ("https://www.moyo.ua/ua/bt/mbt/pylesosy/", "pylososy", 3),
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/kofevarki/", "kavomashyny", 3),
         ("https://www.moyo.ua/ua/telecommunication/cell_phones/", "knopkovi-telefony", 3),
+        ("https://www.moyo.ua/ua/bt/mbt/robot_pyle_i_chist/", "pylososy", 1),
+        ("https://www.moyo.ua/ua/bt/kbt/sushilnie-mashini/", "pobut-tehnika", 1),
+        ("https://www.moyo.ua/ua/comp-and-periphery/noutebook_pc/monitors/", "monitory", 3),
+        ("https://www.moyo.ua/ua/bt/klimaticheskaya-tekh/kondicionery/", "kondycionery", 3),
+        ("https://www.moyo.ua/ua/comp-and-periphery/network_equip/routers/", "routery", 3),
+        ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/multypechi/", "multypechi", 3),
+        ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/blendery/", "blendery", 3),
+        ("https://www.moyo.ua/ua/bt/klimaticheskaya-tekh/vodonagrevately/boylery/", "boylery", 3),
     )},
     # Comfy (розвідка 2026-07-19): SSR-лістинг, 50 карток, MPN у назвах — перетин із
     # Allo/Foxtrot/Moyo (напр. SM-A376BLVGEUC) → групи «Де купити» ширшають.
@@ -140,7 +174,7 @@ HTML_SOURCES: dict[str, dict] = {
     # + .product-tile-title/.product-tile-price__current) — адаптер міняти не довелось.
     # Тому телефон рендерить Comfy у WebView, як Brain. Рендер ~1.9-2.4 МБ — під _MAX_HTML (5 МБ).
     "Comfy": {"adapter": ComfyAdapter(), "mode": "render",
-              "page_tpl": "{base}?p={n}", "pages": 10, "urls": (
+              "page_tpl": "{base}?p={n}", "pages": 5, "urls": (
         ("https://comfy.ua/smartfon/", "smartfony"),
         ("https://comfy.ua/notebook/", "noutbuky"),                              # 50 карток
         ("https://comfy.ua/flat-tvs/", "tv"),                                    # 50 карток
@@ -152,7 +186,7 @@ HTML_SOURCES: dict[str, dict] = {
     )},
     # Rozetka (розвідка 2026-07-19): найбільший маркетплейс, Angular-SSR 60 карток;
     # масові перетини MPN (SM-S942BZKGEUC = Foxtrot S26, SM-A576BZVDEUC = Moyo/Allo A57).
-    "Rozetka": {"adapter": RozetkaAdapter(), "page_tpl": "{base}page={n}/", "pages": 10, "urls": (
+    "Rozetka": {"adapter": RozetkaAdapter(), "page_tpl": "{base}page={n}/", "pages": 5, "urls": (
         ("https://rozetka.com.ua/ua/mobile-phones/c80003/", "smartfony"),
         ("https://rozetka.com.ua/ua/notebooks/c80004/", "noutbuky"),             # 60 товарів
         ("https://rozetka.com.ua/ua/all-tv/c80037/", "tv"),                      # 60 товарів
@@ -163,11 +197,15 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/washing_machines/c80124/", "pobut-tehnika", 1),# 60 товарів
         ("https://rozetka.com.ua/ua/photo/c80001/", "foto", 3),                    # 69 товарів
         ("https://rozetka.com.ua/ua/consoles/c80020/", "konsoli", 2),              # 68 товарів
-        ("https://rozetka.com.ua/ua/poverbanki-i-zaryadnie-stantsii/c4674582/", "aksesuary", 3),
+        # Аксесуари — глибина 1 (2026-07-21, за замiром на живій базі): лише 5% товарів
+        # категорії потрапляють у групи «де купити» (11 із 235) проти 62% у ТВ і 52% у
+        # ноутбуках. Павербанки продають під довільними назвами без артикулів, тож
+        # зіставити їх між крамницями нічим. Глибокі сторінки тут — витрачений бюджет.
+        ("https://rozetka.com.ua/ua/poverbanki-i-zaryadnie-stantsii/c4674582/", "aksesuary", 1),
     )},
     # Citrus (розвідка 2026-07-19): Next.js SSR, 47 карток, хешовані класи (префіксні
     # селектори); SM-S948BZKGEUC перетинається з Comfy → більше груп.
-    "Citrus": {"adapter": CitrusAdapter(), "page_tpl": "{base}?page={n}", "pages": 10, "urls": (
+    "Citrus": {"adapter": CitrusAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
         ("https://www.ctrs.com.ua/smartfony/", "smartfony"),
         ("https://www.ctrs.com.ua/noutbuki-i-ultrabuki/", "noutbuky"),           # 47 товарів
         ("https://www.ctrs.com.ua/televizory/", "tv"),                           # 47 товарів
@@ -179,11 +217,22 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.ctrs.com.ua/posudomoechnye-mashiny/", "pobut-tehnika", 1), # 47 товарів
         ("https://www.ctrs.com.ua/cameras/", "foto", 3),                        # 35 товарів
         ("https://www.ctrs.com.ua/igrovye-pristavki/", "konsoli", 2),           # 47 товарів
-        ("https://www.ctrs.com.ua/portativnye-batarei/", "aksesuary", 3),       # 47 товарів
+        ("https://www.ctrs.com.ua/portativnye-batarei/", "aksesuary", 1),       # 47 товарів
         ("https://www.ctrs.com.ua/mikrovolnovki/", "mikrohvylovky", 3),        # 47 товарів
         ("https://www.ctrs.com.ua/pylesosy/", "pylososy", 3),                  # 47 товарів
         ("https://www.ctrs.com.ua/kofemashiny/", "kavomashyny", 3),            # 47 товарів
         ("https://www.ctrs.com.ua/mobilnye-telefony/", "knopkovi-telefony", 3),# 47 товарів
+        # Третя хвиля (2026-07-21). УВАГА щодо Citrus: у навігації частина посилань має
+        # префікс `/actions/z-ucinkoyu/…` (розділ УЦІНКИ) або місто `/khmelnytskyy/…`.
+        # Брати їх не можна: перший — вітрина уцінених, тобто інший стан товару (той самий
+        # фільтр, що ми виключаємо з порівнянь), другий прив'язує лістинг до одного міста.
+        # Тут — чисті категорійні адреси, кожна перевірена парсингом.
+        ("https://www.ctrs.com.ua/roboty-uborshhiki/", "pylososy", 1),         # 47 товарів
+        ("https://www.ctrs.com.ua/sushilnye-mashiny/", "pobut-tehnika", 1),    # 42 товари
+        ("https://www.ctrs.com.ua/monitory/", "monitory", 3),                  # 47 товарів
+        ("https://www.ctrs.com.ua/kondicionery/", "kondycionery", 3),          # 47 товарів
+        ("https://www.ctrs.com.ua/wi-fi-routery/", "routery", 3),              # 47 товарів
+        ("https://www.ctrs.com.ua/blendery/", "blendery", 3),                  # 47 товарів
     )},
     # Brain (розвідка 2026-07-19): SPA — ціни лише після JS → mode="render" (телефон
     # рендерить у WebView). Дані з data-атрибутів; A07 SM-A075FZKGSEK перетин із Moyo/Rozetka.
@@ -194,7 +243,7 @@ HTML_SOURCES: dict[str, dict] = {
     # 404 давала стара форма адреси `Smartfoni_zvyazok-c297/page=2/`, а не сайт узагалі.
     # Смартфонний запис — це ДЕПАРТАМЕНТ (15 товарів), він не пагінується → глибина 1.
     "Brain": {"adapter": BrainAdapter(), "mode": "render",
-              "page_tpl": "{base}page={n}/", "pages": 10, "urls": (
+              "page_tpl": "{base}page={n}/", "pages": 5, "urls": (
         ("https://brain.com.ua/ukr/Smartfoni_zvyazok-c297/", "smartfony", 1),    # департамент
         ("https://brain.com.ua/ukr/category/Noutbuky-c1191/", "noutbuky"),       # 24/стор.
         ("https://brain.com.ua/ukr/category/Televizory-c1098/", "tv"),           # 24/стор., 34 стор.
@@ -226,7 +275,7 @@ HTML_SOURCES: dict[str, dict] = {
     )},
     # KTC (розвідка 2026-07-19): SSR-лістинг /smartphone/, 48 карток, 54 SM-коди —
     # S26/A07 перетини з рештою → більше груп «Де купити».
-    "KTC": {"adapter": KtcAdapter(), "page_tpl": "{base}?page={n}", "pages": 7, "urls": (
+    "KTC": {"adapter": KtcAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
         ("https://ktc.ua/smartphone/", "smartfony"),
         ("https://ktc.ua/notebook/", "noutbuky"),                                # 48 товарів
         ("https://ktc.ua/tv/", "tv"),                                            # 48 товарів
