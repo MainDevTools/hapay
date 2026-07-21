@@ -57,8 +57,12 @@ public class Discount
     // АЛЕ «від» обіцяє, що дешевше вже нема, а представника групи обирає ЗНИЖКА, не ціна
     // (див. best у list_products). Тож коли поруч є дешевша пропозиція, «від» — брехня,
     // яку викриває наш же бейдж «Дешевше в Comfy на 5 419 ₴». Побачено на живому кадрі.
+    /// Усі крамниці групи тримають ту саму ціну → діапазону нема, «від» обіцяє неіснуюче.
+    /// Знаємо це точно: SamePriceN — це крамниці з такою самою ціною, плюс ми самі.
+    [JsonIgnore] public bool AllSamePrice => SamePriceN is int n && n + 1 >= OffersN;
+
     [JsonIgnore] public string PriceText =>
-        HasMultiStores && !HasCheaper ? $"від {CurrentGrn}" : CurrentGrn;
+        HasMultiStores && !HasCheaper && !AllSamePrice ? $"від {CurrentGrn}" : CurrentGrn;
     [JsonIgnore] public string CurrentGrn => Money.Grn(CurrentKop);
     [JsonIgnore] public string OldGrn => Money.Grn(OldDeclaredKop);
     [JsonIgnore] public bool HasOld => OldDeclaredKop is not null && OldDeclaredKop > CurrentKop;
