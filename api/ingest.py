@@ -30,6 +30,7 @@ from adapters.foxtrot import FoxtrotAdapter
 from adapters.ktc import KtcAdapter
 from adapters.moyo import MoyoAdapter
 from adapters.rozetka import RozetkaAdapter
+from adapters.vencon import VenconAdapter
 from db.store import load_categories, persist_items, upsert_source
 
 # ── Сервер — АВТОРИТЕТ, хто може бути джерелом і які хости валідні ────────────────
@@ -42,13 +43,21 @@ INGEST_SOURCES: dict[str, dict] = {
     "Rozetka":  {"base_url": "https://rozetka.com.ua",     "hosts": ("rozetka.com.ua",)},
     "Allo":     {"base_url": "https://allo.ua",            "hosts": ("allo.ua",)},
     "Comfy":    {"base_url": "https://comfy.ua",           "hosts": ("comfy.ua",)},
-    "Citrus":   {"base_url": "https://www.ctrs.com.ua",    "hosts": ("ctrs.com.ua",)},
+    # Citrus переїхав на citrus.ua (перевірено 2026-07-21: ctrs.com.ua віддає редирект
+    # туди, og:site_name однаковий). Поки редирект живий, адаптер будує адреси від
+    # старого BASE і все працює. Але щойно редирект приберуть, товари поїдуть з нового
+    # хоста — і серверна перевірка відкинула б їх УСІ з «url не на домені Citrus».
+    # Виглядало б як загадкове обнуління крамниці. Обидва хости — власність Цитруса,
+    # тож це не послаблення перевірки, а визнання факту переїзду.
+    "Citrus":   {"base_url": "https://www.ctrs.com.ua",
+                 "hosts": ("ctrs.com.ua", "citrus.ua")},
     "Brain":    {"base_url": "https://brain.com.ua",       "hosts": ("brain.com.ua",)},
     "KTC":      {"base_url": "https://ktc.ua",             "hosts": ("ktc.ua",)},
     # Епіцентр роздає фото з cdn.27.ua — 27.ua ними поглинута (перевірено: 27.ua віддає
     # сторінку Епіцентру). Хост картинок у hosts НЕ додаємо: там лише фото, а перевірка
     # хостів стереже URL ТОВАРУ.
     "Epicentr": {"base_url": "https://epicentrk.ua",       "hosts": ("epicentrk.ua",)},
+    "Vencon":   {"base_url": "https://vencon.ua",          "hosts": ("vencon.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -326,6 +335,37 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/igrovye-pristavki-i-konsoli/", "konsoli", 2),
         ("https://epicentrk.ua/ua/shop/fotoapparaty/", "foto", 2),
         ("https://epicentrk.ua/ua/shop/knopochnye-telefony/", "knopkovi-telefony", 2),
+    )},
+    # Венкон (розвідка 2026-07-21) — одинадцята крамниця, вузька й прицільна: техніка
+    # для дому й сантехніка, без смартфонів і ТВ. Взято не заради обсягу, а заради
+    # ЧОТИРЬОХ полиць третьої хвилі — кондиціонери, бойлери, блендери, мультипечі, —
+    # де в нас лише по три крамниці. Венкон стає четвертою саме там.
+    #
+    # Цінність підтверджена ДО написання конфіга: із 302 артикулів, зібраних з усіх
+    # одинадцяти лістингів, 118 (39%) уже є в нашому каталозі, а частина — у групах
+    # на п'ять крамниць (LG F2Y2NS3WE: Allo, Citrus, Comfy, Foxtrot, Rozetka).
+    #
+    # Пагінація `?page=N` перевірена фактом на кожній категорії окремо, не на одній:
+    # сторінки 2/3/4 віддають різні товари, перетин із першою нульовий — навіть у
+    # малих розділах на 27 позицій. Тому глибина 3 всюди чесна, а не «про запас».
+    #
+    # ⚠ Крамниця розмічає schema.org НЕ ВСІ розділи (див. шапку adapters/vencon.py):
+    # кондиціонери, бойлери, блендери й сушильні мають ті самі картки без жодного
+    # itemprop. Адаптер читає обидві розкладки; якби він умів лише мікродані, ці
+    # чотири розділи мовчки давали б нуль — тобто саме те, заради чого крамницю брали.
+    "Vencon": {"adapter": VenconAdapter(), "page_tpl": "{base}?page={n}",
+               "pages": 3, "urls": (
+        ("https://vencon.ua/catalog/pylesosy", "pylososy"),                    # 47/стор.
+        ("https://vencon.ua/catalog/mikrovolnovye-pechi", "mikrohvylovky"),    # 47/стор.
+        ("https://vencon.ua/catalog/multivarki", "multypechi"),                # 47/стор.
+        ("https://vencon.ua/catalog/blendery", "blendery"),                    # 27/стор.
+        ("https://vencon.ua/catalog/bojlery", "boylery"),                      # 27/стор.
+        ("https://vencon.ua/catalog/protochnye-vodonagrevateli", "boylery", 2),
+        ("https://vencon.ua/catalog/kondicionery-split-sistemy", "kondycionery"),
+        ("https://vencon.ua/catalog/monoblochnye-kondicionery", "kondycionery", 2),
+        ("https://vencon.ua/catalog/stiralnye-mashiny", "pobut-tehnika"),      # 47/стор.
+        ("https://vencon.ua/catalog/posudomoechnye-mashiny", "pobut-tehnika", 2),
+        ("https://vencon.ua/catalog/sushilnye-mashiny", "pobut-tehnika", 2),
     )},
     "KTC": {"adapter": KtcAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
         ("https://ktc.ua/smartphone/", "smartfony"),
