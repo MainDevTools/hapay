@@ -25,6 +25,7 @@ from adapters.brain import BrainAdapter
 from adapters.citrus import CitrusAdapter
 from adapters.comfy import ComfyAdapter
 from adapters.eldorado import EldoradoAdapter
+from adapters.epicentr import EpicentrAdapter
 from adapters.foxtrot import FoxtrotAdapter
 from adapters.ktc import KtcAdapter
 from adapters.moyo import MoyoAdapter
@@ -44,6 +45,10 @@ INGEST_SOURCES: dict[str, dict] = {
     "Citrus":   {"base_url": "https://www.ctrs.com.ua",    "hosts": ("ctrs.com.ua",)},
     "Brain":    {"base_url": "https://brain.com.ua",       "hosts": ("brain.com.ua",)},
     "KTC":      {"base_url": "https://ktc.ua",             "hosts": ("ktc.ua",)},
+    # Епіцентр роздає фото з cdn.27.ua — 27.ua ними поглинута (перевірено: 27.ua віддає
+    # сторінку Епіцентру). Хост картинок у hosts НЕ додаємо: там лише фото, а перевірка
+    # хостів стереже URL ТОВАРУ.
+    "Epicentr": {"base_url": "https://epicentrk.ua",       "hosts": ("epicentrk.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -275,6 +280,53 @@ HTML_SOURCES: dict[str, dict] = {
     )},
     # KTC (розвідка 2026-07-19): SSR-лістинг /smartphone/, 48 карток, 54 SM-коди —
     # S26/A07 перетини з рештою → більше груп «Де купити».
+    # Епіцентр (розвідка 2026-07-21) — десята крамниця й найширша: покриває 19 із 20
+    # наших полиць, від смартфонів до бойлерів. Національна мережа, тож перетини за
+    # артикулом мають бути щільні.
+    #
+    # Екстракція — РОЗМІТКОЮ schema.org, перший тир порядку (§8.4), а не класами:
+    # класи хешовані Nuxt-ом (`_Al-5uY1o`) і міняються з кожним білдом їхнього фронту.
+    # Звірено незалежно: ціни всіх 60 карток збіглися з JSON-LD ItemList до копійки.
+    #
+    # Пагінація — `?PAGEN_1=N` (Bitrix), і це знову перевірено ФАКТОМ: `?page=2` і `?p=2`
+    # віддають 200 і рівно ті самі 60 товарів (перетин зі стор.1 = 60), тобто мовчки
+    # дублювали б першу сторінку — та сама пастка, що вже коштувала нам Allo.
+    # `?PAGEN_1=2/3/5` → по 60 позицій, перетин із першою нульовий.
+    #
+    # Адреси взято з ЇХНЬОЇ Ж МАПИ САЙТУ (sitemap section_000.xml, 3765 розділів), не
+    # вгадано, і кожна перевірена парсингом адаптера — по 60 товарів. Перевірка окупилась
+    # одразу: `/mobilnyye-telefony/` виглядає як лістинг смартфонів, а віддає НУЛЬ позицій
+    # (це хаб); справжній — `/smartfony-i-mobilnye-telefony/`.
+    #
+    # ⚠ Заміряно при розвідці: Епіцентр оголошує знижку майже на все — кондиціонери
+    # 60 з 60, блендери 60 з 60, холодильники 58 з 60, ТВ 57 з 60. Саме такі вітрини
+    # 30-денна формула (§5) і має перевіряти; для детектора це найцінніша крамниця.
+    "Epicentr": {"adapter": EpicentrAdapter(), "page_tpl": "{base}?PAGEN_1={n}",
+                 "pages": 3, "urls": (
+        ("https://epicentrk.ua/ua/shop/smartfony-i-mobilnye-telefony/", "smartfony"),
+        ("https://epicentrk.ua/ua/shop/noutbuki/", "noutbuky"),
+        ("https://epicentrk.ua/ua/shop/televizory/", "tv"),
+        ("https://epicentrk.ua/ua/shop/planshety/", "planshety"),
+        ("https://epicentrk.ua/ua/shop/naushniki/", "audio"),
+        ("https://epicentrk.ua/ua/shop/smart-chasy-i-fitnes-braslety/", "smart-hodynnyky"),
+        ("https://epicentrk.ua/ua/shop/kholodilniki/", "pobut-tehnika"),
+        ("https://epicentrk.ua/ua/shop/stiralnye-mashiny/", "pobut-tehnika", 1),
+        ("https://epicentrk.ua/ua/shop/posudomoechnye-mashiny/", "pobut-tehnika", 1),
+        ("https://epicentrk.ua/ua/shop/sushilnye-mashiny/", "pobut-tehnika", 1),
+        ("https://epicentrk.ua/ua/shop/monitory/", "monitory"),
+        ("https://epicentrk.ua/ua/shop/konditsionery/", "kondycionery"),
+        ("https://epicentrk.ua/ua/shop/marshrutizatory-i-wi-fi-routery/", "routery"),
+        ("https://epicentrk.ua/ua/shop/pylesosy/", "pylososy"),
+        ("https://epicentrk.ua/ua/shop/roboty-pylesosy/", "pylososy", 1),
+        ("https://epicentrk.ua/ua/shop/mikrovolnovye-pechi/", "mikrohvylovky"),
+        ("https://epicentrk.ua/ua/shop/kofevarki/", "kavomashyny"),
+        ("https://epicentrk.ua/ua/shop/multivarki/", "multypechi"),
+        ("https://epicentrk.ua/ua/shop/blendery/", "blendery"),
+        ("https://epicentrk.ua/ua/shop/vodonagrevateli/", "boylery"),
+        ("https://epicentrk.ua/ua/shop/igrovye-pristavki-i-konsoli/", "konsoli", 2),
+        ("https://epicentrk.ua/ua/shop/fotoapparaty/", "foto", 2),
+        ("https://epicentrk.ua/ua/shop/knopochnye-telefony/", "knopkovi-telefony", 2),
+    )},
     "KTC": {"adapter": KtcAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
         ("https://ktc.ua/smartphone/", "smartfony"),
         ("https://ktc.ua/notebook/", "noutbuky"),                                # 48 товарів
