@@ -217,7 +217,7 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
                 if (batch.Count > 0)
                 {
                     _searchWidened = true;
-                    SearchNote = $"У «{SelectedCategory?.Name}» нічого — показуємо з усіх категорій";
+                    SearchNote = $"У категорії «{SelectedCategory?.Name}» нічого — показуємо з усіх категорій";
                 }
             }
 
@@ -229,7 +229,9 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
             if (_page == 0 && SelectedSort?.Key == "cheaper" && batch.Count > 0 && !batch[0].HasCheaper)
                 SearchNote = string.IsNullOrEmpty(cat)
                     ? "Ціни в крамницях однакові — дешевших пропозицій поруч не знайшли"
-                    : $"У «{SelectedCategory?.Name}» ціни в крамницях однакові — дешевшого поруч нема";
+                    // «У категорії «X»», а не «У «X»»: назву не відмінити програмно
+                    // («Коти · Сухий корм»), тож родове слово бере відмінок на себе
+                    : $"У категорії «{SelectedCategory?.Name}» ціни в крамницях однакові — дешевшого поруч нема";
 
             foreach (var d in batch) Items.Add(d);
             _more = batch.Count >= 50;

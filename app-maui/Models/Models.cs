@@ -62,10 +62,24 @@ public class Discount
     [JsonIgnore] public string SubTitle => VariantNote is null ? Store : $"{Store} · {VariantNote}";
 
     /// Відсоток знижки від заявленої старої ціни; null якщо не знижка.
+    ///
+    /// Менше 1% — бейджа НЕ малюємо. Округлення давало «−0%» (знижка 200 ₴ від
+    /// 90 199 ₴), а червоний бейдж «−0%» у застосунку, який ловить накачані знижки,
+    /// б'є по довірі сильніше, ніж його відсутність. Перекреслена стара ціна лишається,
+    /// тож факт руху ціни не ховаємо — ховаємо лише беззмістовне число.
+    /// На проді таких 27 із 4090 активних знижок (найменша — 0.01%).
+    /// Порогів самої ДЕТЕКЦІЇ це не чіпає (інваріант C: під людським рев'ю) — питання
+    /// «чи вважати знижкою 0.01%» лишається відкритим для власника.
     [JsonIgnore]
-    public int? Pct => (OldDeclaredKop is int old && old > CurrentKop)
-        ? (int)Math.Round((1 - (double)CurrentKop / old) * 100)
-        : null;
+    public int? Pct
+    {
+        get
+        {
+            if (OldDeclaredKop is not int old || old <= CurrentKop) return null;
+            var p = (int)Math.Round((1 - (double)CurrentKop / old) * 100);
+            return p >= 1 ? p : null;
+        }
+    }
 
     [JsonIgnore] public bool HasPct => Pct is not null;
     [JsonIgnore] public string PctText => Pct is int p ? $"−{p}%" : "";
