@@ -122,8 +122,12 @@ def test_pagination_scheme_is_per_store():
 def test_source_without_pagination_stays_single_page():
     """Eldorado — пагінація клієнтська: пряме завантаження page=N/ віддає ПЕРШУ сторінку
     (звірено за SKU), тому в нього рівно по одному лістингу на категорію."""
-    listings = ing.source_listings(ing.HTML_SOURCES["Eldorado"])
-    assert len(listings) == 3, listings
+    cfg = ing.HTML_SOURCES["Eldorado"]
+    listings = ing.source_listings(cfg)
+    # суть перевірки — «жодного розгортання сторінок», а не «рівно 3 лістинги»:
+    # інакше кожна нова категорія валить тест, який до неї стосунку не має
+    assert len(listings) == len(cfg["urls"]), listings
+    assert all(p == 1 for _u, _c, p in listings), listings
 
 
 def test_per_url_depth_overrides_source_depth():

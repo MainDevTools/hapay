@@ -118,6 +118,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://comfy.ua/smartfon/", "smartfony"),
         ("https://comfy.ua/notebook/", "noutbuky"),                              # 50 карток
         ("https://comfy.ua/flat-tvs/", "tv"),                                    # 50 карток
+        ("https://comfy.ua/plane-table-computer/", "planshety", 3),              # 50 карток
+        ("https://comfy.ua/nayshniki/", "audio", 3),                             # 50 карток
     )},
     # Rozetka (розвідка 2026-07-19): найбільший маркетплейс, Angular-SSR 60 карток;
     # масові перетини MPN (SM-S942BZKGEUC = Foxtrot S26, SM-A576BZVDEUC = Moyo/Allo A57).
@@ -150,6 +152,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://brain.com.ua/ukr/Smartfoni_zvyazok-c297/", "smartfony", 1),    # департамент
         ("https://brain.com.ua/ukr/category/Noutbuky-c1191/", "noutbuky"),       # 24/стор.
         ("https://brain.com.ua/ukr/category/Televizory-c1098/", "tv"),           # 24/стор., 34 стор.
+        ("https://brain.com.ua/ukr/category/Planshety-c1192/", "planshety", 3),   # 24/стор.
+        ("https://brain.com.ua/ukr/category/Navushnyky_ta_garnitury-c1365-157/", "audio", 3),
     )},
     # Eldorado (розвідка 2026-07-20, у справжньому браузері): SPA + ЛІНИВІ ціни — без
     # прокрутки сторінка віддає товари з НУЛЕМ цін, тому лише mode="render" і лише з
@@ -167,6 +171,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://eldorado.ua/uk/smartphones/c1038946/", "smartfony"),
         ("https://eldorado.ua/uk/notebooks/c1039096/", "noutbuky"),
         ("https://eldorado.ua/uk/led/c1038962/", "tv"),
+        ("https://eldorado.ua/uk/tablet_pc/c1039006/", "planshety"),             # 40 карток
+        ("https://eldorado.ua/uk/headphones/c1038998/", "audio"),                # 40 карток
     )},
     # KTC (розвідка 2026-07-19): SSR-лістинг /smartphone/, 48 карток, 54 SM-коди —
     # S26/A07 перетини з рештою → більше груп «Де купити».
