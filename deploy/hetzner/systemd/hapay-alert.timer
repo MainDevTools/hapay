@@ -1,0 +1,13 @@
+[Unit]
+Description=Хапай — перевірка збору кожні 15 хв
+
+[Timer]
+# Кожні 15 хв. Поріг тиші — 90 хв (qtasks.COLLECT_SILENT_MIN), тож зупинку
+# помітимо максимум за 105 хв, а не «колись уранці».
+OnBootSec=10min
+OnUnitActiveSec=15min
+# Persistent — щоб після перезавантаження сервера перевірка не чекала повний інтервал
+Persistent=true
+
+[Install]
+WantedBy=timers.target

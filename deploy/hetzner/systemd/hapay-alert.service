@@ -1,0 +1,11 @@
+[Unit]
+Description=Хапай — сторож збору (помічає, що колектор замовк)
+After=postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=oneshot
+User=hapay
+WorkingDirectory=/opt/hapay/repo
+EnvironmentFile=/etc/hapay/hapay.env
+ExecStart=/opt/hapay/venv/bin/python scripts/alert_collect.py

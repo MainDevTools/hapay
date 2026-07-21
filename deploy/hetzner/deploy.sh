@@ -36,8 +36,17 @@ cd "$REPO_DIR"
 APPLIED=$(sudo -u "$APP_USER" env DATABASE_URL="$DATABASE_URL" "$VENV/bin/python" -m db.migrate)
 echo "    $APPLIED"
 
-log "4/5 рестарт API"
+log "4/5 рестарт API + сторож збору"
 systemctl restart hapay-api
+
+# Сторож збору (systemd-таймер). Ставимо ТУТ, а не лише в setup.sh: setup виконують
+# раз, а нові юніти мають доїжджати звичайним деплоєм. Ідемпотентно — просто
+# перезаписуємо файли й перезавантажуємо systemd.
+install -m 644 "$REPO_DIR/deploy/hetzner/systemd/hapay-alert.service" /etc/systemd/system/
+install -m 644 "$REPO_DIR/deploy/hetzner/systemd/hapay-alert.timer"   /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now hapay-alert.timer >/dev/null
+echo "    сторож: $(systemctl is-active hapay-alert.timer)"
 
 log "5/5 health-перевірка (локально, повз Caddy)"
 ok=0

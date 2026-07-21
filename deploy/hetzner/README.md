@@ -58,3 +58,22 @@ Postgres 18 ставиться з **PGDG-репозиторію** (Ubuntu 24.04 
 
 **Віднови дамп у порожню базу й порахуй рядки.** Бекап, який жодного разу не
 відновлювали, — не бекап, а надія. Ми вже знаємо, скільки коштує різниця.
+
+## Сторож збору (алерт про зупинку)
+
+`hapay-alert.timer` кожні 15 хв питає `collect_health` і, коли збір мовчить довше за
+поріг (90 хв), надсилає повідомлення — один раз на подію, з нагадуванням раз на 6 год,
+поки триває. Стан живе в таблиці `ops_alert`, тож є й історія падінь.
+
+Працює й БЕЗ каналу: фіксує стан у базі. Щоб отримувати повідомлення в Telegram:
+
+1. створи бота в @BotFather, візьми токен;
+2. `nano /etc/hapay/hapay.env` → додай `BOT_TOKEN=...`;
+3. напиши щось своєму боту в Telegram;
+4. `cd /opt/hapay/repo && sudo -u hapay /opt/hapay/venv/bin/python scripts/alert_collect.py --whoami`
+   → покаже chat_id;
+5. додай `ALERT_TG_CHAT_ID=<id>` у той самий файл;
+6. `systemctl restart hapay-alert.timer`
+
+Перевірити вручну, нічого не надсилаючи:
+`cd /opt/hapay/repo && sudo -u hapay env $(cat /etc/hapay/hapay.env | xargs) /opt/hapay/venv/bin/python scripts/alert_collect.py --dry-run`
