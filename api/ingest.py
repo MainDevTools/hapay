@@ -30,6 +30,7 @@ from adapters.foxtrot import FoxtrotAdapter
 from adapters.ktc import KtcAdapter
 from adapters.moyo import MoyoAdapter
 from adapters.rozetka import RozetkaAdapter
+from adapters.telemart import TelemartAdapter
 from adapters.vencon import VenconAdapter
 from db.store import load_categories, persist_items, upsert_source
 
@@ -58,6 +59,7 @@ INGEST_SOURCES: dict[str, dict] = {
     # хостів стереже URL ТОВАРУ.
     "Epicentr": {"base_url": "https://epicentrk.ua",       "hosts": ("epicentrk.ua",)},
     "Vencon":   {"base_url": "https://vencon.ua",          "hosts": ("vencon.ua",)},
+    "Telemart": {"base_url": "https://telemart.ua",        "hosts": ("telemart.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -366,6 +368,33 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://vencon.ua/catalog/stiralnye-mashiny", "pobut-tehnika"),      # 47/стор.
         ("https://vencon.ua/catalog/posudomoechnye-mashiny", "pobut-tehnika", 2),
         ("https://vencon.ua/catalog/sushilnye-mashiny", "pobut-tehnika", 2),
+    )},
+    # Telemart (розвідка 2026-07-21) — дванадцята крамниця. Розмітки schema.org тут
+    # НЕМАЄ зовсім, тож екстракція йде нижнім тиром порядку (§8.4) — по класах. Це
+    # свідомий компроміс: клас-селектори крихкі, але крамниця того варта.
+    #
+    # Заміряно ДО написання конфіга: 195 артикулів із семи лістингів, 125 (64%) уже в
+    # нашому каталозі — найвищий перетин з усіх доданих (Епіцентр 71% на одній
+    # сторінці, Венкон 39%). Частина позицій одразу входить у групи на дев'ять
+    # крамниць, тобто Telemart робить десяту.
+    #
+    # Окремо цінне: КОНСОЛІ. У нас ця полиця мертва — 7% товарів з артикулом, нуль
+    # груп (див. T17). Telemart називає консолі з кодами моделей, 64% з артикулом.
+    # Не вилікує полицю, але дасть перші справжні порівняння.
+    #
+    # ⚠ `/graphic-tablets/` НЕ беремо, хоч слово «планшети» спокушає: це графічні
+    # планшети для малювання, інший товар. Сплутати легко, а наслідок — хибні групи.
+    #
+    # Пагінація `?page=N` перевірена фактом: стор.2 → 48 інших карток, перетин нульовий.
+    "Telemart": {"adapter": TelemartAdapter(), "page_tpl": "{base}?page={n}",
+                 "pages": 3, "urls": (
+        ("https://telemart.ua/tv/", "tv"),                        # 48/стор., 79% з артикулом
+        ("https://telemart.ua/laptops/", "noutbuky"),             # 48/стор., 97%
+        ("https://telemart.ua/monitors/", "monitory"),            # 48/стор., 75%
+        ("https://telemart.ua/earphones/", "audio"),              # 48/стор., 58%
+        ("https://telemart.ua/wi-fi-routers/", "routery"),        # 48/стор., 39%
+        ("https://telemart.ua/consoles/", "konsoli", 2),          # 17 товарів, 64%
+        ("https://telemart.ua/iphone/", "smartfony", 2),          # 22 товари, 100%
     )},
     "KTC": {"adapter": KtcAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
         ("https://ktc.ua/smartphone/", "smartfony"),
