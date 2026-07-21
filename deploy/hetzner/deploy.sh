@@ -22,9 +22,25 @@ die() { printf '\n\033[1;31mСТОП: %s\033[0m\n' "$*" >&2; exit 1; }
 log "1/5 git pull"
 git config --global --add safe.directory "$REPO_DIR" 2>/dev/null || true
 BEFORE=$(git -C "$REPO_DIR" rev-parse --short HEAD)
+SELF="$REPO_DIR/deploy/hetzner/deploy.sh"
+SELF_BEFORE=$(sha256sum "$SELF" | cut -d' ' -f1)
 git -C "$REPO_DIR" pull --ff-only
 AFTER=$(git -C "$REPO_DIR" rev-parse --short HEAD)
 echo "    $BEFORE → $AFTER"
+
+# ── Деплой мусить уміти оновити САМ СЕБЕ ──────────────────────────────────────────
+# 2026-07-21: у deploy.sh додали встановлення сторожа-таймера, деплой пройшов
+# «успішно» — а таймера не з'явилось. Bash читає скрипт із диска ПО ХОДУ виконання,
+# тож `git pull` підмінив файл, але поточний запуск доїхав на старому тексті. Гірше:
+# зміна довжини файла під час виконання може змусити bash продовжити з випадкового
+# зміщення й виконати сміття.
+#
+# Тому: якщо pull змінив цей файл — перезапускаємо СЕБЕ новим, один раз (прапорець
+# проти нескінченного циклу).
+if [[ "$(sha256sum "$SELF" | cut -d' ' -f1)" != "$SELF_BEFORE" && -z "${DEPLOY_SELF_UPDATED:-}" ]]; then
+    log "deploy.sh оновився — перезапускаю новим"
+    DEPLOY_SELF_UPDATED=1 exec bash "$SELF" "$@"
+fi
 
 log "2/5 оновлення Python-залежностей (якщо requirements змінились)"
 "$VENV/bin/pip" install -q -r "$REPO_DIR/requirements.txt"
