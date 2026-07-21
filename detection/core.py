@@ -31,6 +31,7 @@ class Config:
     min_reference_points: int = 10
     provisional_min_points: int = 4
     declared_ratio_max: float = 5.0
+    min_declared_pct: int = 1        # нижче — не знижка, а шум (рішення власника 2026-07-21)
     campaign_gap_days: int = 7
     announce_confirm_points: int = 2
     exclude_oos_from_window: bool = True
@@ -54,6 +55,12 @@ def declared_pct(current_kop: int, old_kop: int | None, cfg: Config) -> int | No
     if old_kop is None or current_kop <= 0 or old_kop <= current_kop:
         return None
     if old_kop / current_kop > cfg.declared_ratio_max:      # напр. −80%+ на кормі = майже завжди артефакт
+        return None
+    # Нижній поріг: −0,2% це не знижка. Порівнюємо СПРАВЖНІЙ відсоток, ДО округлення —
+    # інакше 0,75% округлилось би до 1% і пролізло б крізь поріг «від 1%». На проді таких
+    # подій було 27 (7 малювали «−0%», 20 — «−1%»); найменша — 0,011%.
+    raw = Decimal(100) * Decimal(old_kop - current_kop) / Decimal(old_kop)
+    if raw < Decimal(cfg.min_declared_pct):
         return None
     return pct(old_kop - current_kop, old_kop)
 

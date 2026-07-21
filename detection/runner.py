@@ -9,8 +9,10 @@ from __future__ import annotations
 from datetime import date
 from detection.core import Config, Point, compute_badge, declared_pct, infer_announce_day
 
+# ПОРЯДОК = порядок полів у detection.core.Config (конструюємо позиційно, Config(*row)).
+# Додаєш колонку — став її і тут, і в Config на ТУ САМУ позицію.
 _CFG_COLS = ("window_days", "min_verified_pct", "min_reference_points", "provisional_min_points",
-             "declared_ratio_max", "campaign_gap_days", "announce_confirm_points",
+             "declared_ratio_max", "min_declared_pct", "campaign_gap_days", "announce_confirm_points",
              "exclude_oos_from_window")
 
 

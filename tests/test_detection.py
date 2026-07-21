@@ -31,6 +31,24 @@ def test_declared_pct_and_sanity():
     assert declared_pct(10000, None, CFG) is None
 
 
+def test_declared_pct_min_threshold():
+    """Нижній поріг (рішення власника: від 1%) — рахується ДО округлення.
+
+    Це головне тут: 0,75% округлюється до 1%, і поріг на ОКРУГЛЕНОМУ значенні
+    пропустив би такий випадок. На проді саме такі складали 20 із 27 підпорогових
+    подій — вони виглядали як чесна «−1%».
+    """
+    assert declared_pct(8999900, 9019900, CFG) is None    # 0,22% — реальний випадок із проду
+    assert declared_pct(99250, 100000, CFG) is None       # 0,75% → округлилось би до 1%
+    assert declared_pct(99000, 100000, CFG) == 1          # рівно 1% — на порозі, лишається
+    assert declared_pct(98500, 100000, CFG) == 2          # 1,5% → ROUND_HALF_UP → 2
+
+    # поріг конфігурований (detection_config, міграція 0012): 0 = старе «будь-яке зниження»
+    assert declared_pct(99250, 100000, Config(min_declared_pct=0)) == 1
+    # і навпаки: підняття порога відсікає більше
+    assert declared_pct(98500, 100000, Config(min_declared_pct=5)) is None
+
+
 # ── §5.3 стани ──
 
 def test_verified_full():
