@@ -184,22 +184,28 @@ def _url_cat(entry):
     return entry[0], entry[1], entry[2]
 
 
-def source_listings(cfg) -> list[tuple[str, str | None]]:
-    """Усі лістинг-URL джерела з категоріями, ВКЛЮЧНО з пагінацією.
+def source_listings(cfg) -> list[tuple[str, str | None, int]]:
+    """Усі лістинг-URL джерела з категоріями й НОМЕРОМ сторінки, включно з пагінацією.
 
     Сторінки 2..N будуються за схемою самої крамниці (`page_tpl`), перевіреною фактом:
     сторінка 2 має віддавати ІНШІ товари (розвідка 2026-07-20 — перетин з 1-ю усюди 0).
     Категорія успадковується від першої сторінки, тож окремо її ніде реєструвати не треба.
     Джерело без `page_tpl` (SPA-крамниці на кшталт Brain) лишається з однією сторінкою.
+
+    Номер сторінки потрібен черзі: глибина визначає, як часто сторінку перезбирати
+    (qtasks.repeat_for_page). Перші сторінки — де з'являються знижки; хвіст майже
+    не рухається, і збирати його так само часто — марна трата єдиної пропускної
+    здатності, якої нам і так бракує (заміряно 2026-07-21: 218 оновлень на добу
+    при 496 потрібних для заявленого циклу 2×/добу).
     """
-    out: list[tuple[str, str | None]] = []
+    out: list[tuple[str, str | None, int]] = []
     tpl, pages = cfg.get("page_tpl"), cfg.get("pages", 1)
     for entry in cfg.get("urls", ()):
         u, c, own = _url_cat(entry)
-        out.append((u, c))
+        out.append((u, c, 1))
         depth = own if own is not None else pages     # поштучна глибина > джерельної
         if tpl and depth > 1:
-            out += [(tpl.format(base=u, n=n), c) for n in range(2, depth + 1)]
+            out += [(tpl.format(base=u, n=n), c, n) for n in range(2, depth + 1)]
     return out
 
 
@@ -207,7 +213,7 @@ def source_listings(cfg) -> list[tuple[str, str | None]]:
 # а не вгадується з product-URL. Hub-лендинги (Allo) тут відсутні → падають на categorize().
 URL_CATEGORY: dict[tuple[str, str], str] = {}
 for _name, _cfg in HTML_SOURCES.items():
-    for _u, _c in source_listings(_cfg):
+    for _u, _c, _p in source_listings(_cfg):
         if _c:
             URL_CATEGORY[(_name, _u)] = _c
 
@@ -381,7 +387,7 @@ def collect_plan() -> list[dict]:
         mode = cfg.get("mode", "fetch")
         if cfg.get("hub"):
             out.append({"source": name, "url": cfg["hub"], "kind": "hub", "mode": mode})
-        for u, _ in source_listings(cfg):               # лістинги + їхня пагінація
+        for u, _c, _p in source_listings(cfg):          # лістинги + їхня пагінація
             out.append({"source": name, "url": u, "kind": "page", "mode": mode})
     return out
 

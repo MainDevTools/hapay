@@ -19,27 +19,54 @@ from api.ingest import COLLECT_MODE, HTML_SOURCES, source_listings
 SOURCE_SPACING_MIN = 15   # розліт запитів по одній крамниці (хв)
 LEASE_TTL_MIN = 10        # протухання оренди (хв)
 HUB_REPEAT_MIN = 720      # хаб (перелік акцій) — 2×/добу
-PAGE_REPEAT_MIN = 720     # лістинг/лендинг — 2×/добу
+
+# ── Періодичність за ГЛИБИНОЮ сторінки ────────────────────────────────────────────
+# Заміряно на проді 2026-07-21: за добу оновлюється 218 задач, а для заявленого циклу
+# 2×/добу потрібно 496 — тобто розклад виконувався на 44%, і так було ЩЕ ДО того, як
+# ми додали Allo. 43 задачі були прострочені понад 12 год. Заявлене число просто не
+# відповідало дійсності, і розрахунки на ньому були б хибні.
+#
+# Замість тиснути на крамниці частішими запитами розводимо періодичність: знижки
+# з'являються на ПЕРШИХ сторінках лістинга, а глибокий хвіст майже не рухається —
+# збирати його так само часто марно. Так найцінніші сторінки почнуть оновлюватись
+# ЧАСТІШЕ, ніж зараз, при тій самій пропускній здатності.
+PAGE_REPEAT_MIN = 720      # сторінки 1..3 — 2×/добу (тут живуть знижки)
+DEEP_REPEAT_MIN = 2160     # сторінки 4+ — раз на 36 год (стабільний хвіст)
+DEEP_PAGE_FROM = 4         # з якої сторінки вважаємо «хвостом»
+
+
 MAX_LEASE = 20            # стеля задач за одну оренду (застосунок просить 3; це лише ceiling)
+
+
+def repeat_for_page(page: int) -> int:
+    """Період перезбору за номером сторінки лістинга (1 — перша)."""
+    return PAGE_REPEAT_MIN if page < DEEP_PAGE_FROM else DEEP_REPEAT_MIN
 
 
 def seed_tasks(conn) -> int:
     """Ідемпотентний сів черги з HTML_SOURCES (сервер — авторитет над списком).
-    Нова крамниця/категорія в HTML_SOURCES → зʼявиться в черзі сама; наявним
-    задачам розклад НЕ скидається (ON CONFLICT DO NOTHING)."""
+    Нова крамниця/категорія в HTML_SOURCES → зʼявиться в черзі сама.
+
+    Повертає к-сть НОВИХ задач. Розклад наявних (`not_before`, `last_done_at`) не
+    чіпаємо — але `repeat_min` оновлюємо: це ПОЛІТИКА, а не поточний стан. Інакше
+    зміна періодичності діяла б лише на задачі, створені після неї, і черга роками
+    жила б за двома різними розкладами. `xmax = 0` відрізняє вставку від оновлення.
+    """
     n = 0
     for source, cfg in HTML_SOURCES.items():
         rows = []
         if cfg.get("hub"):
             rows.append((source, cfg["hub"], "hub", HUB_REPEAT_MIN))
-        for u, _cat in source_listings(cfg):            # лістинги + їхня пагінація
-            rows.append((source, u, "page", PAGE_REPEAT_MIN))
+        for u, _cat, page in source_listings(cfg):      # лістинги + їхня пагінація
+            rows.append((source, u, "page", repeat_for_page(page)))
         for source_, url, kind, rep in rows:
             got = conn.execute(
                 "INSERT INTO collect_task (source, url, kind, repeat_min) "
-                "VALUES (%s,%s,%s,%s) ON CONFLICT (source, url) DO NOTHING RETURNING 1",
+                "VALUES (%s,%s,%s,%s) "
+                "ON CONFLICT (source, url) DO UPDATE SET repeat_min = EXCLUDED.repeat_min "
+                "RETURNING (xmax = 0) AS inserted",
                 (source_, url, kind, rep)).fetchone()
-            n += 1 if got else 0
+            n += 1 if got and got[0] else 0
     return n
 
 

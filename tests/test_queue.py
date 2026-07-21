@@ -34,6 +34,30 @@ def main():
         checks.append((f"сів створює задачі (≥{N_SRC} крамниць HTML_SOURCES)", n1 >= N_SRC, n1))
         checks.append(("повторний сів ідемпотентний (0 нових)", n2 == 0, n2))
 
+        # ── періодичність за глибиною: перші сторінки частіше, хвіст рідше ────────
+        # Заміряно на проді 2026-07-21: рівний розклад вимагав 496 запусків на добу
+        # при фактичних 218 (44%). Розведення знижує потребу до ~249, тобто до 87%.
+        deep = conn.execute(
+            "SELECT count(*) FROM collect_task WHERE repeat_min = %s",
+            (qtasks.DEEP_REPEAT_MIN,)).fetchone()[0]
+        shallow = conn.execute(
+            "SELECT count(*) FROM collect_task WHERE repeat_min = %s",
+            (qtasks.PAGE_REPEAT_MIN,)).fetchone()[0]
+        checks.append(("глибокі сторінки мають рідший розклад", deep > 0, deep))
+        checks.append(("перші сторінки лишились частими", shallow > 0, shallow))
+        checks.append(("сторінка 1 — частий розклад, 10 — рідкий",
+                       qtasks.repeat_for_page(1) == qtasks.PAGE_REPEAT_MIN
+                       and qtasks.repeat_for_page(10) == qtasks.DEEP_REPEAT_MIN,
+                       (qtasks.repeat_for_page(1), qtasks.repeat_for_page(10))))
+
+        # ПОЛІТИКА застосовується й до ВЖЕ наявних задач: інакше зміна періодичності
+        # діяла б лише на нові, і черга жила б за двома розкладами водночас.
+        conn.execute("UPDATE collect_task SET repeat_min = 999 WHERE repeat_min = %s",
+                     (qtasks.DEEP_REPEAT_MIN,))
+        qtasks.seed_tasks(conn)
+        stale = conn.execute("SELECT count(*) FROM collect_task WHERE repeat_min = 999").fetchone()[0]
+        checks.append(("сів виправляє розклад наявних задач", stale == 0, stale))
+
         # друга задача Allo — щоб розліт було ВИДНО (вільна задача source ≠ доступна)
         conn.execute("INSERT INTO collect_task (source, url, kind) VALUES "
                      "('Allo', 'https://allo.ua/ua/events-and-discounts/extra-action/', 'page')")

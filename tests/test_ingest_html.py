@@ -102,16 +102,16 @@ def test_pagination_expands_and_inherits_category():
     """Сторінки 2..N будуються за схемою крамниці й УСПАДКОВУЮТЬ категорію першої —
     інакше товари з 2-ї сторінки тихо падали б у «Інше»."""
     listings = ing.source_listings(ing.HTML_SOURCES["Rozetka"])
-    tv = [u for u, c in listings if c == "tv"]
+    tv = [u for u, c, _p in listings if c == "tv"]
     assert tv[0] == "https://rozetka.com.ua/ua/all-tv/c80037/"
     assert "https://rozetka.com.ua/ua/all-tv/c80037/page=2/" in tv
     assert len(tv) == ing.HTML_SOURCES["Rozetka"]["pages"], tv
-    assert all(c in ("smartfony", "noutbuky", "tv") for _u, c in listings)
+    assert all(c in ("smartfony", "noutbuky", "tv") for _u, c, _p in listings)
 
 
 def test_pagination_scheme_is_per_store():
     """Схеми різні (?page= / ?p= / page=N/) — беруться з конфігу крамниці, не вгадуються."""
-    comfy = [u for u, c in ing.source_listings(ing.HTML_SOURCES["Comfy"]) if c == "smartfony"]
+    comfy = [u for u, c, _p in ing.source_listings(ing.HTML_SOURCES["Comfy"]) if c == "smartfony"]
     assert "https://comfy.ua/smartfon/?p=2" in comfy
 
 
@@ -126,8 +126,8 @@ def test_per_url_depth_overrides_source_depth():
     """У Brain адреси `/ukr/category/…` пагінуються, а старий департамент
     `Smartfoni_zvyazok-c297` — ні. Тому глибина задається поштучно."""
     listings = ing.source_listings(ing.HTML_SOURCES["Brain"])
-    smart = [u for u, c in listings if c == "smartfony"]
-    tv = [u for u, c in listings if c == "tv"]
+    smart = [u for u, c, _p in listings if c == "smartfony"]
+    tv = [u for u, c, _p in listings if c == "tv"]
     assert len(smart) == 1, smart                     # департамент — без сторінок
     assert len(tv) == ing.HTML_SOURCES["Brain"]["pages"], tv
     assert "https://brain.com.ua/ukr/category/Televizory-c1098/page=2/" in tv
@@ -137,7 +137,7 @@ def test_paginated_urls_are_registered_for_category():
     """Кожна згенерована сторінка мусить бути в URL_CATEGORY — саме звідти
     `ingest_html` бере категорію для персисту."""
     for name, cfg in ing.HTML_SOURCES.items():
-        for u, c in ing.source_listings(cfg):
+        for u, c, _p in ing.source_listings(cfg):
             if c:
                 assert ing.URL_CATEGORY.get((name, u)) == c, (name, u)
 
