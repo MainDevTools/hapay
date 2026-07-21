@@ -553,6 +553,26 @@ def main():
     checks.append(("товар без MPN → бейджа нема",
                    len(rl) >= 1 and all(d.get("cheaper_kop") is None for d in rl), rl))
 
+    # ── уцінка не представляє групу, поки в ній є чиста пропозиція ────────────────
+    # Пастка навмисна: уцінений ДЕШЕВШИЙ і ще й зі знижкою, тобто за старим порядком
+    # («знижкова пріоритетно, тоді найдешевша») він гарантовано очолив би картку — і
+    # віддав би їй свою назву, фото й ціну. Так на проді «УЦІНКА Телевізор LG
+    # 50UA75006LA — від 16 999 ₴» представляла групу, де 8 крамниць продають новий.
+    client.post("/api/ingest", headers=ing_tok, json={"source": "Rozetka", "items": [
+        {"external_ref": "/ua/used-rep/p1", "url": "https://rozetka.com.ua/ua/used-rep/p1/",
+         "title": "УЦІНКА Ноутбук USEDREP Test (SM-USEDREPTEST)",
+         "price_now_kop": 1000000, "price_old_kop": 2000000}]})
+    client.post("/api/ingest", headers=ing_tok, json={"source": "Foxtrot", "items": [
+        {"external_ref": "/ua/shop/used-rep.html",
+         "url": "https://www.foxtrot.com.ua/ua/shop/used-rep.html",
+         "title": "Ноутбук USEDREP Test (SM-USEDREPTEST)", "price_now_kop": 1500000}]})
+    rep = client.get("/api/products?q=USEDREPTEST").json()
+    checks.append(("групу представляє чиста пропозиція, не уцінена",
+                   len(rep) == 1 and rep[0]["store"] == "Foxtrot"
+                   and "УЦІНКА" not in rep[0]["title"], rep))
+    checks.append(("ціна картки — за новий товар, не за уцінений",
+                   len(rep) == 1 and rep[0]["current_kop"] == 1500000, rep))
+
     # ── фото плитки категорії: обличчям не може бути уцінка/комплект ──────────────
     # Знижка −89% навмисне найбільша в базі: за СТАРИМ правилом («найбільша знижка»)
     # саме вона очолила б плитку. Так 2026-07-21 і сталось на проді — категорію

@@ -221,7 +221,12 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
                    source_id, first_seen_at, current_kop, old_declared_kop, declared_pct,
                    verified_pct, badge_state, discount_event_id, shown_pct
             FROM ev {narrow_sql}
-            ORDER BY gkey, (discount_event_id IS NOT NULL) DESC, current_kop
+            -- `used` ПЕРШИМ: уцінене/відновлене не може представляти групу, поки в ній
+            -- є чиста пропозиція. Інакше картка бере в уціненого і назву, і фото, і ціну:
+            -- на проді «УЦІНКА Телевізор LG 50UA75006LA — від 16 999 ₴» очолювала групу,
+            -- де ВІСІМ крамниць продають новий (заміряно 2026-07-21: таких груп 10).
+            -- Якщо чистих у групі нема — уцінене лишається представником, товар реальний.
+            ORDER BY gkey, used, (discount_event_id IS NOT NULL) DESC, current_kop
         )
         SELECT b.store_product_id, b.title, b.url, b.image_url, b.variant_note, b.store,
                b.current_kop, b.old_declared_kop, b.declared_pct, b.verified_pct, b.badge_state,
