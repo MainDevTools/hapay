@@ -132,10 +132,15 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
     {
         get
         {
-            if (Offers.Count >= 1)
+            // Уцінене з діапазону ВИКЛЮЧАЄМО: діапазон описує ринок нового товару, і
+            // ціна відкритої коробки занижувала б його нижню межу. Якщо ЧИСТИХ немає
+            // взагалі — беремо всі, бо тоді інших цін на цей товар у нас просто нема.
+            var src = Offers.Where(o => !o.IsUsed).ToList();
+            if (src.Count == 0) src = Offers.ToList();
+            if (src.Count >= 1)
             {
-                var min = Offers.Min(o => o.CurrentKop);
-                var max = Offers.Max(o => o.CurrentKop);
+                var min = src.Min(o => o.CurrentKop);
+                var max = src.Max(o => o.CurrentKop);
                 return min == max ? Money.Grn(min) : $"{Money.Grn(min)} – {Money.Grn(max)}";
             }
             return Item?.CurrentGrn ?? "—";

@@ -118,10 +118,16 @@ _PSORTS = {
                  "b.declared_pct DESC NULLS LAST",
 }
 
-# Уцінка / відновлене — ІНШИЙ стан товару, не «те саме дешевше». Такі пропозиції
-# не можуть бути підставою для «дешевше в іншій крамниці»: заміряно на живих даних
-# (2026-07-21) — Citrus «УЦІНКА Телевізор LG 43NANO81A6A» на 2 000 ₴ дешевший за
-# новий у Foxtrot, і без цього запобіжника бейдж подав би це як ту саму річ.
+# Уцінка / відновлене — ІНШИЙ СТАН товару, не «те саме дешевше».
+#
+# ЄДИНЕ джерело цього правила: воно знадобилось уже в пʼятьох місцях — бейдж «дешевше
+# в іншій крамниці», сигнал «знижка нічого не дає», фото плитки категорії, вибір
+# представника групи і «Де купити». Доти жило у двох константах, які неминуче
+# розійшлись би. Міняти стан речі → міняти ТУТ.
+#
+# Заміряно на живих даних 2026-07-21, чому це не дрібниця: груп, де поруч є уцінений
+# і чистий товар — 10, і у 8 із них уцінений НАЙДЕШЕВШИЙ. Без поділу він щоразу
+# ставав би «найкращою ціною».
 _USED_RE = r'уцінк|уценк|відновлен|восстановлен|refurbish'
 
 # ── «Знижка нічого не дає»: пороги (рішення власника 2026-07-21, інваріант C) ──────
@@ -292,7 +298,8 @@ def product_offers(conn, store_product_id: int):
     """
     sql = """
         WITH grp AS (
-            SELECT sp.store_product_id, sp.source_id, sp.title, sp.url, s.name AS store
+            SELECT sp.store_product_id, sp.source_id, sp.title, sp.url, s.name AS store,
+                   (sp.title ~* %s) AS is_used
             FROM store_product sp
             JOIN source s USING (source_id)
             WHERE sp.mpn IS NOT NULL
@@ -307,26 +314,33 @@ def product_offers(conn, store_product_id: int):
             ORDER BY ps.store_product_id, ps.seen_at DESC
         ),
         joined AS (
-            SELECT g.source_id, g.store_product_id, g.store, g.title, g.url,
+            SELECT g.source_id, g.store_product_id, g.store, g.title, g.url, g.is_used,
                    lp.price_now_kop AS current_kop, lp.price_old_kop AS old_declared_kop,
                    lp.in_stock, lp.seen_day
             FROM grp g JOIN last_price lp USING (store_product_id)
         ),
-        per_store AS (   -- одна найдешевша (та в наявності пріоритетно) пропозиція на крамницю
+        per_store AS (   -- одна пропозиція на крамницю: в наявності → ЧИСТА → найдешевша
+            -- `is_used` перед ціною свідомо: якщо крамниця продає і новий, і уцінений,
+            -- порівнювати треба новий — інакше її «ціна» в списку виявиться ціною
+            -- відкритої коробки, і порівняння перестає бути однорідним.
             SELECT DISTINCT ON (source_id) store_product_id, store, title, url,
-                   current_kop, old_declared_kop, in_stock, seen_day
+                   current_kop, old_declared_kop, in_stock, seen_day, is_used
             FROM joined
-            ORDER BY source_id, in_stock DESC, current_kop
+            ORDER BY source_id, in_stock DESC, is_used, current_kop
         )
-        SELECT store_product_id, store, title, url, current_kop, old_declared_kop, in_stock, seen_day
+        SELECT store_product_id, store, title, url, current_kop, old_declared_kop,
+               in_stock, seen_day, is_used
+        -- Сортуємо за ціною, а уцінене НЕ ховаємо: пропозиція справжня й купувана,
+        -- людина має право її бачити. Але мусить знати, що це інший стан, — тому
+        -- прапорець їде на клієнт і малюється позначкою.
         FROM per_store ORDER BY current_kop, store"""
     with conn.cursor(row_factory=dict_row) as cur:
-        return cur.execute(sql, (store_product_id,)).fetchall()
+        return cur.execute(sql, (_USED_RE, store_product_id)).fetchall()
 
 
 # Товари, які не можуть бути обличчям категорії: інший стан (уцінка/відновлене) або
 # взагалі не той товар (комплект/набір — у нього спільний артикул із самим ТВ).
-_TILE_SKIP_RE = r'уцінк|уценк|відновлен|восстановлен|refurbish|комплект|набір|набор'
+_TILE_SKIP_RE = _USED_RE + r'|комплект|набір|набор'
 
 # Перевага за розміром фото. Заміряно 2026-07-21 (по одному ТВ-фото з кожної крамниці):
 #   Comfy 1307x880 · Brain 700x700 · Rozetka 400x264 · Foxtrot 220x220 · Moyo 200x128

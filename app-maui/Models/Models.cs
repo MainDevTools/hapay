@@ -188,17 +188,35 @@ public class Offer
     [JsonPropertyName("old_declared_kop")] public int? OldDeclaredKop { get; set; }
     [JsonPropertyName("in_stock")] public bool InStock { get; set; } = true;
     [JsonPropertyName("seen_day")] public string? SeenDay { get; set; }
+    // уцінене/відновлене — ІНШИЙ стан товару (правило одне на сервері, api/db.py)
+    [JsonPropertyName("is_used")] public bool IsUsed { get; set; }
 
     [JsonIgnore] public string CurrentGrn => Money.Grn(CurrentKop);
     [JsonIgnore] public double Opacity => InStock ? 1.0 : 0.45;   // «немає» — приглушено
 
+    /// Уцінене НЕ ховаємо — пропозиція справжня й купувана. Але людина мусить знати,
+    /// що це інший стан речі: без позначки вона читає найдешевший рядок як «найкращу
+    /// ціну». Заміряно 2026-07-21: із 10 груп, де поруч є уцінений і чистий товар,
+    /// у 8 уцінений НАЙДЕШЕВШИЙ, тобто стояв би першим.
+    [JsonIgnore] public string UsedLabel => "уцінка";
+
     // ціна крамниці — як згори картки: поточна + перекреслена стара + −% (якщо є знижка)
     [JsonIgnore] public string OldGrn => Money.Grn(OldDeclaredKop);
     [JsonIgnore] public bool HasOld => OldDeclaredKop is int old && old > CurrentKop;
+    /// Той самий поріг і те саме округлення, що в Discount.Pct — інакше та сама знижка
+    /// показувалась би по-різному в стрічці й у списку крамниць. Тут це лишалось зі
+    /// старою логікою (банкірське округлення, без порога), тобто «−0%» був можливий.
     [JsonIgnore]
-    public int? Pct => (OldDeclaredKop is int old && old > CurrentKop)
-        ? (int)Math.Round((1 - (double)CurrentKop / old) * 100)
-        : null;
+    public int? Pct
+    {
+        get
+        {
+            if (OldDeclaredKop is not int old || old <= CurrentKop) return null;
+            var raw = (1 - (double)CurrentKop / old) * 100;
+            if (raw < 1) return null;
+            return (int)Math.Round(raw, MidpointRounding.AwayFromZero);
+        }
+    }
     [JsonIgnore] public bool HasPct => Pct is not null;
     [JsonIgnore] public string PctText => Pct is int p ? $"−{p}%" : "";
 }

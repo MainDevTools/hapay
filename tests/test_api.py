@@ -553,6 +553,35 @@ def main():
     checks.append(("товар без MPN → бейджа нема",
                    len(rl) >= 1 and all(d.get("cheaper_kop") is None for d in rl), rl))
 
+    # ── «Де купити»: уцінка позначена і не підміняє чисту ціну крамниці ───────────
+    # Заміряно на проді 2026-07-21: із 10 груп, де поруч є уцінений і чистий товар,
+    # у 8 уцінений НАЙДЕШЕВШИЙ — тобто без поділу він щоразу ставав би першим рядком
+    # і читався як «найкраща ціна».
+    client.post("/api/ingest", headers=ing_tok, json={"source": "Rozetka", "items": [
+        {"external_ref": "/ua/off-clean/p1", "url": "https://rozetka.com.ua/ua/off-clean/p1/",
+         "title": "Ноутбук OFFTEST Pro (SM-OFFTESTPRO)", "price_now_kop": 3000000}]})
+    # ТА САМА крамниця має і уцінений, дешевший — у списку має лишитись ЧИСТИЙ
+    client.post("/api/ingest", headers=ing_tok, json={"source": "Rozetka", "items": [
+        {"external_ref": "/ua/off-used/p2", "url": "https://rozetka.com.ua/ua/off-used/p2/",
+         "title": "УЦІНКА Ноутбук OFFTEST Pro (SM-OFFTESTPRO)", "price_now_kop": 2000000}]})
+    # інша крамниця, де є ЛИШЕ уцінений — має бути видно, але з прапорцем
+    client.post("/api/ingest", headers=ing_tok, json={"source": "Foxtrot", "items": [
+        {"external_ref": "/ua/shop/off-used-only.html",
+         "url": "https://www.foxtrot.com.ua/ua/shop/off-used-only.html",
+         "title": "УЦІНКА Ноутбук OFFTEST Pro (SM-OFFTESTPRO)", "price_now_kop": 2500000}]})
+
+    off_card = client.get("/api/products?q=OFFTESTPRO").json()
+    checks.append(("картку веде чиста пропозиція",
+                   len(off_card) == 1 and "УЦІНКА" not in off_card[0]["title"], off_card))
+    offs = client.get(f"/api/product/{off_card[0]['store_product_id']}/offers").json()
+    rz = next((o for o in offs if o["store"] == "Rozetka"), None)
+    fx = next((o for o in offs if o["store"] == "Foxtrot"), None)
+    checks.append(("крамниця з обома показує ЧИСТУ ціну, не уцінену",
+                   rz is not None and rz["current_kop"] == 3000000 and rz["is_used"] is False, rz))
+    checks.append(("крамниця лише з уціненим — видно, але позначено",
+                   fx is not None and fx["is_used"] is True, fx))
+    checks.append(("уцінене не ховаємо: обидві крамниці в списку", len(offs) == 2, offs))
+
     # ── уцінка не представляє групу, поки в ній є чиста пропозиція ────────────────
     # Пастка навмисна: уцінений ДЕШЕВШИЙ і ще й зі знижкою, тобто за старим порядком
     # («знижкова пріоритетно, тоді найдешевша») він гарантовано очолив би картку — і

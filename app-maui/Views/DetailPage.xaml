@@ -77,9 +77,17 @@
                                         CommandParameter="{Binding .}" />
                                 </Border.GestureRecognizers>
                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                                    <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
+                                    <VerticalStackLayout Grid.Column="0" Spacing="3" VerticalOptions="Center">
                                         <Label Text="{Binding Store}" Style="{StaticResource Body}"
                                                FontAttributes="Bold" />
+                                        <!-- Уцінене не ховаємо, але й не даємо прочитати його
+                                             як «найкращу ціну»: без позначки найдешевший рядок
+                                             виглядає звичайною пропозицією. -->
+                                        <Border IsVisible="{Binding IsUsed}" HorizontalOptions="Start"
+                                                Style="{StaticResource PillWarn}" Padding="6,2">
+                                            <Label Text="{Binding UsedLabel}" FontSize="10" FontAttributes="Bold"
+                                                   TextColor="{AppThemeBinding Light={StaticResource WarnFgLight}, Dark={StaticResource WarnFgDark}}" />
+                                        </Border>
                                         <Label Text="Немає в наявності" Style="{StaticResource Caption}"
                                                FontSize="11"
                                                IsVisible="{Binding InStock, Converter={StaticResource Invert}}" />
