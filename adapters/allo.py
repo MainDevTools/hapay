@@ -44,11 +44,18 @@ class AlloAdapter:
         seen: set[str] = set()
 
         for card in tree.css("div.product-card"):
-            a = card.css_first('a[href*="/ua/products/"]')
-            if a is None:
-                continue
-            url = (a.attributes.get("href") or "").split("?")[0]
-            if not url.endswith(".html"):
+            # Посилання на товар. Раніше вимагали саме `/ua/products/` — і через це
+            # категорія телевізорів давала НУЛЬ: Allo лінкує там товари як
+            # `/ua/televizory/<назва>.html` (заміряно 2026-07-21: 280 таких лінків на
+            # сторінці, а адаптер брав 0). Усередині product-card будь-яке посилання
+            # на `.html` — це і є товар, тож звужувати шлях не треба.
+            url = ""
+            for a in card.css("a[href]"):
+                href = (a.attributes.get("href") or "").split("?")[0]
+                if href.endswith(".html") and "/ua/" in href:
+                    url = href
+                    break
+            if not url:
                 continue
 
             title_node = card.css_first(".product-card__title")

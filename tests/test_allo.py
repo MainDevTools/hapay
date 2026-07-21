@@ -90,6 +90,29 @@ def test_card_without_price_skipped():
     assert AlloAdapter().extract(fake) == []
 
 
+def test_category_listing_tv_parses():
+    """Лістинг категорії, а не акційний лендинг: інша форма посилання на товар.
+
+    Регресія 2026-07-21: адаптер вимагав `/ua/products/` у href — і категорія
+    телевізорів давала НУЛЬ товарів, бо Allo лінкує їх як `/ua/televizory/<назва>.html`.
+    Джерело виглядало справним (задачі ok, збоїв нема), просто нічого не приносило.
+    Касета — 3 перші картки з живої сторінки, обрізані щоб не тягти 2.8 МБ у репо.
+    """
+    items = AlloAdapter().extract(_read("allo_tv_listing.html"))
+    assert len(items) == 3, len(items)
+    assert all("/ua/televizory/" in i.url for i in items), [i.url for i in items]
+    assert all(i.title.startswith("Телевізор") for i in items), [i.title for i in items]
+    # ціни — цілі копійки (інваріант A), не float
+    assert all(isinstance(i.price_now_kop, int) and i.price_now_kop > 0 for i in items)
+    assert items[0].price_now_kop == 1699900, items[0].price_now_kop
+
+
+def test_listing_and_landing_share_one_adapter():
+    """Розширення селектора не зламало акційні лендинги — обидві форми живі."""
+    assert len(_items()) > 0
+    assert len(AlloAdapter().extract(_read("allo_tv_listing.html"))) > 0
+
+
 def _main():
     fns = [v for k, v in sorted(globals().items())
            if k.startswith("test_") and callable(v) and getattr(v, "__module__", None) == __name__]
