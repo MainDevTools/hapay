@@ -513,6 +513,29 @@ def main():
     checks.append(("health рахує хвилини тиші (≈300)",
                    280 <= (h2.get("silent_min") or 0) <= 320, h2.get("silent_min")))
 
+    # ── найпідступніший стан: телефон ЖИВИЙ і бере роботу, але кожен запит падає ──
+    # Сталось 2026-07-21 о 16:20: колектор прокинувся, взяв по задачі на кожну з
+    # восьми крамниць, усі вісім упали з «Connection failure» — а показник звітував
+    # «Збір працює · останній 2 хв тому», бо міряв БУДЬ-ЯКУ активність. Свіжих цін не
+    # з'явилось жодної. Показник, який світиться зеленим саме тоді, коли все зламано,
+    # гірший за відсутній: на нього покладаються.
+    # Беремо задачі, які ще не мали успіху, щоб не затерти «ok»-рядки з попередньої
+    # перевірки — свіжість мусить лишитись порахованою від них (≈300 хв).
+    with psycopg.connect(URL, autocommit=True) as c:
+        c.execute("UPDATE collect_task SET last_done_at = now(), "
+                  "last_status = 'fail:Connection failure' "
+                  "WHERE task_id IN (SELECT task_id FROM collect_task "
+                  "                  WHERE last_status IS DISTINCT FROM 'ok' LIMIT 3)")
+    h3 = client.get("/api/collect/health", headers=chdr).json()
+    checks.append(("health: спроби є, успіхів нема → not ok + «запити падають»",
+                   h3.get("ok") is False and "падають" in (h3.get("note") or "")
+                   and h3.get("fails_1h", 0) >= 3, h3))
+    checks.append(("health: свіжість — від УСПІШНОГО збору, а не від останньої спроби",
+                   280 <= (h3.get("silent_min") or 0) <= 320, h3.get("silent_min")))
+    checks.append(("health: спроба видима окремо від успіху (last_try_at)",
+                   h3.get("last_try_at") is not None
+                   and h3.get("last_try_at") != h3.get("last_done_at"), h3))
+
     qs = client.get("/api/collect/queue", headers=chdr).json()
     checks.append(("collect/queue: зріз по крамницях",
                    {s["source"] for s in qs.get("sources", [])} >= {"Allo", "Foxtrot", "Moyo"},

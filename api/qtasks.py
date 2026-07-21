@@ -221,35 +221,64 @@ def collect_health(conn) -> dict:
     тим часом показував учорашні ціни як поточні — тобто рівно те, за що ми критикуємо
     крамниці.
 
+    ⚠ МІРЯЄМО УСПІШНИЙ ЗБІР, А НЕ АКТИВНІСТЬ. Спершу тут стояло `max(last_done_at)`
+    без огляду на статус — а невдала спроба теж проставляє `last_done_at`. Наслідок
+    побачили 2026-07-21 о 16:20: телефон прокинувся, взяв по задачі на кожну з восьми
+    крамниць, УСІ вісім упали з «Connection failure» — і показник бадьоро звітував
+    «Збір працює · останній 2 хв тому». Свіжих цін не з'явилось жодної.
+    Це найгірший різновид показника: він світиться зеленим саме тоді, коли все зламано.
+
+    Тому свіжість рахуємо від останнього збору зі `last_status='ok'`, а спроби
+    лишаємо окремо (`last_try_at`) — вони розрізняють два різні стани, яким
+    потрібні різні дії:
+        колектор мовчить            → телефон спить/помер, буди пристрій;
+        колектор пробує, все падає  → мережа є до нас, але не до крамниць.
+
     ОБЕРЕЖНО з `tasks_done_*`: це к-сть ЗАДАЧ, яких торкались у вікні, а не к-сть
     ЗАПУСКІВ. Стеля дорівнює розміру черги, бо в рядку зберігається лише останній
     збір. Я вже раз сплутав це і зробив хибний висновок про пропускну здатність.
     """
+    ok_only = "last_status = 'ok'"
     with conn.cursor(row_factory=dict_row) as cur:
         row = cur.execute(
-            """SELECT max(last_done_at) AS last_done_at,
-                      round(EXTRACT(epoch FROM now() - max(last_done_at)) / 60)::int
-                          AS silent_min,
-                      count(*) FILTER (WHERE last_done_at > now() - interval '1 hour')
-                          AS tasks_done_1h,
-                      count(*) FILTER (WHERE last_done_at > now() - interval '24 hours')
-                          AS tasks_done_24h,
-                      count(*) AS tasks_total,
-                      count(*) FILTER (WHERE fail_count > 0) AS failing,
-                      -- «дозріла давно й досі не зібрана» — ознака, що черга не встигає
-                      count(*) FILTER (WHERE not_before < now() - interval '6 hours'
-                                        AND (leased_until IS NULL OR leased_until < now()))
-                          AS overdue
-               FROM collect_task""").fetchone()
+            f"""SELECT max(last_done_at) FILTER (WHERE {ok_only}) AS last_done_at,
+                       max(last_done_at)                          AS last_try_at,
+                       round(EXTRACT(epoch FROM
+                             now() - max(last_done_at) FILTER (WHERE {ok_only})) / 60)::int
+                           AS silent_min,
+                       count(*) FILTER (WHERE {ok_only}
+                                         AND last_done_at > now() - interval '1 hour')
+                           AS tasks_done_1h,
+                       count(*) FILTER (WHERE {ok_only}
+                                         AND last_done_at > now() - interval '24 hours')
+                           AS tasks_done_24h,
+                       -- starts_with, а не LIKE із шаблоном: так у тексті запиту немає
+                       -- жодного знака відсотка. psycopg сканує на плейсхолдери ВЕСЬ
+                       -- запит, і «блукаючий» відсоток уже валив нам CI — див.
+                       -- tests/test_sqlsafe.py (цей коментар ловився ним же).
+                       count(*) FILTER (WHERE starts_with(last_status, 'fail')
+                                         AND last_done_at > now() - interval '1 hour')
+                           AS fails_1h,
+                       count(*) AS tasks_total,
+                       count(*) FILTER (WHERE fail_count > 0) AS failing,
+                       -- «дозріла давно й досі не зібрана» — ознака, що черга не встигає
+                       count(*) FILTER (WHERE not_before < now() - interval '6 hours'
+                                         AND (leased_until IS NULL OR leased_until < now()))
+                           AS overdue
+                FROM collect_task""").fetchone()
     silent = row["silent_min"]
     row["ok"] = silent is not None and silent <= COLLECT_SILENT_MIN
     row["silent_limit_min"] = COLLECT_SILENT_MIN
     if silent is None:
         row["note"] = "Збір ще не запускався"
-    elif not row["ok"]:
-        row["note"] = f"Збір мовчить {silent} хв — перевір колектор"
-    else:
+    elif row["ok"]:
         row["note"] = f"Збір працює · останній {silent} хв тому"
+    elif row["fails_1h"]:
+        # найпідступніший стан: пристрій живий і бере роботу, але жодної свіжої ціни
+        row["note"] = (f"Колектор працює, але запити падають — {row['fails_1h']} збоїв "
+                       f"за годину, свіжого збору {silent} хв")
+    else:
+        row["note"] = f"Збір мовчить {silent} хв — перевір колектор"
     return row
 
 

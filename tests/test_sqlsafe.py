@@ -64,6 +64,13 @@ def test_list_products_no_stray_percent():
         _check(_sql_of(db.list_products, **kw), f"list_products({kw})")
 
 
+def test_collect_health_no_stray_percent():
+    """collect_health збирається f-рядком (умова `ok` повторюється п'ять разів), тож
+    саме там найлегше занести «%» непомітно — f-рядок його не екранує."""
+    from api import qtasks
+    _check(_sql_of(qtasks.collect_health), "collect_health")
+
+
 def test_other_builders_no_stray_percent():
     for fn, a, kw in ((db.list_discounts, (), {}),
                       (db.list_discounts, (), {"q": "acer", "category": "tv"}),
