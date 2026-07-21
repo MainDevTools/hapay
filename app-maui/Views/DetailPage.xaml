@@ -45,6 +45,15 @@
                 </Border>
             </HorizontalStackLayout>
 
+            <!-- «Знижка нічого не дає» — на картці особливо доречно: одразу під нею блок
+                 «Де купити» показує ті самі крамниці з тією самою ціною, тож людина
+                 бачить не наше твердження, а докази. -->
+            <Border IsVisible="{Binding Item.HasSamePrice}" HorizontalOptions="Start"
+                    Style="{StaticResource PillWarn}" Padding="10,6">
+                <Label Text="{Binding Item.SamePriceText}" FontSize="13" FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light={StaticResource WarnFgLight}, Dark={StaticResource WarnFgDark}}" />
+            </Border>
+
             <Label Text="Історія ціни" Style="{StaticResource H2}" Margin="0,12,0,0" />
             <ActivityIndicator IsRunning="{Binding LoadingHistory}" IsVisible="{Binding LoadingHistory}"
                                HorizontalOptions="Start" />

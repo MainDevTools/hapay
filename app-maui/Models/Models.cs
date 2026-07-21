@@ -45,6 +45,9 @@ public class Discount
     // той самий товар ДЕШЕВШЕ в іншій крамниці (сервер уже відсіяв уцінене/відновлене)
     [JsonPropertyName("cheaper_kop")] public int? CheaperKop { get; set; }
     [JsonPropertyName("cheaper_store")] public string? CheaperStore { get; set; }
+    // скільки ІНШИХ крамниць тримають ту саму ціну, не заявляючи знижки (правило й
+    // пороги — на сервері, list_products; null = не спрацювало)
+    [JsonPropertyName("same_price_n")] public int? SamePriceN { get; set; }
 
     // --- похідні для XAML-байндингу ---
     [JsonIgnore] public bool HasMultiStores => OffersN > 1;
@@ -98,6 +101,18 @@ public class Discount
                                            && !string.IsNullOrEmpty(CheaperStore);
     [JsonIgnore] public string CheaperText =>
         CheaperKop is int c ? $"Дешевше в {CheaperStore} на {Money.Grn(CurrentKop - c)}" : "";
+
+    /// «У 3 інших крамницях така сама ціна — без знижки».
+    ///
+    /// Гучна знижка, яка не дає кращої ціни за ринок. Це НЕ статутний `pumped` (§5):
+    /// той рахується з історії цін самої крамниці за 30 днів. Тут доказ інший —
+    /// ціни конкурентів зараз, — тому кажемо ФАКТ, а не вирок (рішення власника).
+    /// Взаємовиключне з CheaperText за побудовою: сервер вмикає лише коли дешевших нема.
+    /// Заміряно 2026-07-21: 20 карток; найгучніша — Moyo, ASUS Vivobook Pro 15,
+    /// «−56%» від 199 999 ₴ при 87 999 ₴ у трьох крамницях без жодної акції.
+    [JsonIgnore] public bool HasSamePrice => SamePriceN is int n && n > 0;
+    [JsonIgnore] public string SamePriceText =>
+        $"У {SamePriceN} інших крамницях така сама ціна — без знижки";
 
     // «Акція діє до DD.MM» — лише коли крамниця дала реальну дату (сервер уже відсіяв генеричні)
     [JsonIgnore] public bool HasPromo => !string.IsNullOrEmpty(PromoUntil);

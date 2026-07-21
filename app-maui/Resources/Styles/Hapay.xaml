@@ -54,6 +54,12 @@
     <Color x:Key="SaveFgDark">#6FD59B</Color>
     <Color x:Key="SaveBgLight">#E7F6EC</Color>
     <Color x:Key="SaveBgDark">#14301F</Color>
+    <!-- «Знижка нічого не дає» — бурштиновий: не червоний (той означає саму знижку)
+         і не зелений (той означає вигоду). Третій стан потребує третього кольору. -->
+    <Color x:Key="WarnFgLight">#9A5B00</Color>
+    <Color x:Key="WarnFgDark">#F5C26B</Color>
+    <Color x:Key="WarnBgLight">#FDF3E2</Color>
+    <Color x:Key="WarnBgDark">#33260F</Color>
 
     <!-- ── БАЗОВІ ПЕРЕКРИТТЯ ─────────────────────────────────────────────────── -->
     <Style TargetType="Page" ApplyToDerivedTypes="True">
@@ -159,6 +165,13 @@
         <Setter Property="Padding" Value="6,3" />
         <Setter Property="BackgroundColor"
                 Value="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}" />
+    </Style>
+    <Style x:Key="PillWarn" TargetType="Border">
+        <Setter Property="StrokeThickness" Value="0" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 7" />
+        <Setter Property="Padding" Value="7,3" />
+        <Setter Property="BackgroundColor"
+                Value="{AppThemeBinding Light={StaticResource WarnBgLight}, Dark={StaticResource WarnBgDark}}" />
     </Style>
     <Style x:Key="PillSave" TargetType="Border">
         <Setter Property="StrokeThickness" Value="0" />

@@ -553,6 +553,45 @@ def main():
     checks.append(("товар без MPN → бейджа нема",
                    len(rl) >= 1 and all(d.get("cheaper_kop") is None for d in rl), rl))
 
+    # ── «знижка нічого не дає»: гучна знижка при ринковій ціні ────────────────────
+    # Сіємо еталонний випадок Moyo/ASUS: три крамниці тримають ОДНАКОВУ ціну, і лише
+    # одна вбирає її в «−56%» від вигаданої старої. Ціни рівні → бейдж «дешевше в
+    # іншій крамниці» тут не спрацює, і без цього сигналу ми б мовчали.
+    for src, ref, title, now_kop, old_kop in (
+            ("Rozetka", "/ua/hollow-a/p1", "Ноутбук HOLLOW TestBook (SM-HOLLOWTEST)", 5000000, 11000000),
+            ("Foxtrot", "/ua/shop/hollow-b.html", "Ноутбук HOLLOW TestBook (SM-HOLLOWTEST)", 5000000, None),
+            ("Moyo", "/ua/hollow-c.html", "Ноутбук HOLLOW TestBook (SM-HOLLOWTEST)", 5000000, None)):
+        host = {"Rozetka": "https://rozetka.com.ua", "Foxtrot": "https://www.foxtrot.com.ua",
+                "Moyo": "https://www.moyo.ua"}[src]
+        item = {"external_ref": ref, "url": host + ref, "title": title, "price_now_kop": now_kop}
+        if old_kop:
+            item["price_old_kop"] = old_kop
+        client.post("/api/ingest", headers=ing_tok, json={"source": src, "items": [item]})
+
+    hol = client.get("/api/products?q=HOLLOWTEST&only_discounts=1").json()
+    checks.append(("картку веде знижкова Rozetka (−55%)",
+                   len(hol) == 1 and hol[0]["store"] == "Rozetka", hol))
+    checks.append(("сигнал рахує 2 крамниці з тією самою ціною без знижки",
+                   len(hol) == 1 and hol[0].get("same_price_n") == 2, hol))
+    # ціни рівні → «дешевше в іншій крамниці» мовчить; саме тому потрібен окремий сигнал
+    checks.append(("при рівних цінах бейдж «дешевше» не спрацьовує",
+                   len(hol) == 1 and hol[0].get("cheaper_kop") is None, hol))
+
+    # Конкурент, який САМ заявляє знижку, кандидатом не є: коли знижку оголосили всі,
+    # це загальне зниження РРЦ, а не накачування однієї крамниці.
+    client.post("/api/ingest", headers=ing_tok, json={"source": "Allo", "items": [
+        {"external_ref": "/ua/hollow-d", "url": "https://allo.ua/ua/hollow-d",
+         "title": "Ноутбук HOLLOW TestBook (SM-HOLLOWTEST)",
+         "price_now_kop": 5000000, "price_old_kop": 9000000}]})
+    hol2 = client.get("/api/products?q=HOLLOWTEST&only_discounts=1").json()
+    checks.append(("крамниця зі своєю знижкою не рахується (лишилось 2)",
+                   len(hol2) == 1 and hol2[0].get("same_price_n") == 2, hol2))
+
+    # А39 (звичайний товар) поріг не проходить — знижка тиха
+    quiet = client.get("/api/products?q=SM-A376BDGGEUC&only_discounts=1").json()
+    checks.append(("тиха знижка сигналу не піднімає",
+                   len(quiet) == 1 and quiet[0].get("same_price_n") is None, quiet))
+
     # сортування «де дешевше»: бейджеві картки нагору, від найбільшої різниці.
     # Без нього сигнал (1.8% карток) практично не зустрічається під час гортання.
     srt = client.get("/api/products?sort=cheaper").json()

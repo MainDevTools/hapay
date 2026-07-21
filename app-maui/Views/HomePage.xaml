@@ -135,6 +135,16 @@
                                                    FontAttributes="Bold"
                                                    TextColor="{AppThemeBinding Light={StaticResource SaveFgLight}, Dark={StaticResource SaveFgDark}}" />
                                         </Border>
+                                        <!-- Гучна знижка, яка не дає кращої ціни за ринок. Кажемо
+                                             ФАКТ, не вирок: чужі ціни юридично не спростовують
+                                             чиюсь стару ціну (статутний pumped — з історії, §5).
+                                             Взаємовиключне з бейджем вище (сервер це гарантує). -->
+                                        <Border IsVisible="{Binding HasSamePrice}" Margin="0,4,0,0"
+                                                HorizontalOptions="Start" Style="{StaticResource PillWarn}">
+                                            <Label Text="{Binding SamePriceText}" FontSize="11"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{AppThemeBinding Light={StaticResource WarnFgLight}, Dark={StaticResource WarnFgDark}}" />
+                                        </Border>
                                     </VerticalStackLayout>
                                 </Grid>
                             </Border>

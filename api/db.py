@@ -124,6 +124,22 @@ _PSORTS = {
 # новий у Foxtrot, і без цього запобіжника бейдж подав би це як ту саму річ.
 _USED_RE = r'уцінк|уценк|відновлен|восстановлен|refurbish'
 
+# ── «Знижка нічого не дає»: пороги (рішення власника 2026-07-21, інваріант C) ──────
+#
+# ЦЕ НЕ статутний `pumped` (§5). Той рахується з ІСТОРІЇ цін тієї самої крамниці
+# (мінімум за 30 днів, Omnibus) і ми його не чіпаємо. Тут інше джерело доказу —
+# ЦІНИ КОНКУРЕНТІВ ЗАРАЗ. Тому й кажемо лише факт («у N крамницях така сама ціна»),
+# а не вирок: чужі ціни юридично не спростовують чиюсь стару ціну.
+#
+# Правило вивелось із живих даних, і два простіші варіанти довелось відкинути:
+#   · «стара ціна вища за ринок» ловило загальні зниження РРЦ — три крамниці
+#     узгоджено називали ту саму стару ціну, тобто це не накачування;
+#   · «ціна така сама, як у ринку» спрацьовує на 89% знижкових карток (1464 з 1648) —
+#     це норма ринку, а не сигнал.
+_HOLLOW_MIN_PCT = 20      # знижка має бути ГУЧНОЮ — інакше суперечність не варта уваги
+_HOLLOW_MIN_PEERS = 2     # одна крамниця — ще не ринок
+_HOLLOW_SAME_PRICE = 1.02  # «та сама ціна» = у межах +2%: копійчані розбіжності не рахуємо
+
 
 def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=None,
                   price_min=None, price_max=None, only_discounts=False):
@@ -176,7 +192,13 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
                    de.discount_event_id, de.declared_pct, de.verified_pct,
                    COALESCE(de.badge_state, 'none') AS badge_state,
                    COALESCE(sp.mpn, 'sp:' || sp.store_product_id) AS gkey,
-                   (sp.title ~* %s) AS used
+                   (sp.title ~* %s) AS used,
+                   -- відсоток ІЗ СИРОГО снапшота (як його показує картка), а не з
+                   -- discount_event: порівнювати треба саме те, що бачить людина
+                   CASE WHEN l.old_declared_kop > l.current_kop
+                        THEN round((l.old_declared_kop - l.current_kop) * 100.0
+                                   / l.old_declared_kop)::int
+                        ELSE 0 END AS shown_pct
             FROM latest l
             JOIN store_product sp USING (store_product_id)
             JOIN source s USING (source_id)
@@ -189,14 +211,15 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
             SELECT gkey,
                    array_agg(current_kop ORDER BY current_kop) AS kops,
                    array_agg(source_id   ORDER BY current_kop) AS srcs,
-                   array_agg(store       ORDER BY current_kop) AS stores
+                   array_agg(store       ORDER BY current_kop) AS stores,
+                   array_agg(shown_pct   ORDER BY current_kop) AS pcts
             FROM ev WHERE NOT used GROUP BY gkey
         ),
         best AS (   -- одна картка на групу (MPN): найдешевша, знижкова пріоритетно
             SELECT DISTINCT ON (gkey)
                    gkey, store_product_id, title, url, image_url, variant_note, mpn, store,
                    source_id, first_seen_at, current_kop, old_declared_kop, declared_pct,
-                   verified_pct, badge_state, discount_event_id
+                   verified_pct, badge_state, discount_event_id, shown_pct
             FROM ev {narrow_sql}
             ORDER BY gkey, (discount_event_id IS NOT NULL) DESC, current_kop
         )
@@ -204,6 +227,12 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
                b.current_kop, b.old_declared_kop, b.declared_pct, b.verified_pct, b.badge_state,
                (b.discount_event_id IS NOT NULL) AS has_discount,
                ch.kop AS cheaper_kop, ch.store AS cheaper_store,
+               -- «знижка нічого не дає»: скільки ІНШИХ крамниць тримають ту саму ціну,
+               -- не заявляючи порівнянної знижки. NULL = правило не спрацювало.
+               CASE WHEN b.shown_pct >= {_HOLLOW_MIN_PCT}
+                     AND ch.kop IS NULL                       -- дешевших нема: інакше про це
+                     AND hol.n >= {_HOLLOW_MIN_PEERS}         -- вже каже cheaper_store
+                    THEN hol.n END AS same_price_n,
                {_PROMO_COL}
                CASE WHEN b.mpn IS NULL THEN 1
                     ELSE (SELECT count(DISTINCT sp2.source_id)
@@ -221,6 +250,21 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
             WHERE t.src <> b.source_id AND t.kop < b.current_kop
             ORDER BY t.kop LIMIT 1
         ) ch ON TRUE
+        -- Крамниці з ТІЄЮ САМОЮ ціною, які НЕ заявляють жодної знижки (pct = 0).
+        -- Саме вони роблять гучне «−56%» порожнім: та сама ціна доступна без акції.
+        --
+        -- Чому саме «= 0», а не «удвічі менша за нашу» (був і такий варіант): рівно
+        -- нуль дозволяє сказати людині «така сама ціна БЕЗ ЗНИЖКИ» і не збрехати.
+        -- Заодно це надійніше відсікає загальні зниження РРЦ: крамниця, яка нічого
+        -- не оголошує, точно не учасник спільної акції.
+        LEFT JOIN LATERAL (
+            SELECT count(*)::int AS n
+            FROM unnest(a.kops, a.srcs, a.pcts) AS t(kop, src, pct)
+            WHERE t.src <> b.source_id
+              AND t.kop >= b.current_kop
+              AND t.kop <= b.current_kop * {_HOLLOW_SAME_PRICE}
+              AND t.pct = 0
+        ) hol ON TRUE
         ORDER BY {order}
         LIMIT %s OFFSET %s"""
     params += [limit, offset]
