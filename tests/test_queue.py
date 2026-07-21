@@ -53,6 +53,10 @@ def main():
         found = conn.execute("SELECT count(*) FROM collect_task WHERE url LIKE '%test-action%'").fetchone()[0]
         checks.append(("сів прибирає задачу, якої вже нема в конфігу", ghost == 0, ghost))
         checks.append(("лендинг із hub-discovery сів НЕ чіпає (priority=50)", found == 1, found))
+        # ПРИБИРАЄМО ЗА СОБОЮ: задача з priority=50 стає першою в оренді (сортування
+        # priority, not_before) і ламає перевірку чесної ротації нижче. Двічі за сесію
+        # наступив на це — фікстур, що переживає свою перевірку, псує сусідні.
+        conn.execute("DELETE FROM collect_task WHERE url LIKE '%test-action%'")
 
         # ── періодичність за глибиною: перші сторінки частіше, хвіст рідше ────────
         # Заміряно на проді 2026-07-21: колектор дає ~480 запусків на добу, а рівний
