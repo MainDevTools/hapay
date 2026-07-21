@@ -58,12 +58,14 @@ def seed_tasks(conn) -> int:
     жила б за двома різними розкладами. `xmax = 0` відрізняє вставку від оновлення.
     """
     n = 0
+    wanted: list[tuple[str, str]] = []
     for source, cfg in HTML_SOURCES.items():
         rows = []
         if cfg.get("hub"):
             rows.append((source, cfg["hub"], "hub", HUB_REPEAT_MIN))
         for u, _cat, page in source_listings(cfg):      # лістинги + їхня пагінація
             rows.append((source, u, "page", repeat_for_page(page)))
+        wanted += [(s, u) for s, u, _k, _r in rows]
         for source_, url, kind, rep in rows:
             got = conn.execute(
                 "INSERT INTO collect_task (source, url, kind, repeat_min) "
@@ -72,6 +74,24 @@ def seed_tasks(conn) -> int:
                 "RETURNING (xmax = 0) AS inserted",
                 (source_, url, kind, rep)).fetchone()
             n += 1 if got and got[0] else 0
+
+    # ── прибрати задачі, які ВИБУЛИ з конфігу ────────────────────────────────────
+    # Сів доти лише додавав, тож усе, що ми колись налаштували, лишалось у черзі
+    # назавжди. Заміряно 2026-07-21: 12 задач Eldorado виду `.../page=2/` жили від
+    # старого конфігу з пагінацією. Вони віддавали ПЕРШУ сторінку й чесно ставили
+    # `ok` — тобто ми двічі на добу качали ту саму сторінку дванадцять разів, і
+    # черга виглядала здоровою.
+    #
+    # Чистимо ЛИШЕ priority=100 (посіяні звідси). Лендинги, знайдені хабом, мають
+    # priority=50 (enqueue_pages) — їх у конфізі й не має бути за визначенням, і
+    # видалити їх означало б зламати двофазний discovery.
+    conn.execute(
+        """DELETE FROM collect_task t
+           WHERE t.priority = 100
+             AND NOT EXISTS (
+                 SELECT 1 FROM unnest(%s::text[], %s::text[]) AS w(source, url)
+                 WHERE w.source = t.source AND w.url = t.url)""",
+        ([s for s, _ in wanted], [u for _, u in wanted]))
     return n
 
 
