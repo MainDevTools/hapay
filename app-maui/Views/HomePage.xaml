@@ -114,6 +114,19 @@
                                                        FontAttributes="Bold" FontSize="11" />
                                             </Border>
                                         </Grid>
+                                        <!-- «Дешевше в Rozetka на 6 887 ₴» — визнання, що НАША
+                                             показана знижка не найкраща ціна. Незручно, але це
+                                             буквально суть «Хапая». Зелена пігулка, а не сірий
+                                             підпис: рядок рідкісний (~2% карток) і сірим губився б;
+                                             колір інший, ніж у −% (червоний), щоб не зливалися. -->
+                                        <Border IsVisible="{Binding HasCheaper}" Margin="0,3,0,0"
+                                                HorizontalOptions="Start" StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 7" Padding="7,3"
+                                                BackgroundColor="{AppThemeBinding Light=#E4F6EA, Dark=#16351F}">
+                                            <Label Text="{Binding CheaperText}" FontSize="11"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{AppThemeBinding Light=#0F7B3E, Dark=#6FD59B}" />
+                                        </Border>
                                     </VerticalStackLayout>
                                 </Grid>
                             </Border>

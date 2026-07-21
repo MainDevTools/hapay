@@ -112,6 +112,12 @@ _PSORTS = {
     "popular":   "offers_n DESC NULLS LAST, b.declared_pct DESC NULLS LAST",
 }
 
+# Уцінка / відновлене — ІНШИЙ стан товару, не «те саме дешевше». Такі пропозиції
+# не можуть бути підставою для «дешевше в іншій крамниці»: заміряно на живих даних
+# (2026-07-21) — Citrus «УЦІНКА Телевізор LG 43NANO81A6A» на 2 000 ₴ дешевший за
+# новий у Foxtrot, і без цього запобіжника бейдж подав би це як ту саму річ.
+_USED_RE = r'уцінк|уценк|відновлен|восстановлен|refurbish'
+
 
 def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=None,
                   price_min=None, price_max=None, only_discounts=False):
@@ -120,19 +126,34 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
     Розворот у бік повного прайс-агрегатора: показуємо весь зібраний каталог, а знижка —
     бейдж на картці (has_discount), не єдиний критерій. `only_discounts=True` звужує до
     знижкових (сумісність зі старою стрічкою). Ціна — з останнього price_snapshot.
+
+    `cheaper_kop`/`cheaper_store` — та сама модель (mpn) ДЕШЕВШЕ в іншій крамниці.
+    Сенс: представника групи обирає `best` — «знижкова пріоритетно, тоді найдешевша»,
+    тож картка з гучним −47% цілком може бути дорожчою за звичайну ціну поруч. Це і є
+    суть «Хапая», тож кажемо про це прямо, навіть коли це псує вигляд власної знижки.
+
+    ВАЖЛИВО, чому фільтри розділені на базові й звужувальні: кандидатів на «дешевше»
+    беремо з `ev` ДО звуження. Якби мінімум рахувався після `only_discounts` (а це
+    режим гортання за замовчуванням), він бачив би лише знижкові пропозиції — тобто
+    саме те, з чим порівнюємо, — і бейдж не спрацював би НІ РАЗУ.
     """
-    where = ["sp.last_seen_at > now() - interval '3 days'", "l.in_stock"]
-    params: list = []
+    base = ["sp.last_seen_at > now() - interval '3 days'", "l.in_stock"]
+    params: list = [_USED_RE]      # 1-й %s — у SELECT ev (прапорець `used`)
     if category:
-        where.append("c.slug = %s"); params.append(category)
+        base.append("c.slug = %s"); params.append(category)
+
+    # звужувальні — лише для ВИБОРУ картки, не для пошуку дешевшої пропозиції
+    narrow: list[str] = []
     if q:
-        where.append("sp.title ILIKE %s"); params.append(f"%{q.strip()}%")
+        narrow.append("title ILIKE %s"); params.append(f"%{q.strip()}%")
     if price_min is not None:
-        where.append("l.current_kop >= %s"); params.append(price_min)
+        narrow.append("current_kop >= %s"); params.append(price_min)
     if price_max is not None:
-        where.append("l.current_kop <= %s"); params.append(price_max)
+        narrow.append("current_kop <= %s"); params.append(price_max)
     if only_discounts:
-        where.append("de.discount_event_id IS NOT NULL")
+        narrow.append("discount_event_id IS NOT NULL")
+    narrow_sql = ("WHERE " + " AND ".join(narrow)) if narrow else ""
+
     order = _PSORTS.get(sort, _PSORTS["discount"])
     sql = f"""
         WITH latest AS (   -- остання ціна кожного товару (index-scan по ix_ps_prod_window)
@@ -144,29 +165,39 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
         ),
         ev AS (
             SELECT l.store_product_id, sp.title, sp.url, sp.image_url, sp.variant_note, sp.mpn,
-                   s.name AS store, sp.first_seen_at,
+                   s.name AS store, sp.source_id, sp.first_seen_at,
                    l.current_kop, l.old_declared_kop,
                    de.discount_event_id, de.declared_pct, de.verified_pct,
                    COALESCE(de.badge_state, 'none') AS badge_state,
-                   COALESCE(sp.mpn, 'sp:' || sp.store_product_id) AS gkey
+                   COALESCE(sp.mpn, 'sp:' || sp.store_product_id) AS gkey,
+                   (sp.title ~* %s) AS used
             FROM latest l
             JOIN store_product sp USING (store_product_id)
             JOIN source s USING (source_id)
             JOIN category c ON c.category_id = sp.category_id
             LEFT JOIN discount_event de
                    ON de.store_product_id = l.store_product_id AND de.ended_at IS NULL
-            WHERE {' AND '.join(where)}
+            WHERE {' AND '.join(base)}
+        ),
+        alt AS (   -- кандидати «дешевше деінде»: уся група, БЕЗ уцінених/відновлених
+            SELECT gkey,
+                   array_agg(current_kop ORDER BY current_kop) AS kops,
+                   array_agg(source_id   ORDER BY current_kop) AS srcs,
+                   array_agg(store       ORDER BY current_kop) AS stores
+            FROM ev WHERE NOT used GROUP BY gkey
         ),
         best AS (   -- одна картка на групу (MPN): найдешевша, знижкова пріоритетно
             SELECT DISTINCT ON (gkey)
-                   store_product_id, title, url, image_url, variant_note, mpn, store,
-                   first_seen_at, current_kop, old_declared_kop, declared_pct, verified_pct,
-                   badge_state, discount_event_id
-            FROM ev ORDER BY gkey, (discount_event_id IS NOT NULL) DESC, current_kop
+                   gkey, store_product_id, title, url, image_url, variant_note, mpn, store,
+                   source_id, first_seen_at, current_kop, old_declared_kop, declared_pct,
+                   verified_pct, badge_state, discount_event_id
+            FROM ev {narrow_sql}
+            ORDER BY gkey, (discount_event_id IS NOT NULL) DESC, current_kop
         )
         SELECT b.store_product_id, b.title, b.url, b.image_url, b.variant_note, b.store,
                b.current_kop, b.old_declared_kop, b.declared_pct, b.verified_pct, b.badge_state,
                (b.discount_event_id IS NOT NULL) AS has_discount,
+               ch.kop AS cheaper_kop, ch.store AS cheaper_store,
                {_PROMO_COL}
                CASE WHEN b.mpn IS NULL THEN 1
                     ELSE (SELECT count(DISTINCT sp2.source_id)
@@ -174,6 +205,16 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
                END AS offers_n
         FROM best b
         JOIN store_product sp0 USING (store_product_id)
+        LEFT JOIN alt a USING (gkey)
+        -- найдешевша пропозиція ІНШОЇ крамниці, дешевша за показану. «Іншої» —
+        -- бо родовий артикул буває спільний для кольорів у тій самій крамниці
+        -- (див. product_offers), і «дешевше в Rozetka» на картці Rozetka — дурня.
+        LEFT JOIN LATERAL (
+            SELECT t.kop, t.store
+            FROM unnest(a.kops, a.srcs, a.stores) AS t(kop, src, store)
+            WHERE t.src <> b.source_id AND t.kop < b.current_kop
+            ORDER BY t.kop LIMIT 1
+        ) ch ON TRUE
         ORDER BY {order}
         LIMIT %s OFFSET %s"""
     params += [limit, offset]

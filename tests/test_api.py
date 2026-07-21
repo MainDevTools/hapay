@@ -513,6 +513,46 @@ def main():
     checks.append(("price діапазон: усі в межах",
                    all(1000000 <= d["current_kop"] <= 2000000 for d in band), len(band)))
 
+    # ── «дешевше в іншій крамниці» ────────────────────────────────────────────────
+    # Фікстур уже готовий вище: Allo продає A37 ЗІ ЗНИЖКОЮ, Foxtrot — той самий MPN
+    # дешевше (1 999 900) і БЕЗ знижки. Представника групи обирає «знижкова
+    # пріоритетно, тоді найдешевша», тож у стрічці стоїть дорожча Allo — рівно той
+    # випадок, який бейдж мусить викрити.
+    ch = client.get("/api/products?q=SM-A376BDGGEUC&only_discounts=1").json()
+    checks.append(("картку групи веде знижкова (дорожча) Allo",
+                   len(ch) == 1 and ch[0]["store"] == "Allo", ch))
+    checks.append(("бейдж називає крамницю і ціну (Foxtrot, 1 999 900)",
+                   len(ch) == 1 and ch[0].get("cheaper_store") == "Foxtrot"
+                   and ch[0].get("cheaper_kop") == 1999900, ch))
+    # РЕГРЕСІЯ, заради якої фільтри розділені на базові й звужувальні: Foxtrot-пропозиція
+    # знижки НЕ має. Якби мінімум по групі рахувався ПІСЛЯ only_discounts (а це режим
+    # гортання за замовчуванням), кандидата не було б видно й бейдж не спрацював би НІ РАЗУ.
+    checks.append(("кандидат без знижки видно і при only_discounts=1 (інакше бейдж мертвий)",
+                   len(ch) == 1 and ch[0].get("cheaper_kop") is not None
+                   and ch[0].get("cheaper_kop") < ch[0]["current_kop"], ch))
+
+    # Уцінка — ІНШИЙ стан товару, а не «те саме дешевше». Кладемо в ту саму групу
+    # найдешевшу уцінену пропозицію: бейдж мусить і далі вказувати на Foxtrot.
+    client.post("/api/ingest", headers=ing_tok, json={"source": "Moyo", "items": [
+        {"external_ref": "/ua/samsung-a37-ucinka.html",
+         "url": "https://www.moyo.ua/ua/samsung-a37-ucinka.html",
+         "title": "УЦІНКА Samsung Galaxy A37 5G 8/256GB (SM-A376BDGGEUC)",
+         "price_now_kop": 1500000}]})
+    ch2 = client.get("/api/products?q=SM-A376BDGGEUC&only_discounts=1").json()
+    checks.append(("уцінена пропозиція НЕ стає підставою для «дешевше» (лишається Foxtrot)",
+                   len(ch2) == 1 and ch2[0].get("cheaper_store") == "Foxtrot"
+                   and ch2[0].get("cheaper_kop") == 1999900, ch2))
+
+    # Дешевший варіант у ТІЙ САМІЙ крамниці — не «інша крамниця»: OPPO CPH2801 —
+    # два кольори одного Foxtrot з родовим артикулом, іншої крамниці в групі немає.
+    op = client.get("/api/products?q=CPH2801").json()
+    checks.append(("та сама крамниця не вважається «іншою» → бейджа нема",
+                   len(op) >= 1 and all(d.get("cheaper_kop") is None for d in op), op))
+    # товар без MPN (зоо) — групи нема, порівнювати нема з чим
+    rl = client.get("/api/products?q=Royal").json()
+    checks.append(("товар без MPN → бейджа нема",
+                   len(rl) >= 1 and all(d.get("cheaper_kop") is None for d in rl), rl))
+
     for name, ok, val in checks:
         print(f"{'PASS' if ok else 'FAIL'}  {name}" + ("" if ok else f"  -> {val!r}"))
         failed += 0 if ok else 1

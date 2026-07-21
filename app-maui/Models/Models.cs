@@ -42,6 +42,9 @@ public class Discount
     [JsonPropertyName("badge_state")] public string BadgeState { get; set; } = "declared";
     [JsonPropertyName("offers_n")] public int OffersN { get; set; } = 1;   // розмір MPN-групи (T15)
     [JsonPropertyName("promo_until")] public string? PromoUntil { get; set; }   // дата кінця акції (крамниця)
+    // той самий товар ДЕШЕВШЕ в іншій крамниці (сервер уже відсіяв уцінене/відновлене)
+    [JsonPropertyName("cheaper_kop")] public int? CheaperKop { get; set; }
+    [JsonPropertyName("cheaper_store")] public string? CheaperStore { get; set; }
 
     // --- похідні для XAML-байндингу ---
     [JsonIgnore] public bool HasMultiStores => OffersN > 1;
@@ -62,6 +65,18 @@ public class Discount
 
     [JsonIgnore] public bool HasPct => Pct is not null;
     [JsonIgnore] public string PctText => Pct is int p ? $"−{p}%" : "";
+
+    /// «Дешевше в Rozetka на 6 887 ₴» — той самий артикул, але не тут.
+    ///
+    /// Це найнезручніший і найпотрібніший рядок у застосунку: він визнає, що показана
+    /// нами знижка — не найкраща ціна. Саме заради цього «Хапай» і робиться (детектор
+    /// справжніх vs накачаних знижок), тож мовчати про це не можна. Заміряно на живих
+    /// даних 2026-07-21: спрацьовує на ~2% карток, середня економія 2 714 ₴, максимум
+    /// 45 550 ₴ (той самий SKU NH.QVLEU.003 — 154 449 ₴ у Rozetka проти 199 999 ₴ у KTC).
+    [JsonIgnore] public bool HasCheaper => CheaperKop is int c && c < CurrentKop
+                                           && !string.IsNullOrEmpty(CheaperStore);
+    [JsonIgnore] public string CheaperText =>
+        CheaperKop is int c ? $"Дешевше в {CheaperStore} на {Money.Grn(CurrentKop - c)}" : "";
 
     // «Акція діє до DD.MM» — лише коли крамниця дала реальну дату (сервер уже відсіяв генеричні)
     [JsonIgnore] public bool HasPromo => !string.IsNullOrEmpty(PromoUntil);
