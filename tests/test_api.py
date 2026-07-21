@@ -445,11 +445,15 @@ def main():
     # збирає, тож задача мусить закритись за (source, url) — інакше черга перезбирала б
     # її вдруге, а last_done_at показував би «ще не брали». Так і було на проді
     # 2026-07-21: ручний прохід приніс 623 товари Allo при 30 «незібраних» задачах.
+    # Беремо саме НЕ орендовану задачу: нижче ще перевіряється бекоф на тій, яку
+    # щойно видала оренда, і скидати її стан звідси означало б зламати чужу перевірку
+    # (так і сталось: collect/fail почав повертати 409).
     with psycopg.connect(URL, autocommit=True) as c:
-        c.execute("UPDATE collect_task SET last_done_at = NULL, last_status = NULL, "
-                  "leased_by = NULL, leased_until = NULL WHERE source='Moyo'")
-        moyo_url = c.execute("SELECT url FROM collect_task WHERE source='Moyo' "
-                             "ORDER BY task_id LIMIT 1").fetchone()[0]
+        moyo_url = c.execute(
+            "SELECT url FROM collect_task WHERE source='Moyo' AND leased_by IS NULL "
+            "ORDER BY task_id LIMIT 1").fetchone()[0]
+        c.execute("UPDATE collect_task SET last_done_at = NULL, last_status = NULL "
+                  "WHERE source='Moyo' AND url = %s", (moyo_url,))
     nr = client.post("/api/ingest/html", headers=chdr, json={
         "source": "Moyo", "url": moyo_url, "html": _cas("moyo_listing.html")})
     checks.append(("ingest/html БЕЗ task_id теж закриває задачу (ручний прохід)",
