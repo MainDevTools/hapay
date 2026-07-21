@@ -27,9 +27,12 @@
     <Grid RowDefinitions="Auto,*" Padding="0">
 
         <VerticalStackLayout Grid.Row="0" Padding="12,8" Spacing="8">
-            <SearchBar Placeholder="Пошук за назвою…" Text="{Binding SearchText}"
-                       SearchCommand="{Binding SearchCommand}" />
-            <Label Text="{Binding ErrorMessage}" TextColor="#E23B3B"
+            <Border Style="{StaticResource FilterBar}">
+                <SearchBar Placeholder="Пошук за назвою…" Text="{Binding SearchText}"
+                           SearchCommand="{Binding SearchCommand}" />
+            </Border>
+            <Label Text="{Binding ErrorMessage}" Margin="4,0"
+                   TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}"
                    IsVisible="{Binding ErrorMessage, Converter={StaticResource NotEmpty}}" />
         </VerticalStackLayout>
 
@@ -50,32 +53,29 @@
 
                 <!-- «Популярні моделі»: товар у найбільшій к-сті крамниць → «від X ₴» -->
                 <CollectionView.Header>
-                    <VerticalStackLayout Spacing="6" Padding="0,4,0,6" IsVisible="{Binding HasPopular}">
-                        <Label Text="Популярні моделі" FontSize="16" FontAttributes="Bold"
-                               Padding="14,8,14,0" />
+                    <VerticalStackLayout Spacing="8" Padding="0,4,0,6" IsVisible="{Binding HasPopular}">
+                        <Label Text="Популярні моделі" Style="{StaticResource H2}"
+                               Padding="16,8,16,0" />
                         <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
-                            <HorizontalStackLayout Padding="14,0" Spacing="10"
+                            <HorizontalStackLayout Padding="16,0" Spacing="10"
                                                    BindableLayout.ItemsSource="{Binding Popular}">
                                 <BindableLayout.ItemTemplate>
                                     <DataTemplate x:DataType="models:Discount">
-                                        <Border WidthRequest="132" StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 14" Padding="10"
-                                                BackgroundColor="{AppThemeBinding Light=White, Dark=#191B1F}">
+                                        <Border WidthRequest="140" Style="{StaticResource Card}" Padding="10">
                                             <Border.GestureRecognizers>
                                                 <TapGestureRecognizer
                                                     Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenProductCommand}"
                                                     CommandParameter="{Binding .}" />
                                             </Border.GestureRecognizers>
-                                            <VerticalStackLayout Spacing="6">
-                                                <Border HeightRequest="78" StrokeThickness="0"
-                                                        StrokeShape="RoundRectangle 10" Padding="4"
-                                                        BackgroundColor="{AppThemeBinding Light=#F4F4F6, Dark=#22242A}">
+                                            <VerticalStackLayout Spacing="8">
+                                                <Border HeightRequest="86" Padding="8"
+                                                        Style="{StaticResource Thumb}">
                                                     <Image Source="{Binding ImageUrl}" Aspect="AspectFit" />
                                                 </Border>
-                                                <Label Text="{Binding Title}" FontSize="12" MaxLines="2"
-                                                       LineBreakMode="TailTruncation" />
+                                                <Label Text="{Binding Title}" Style="{StaticResource Caption}"
+                                                       MaxLines="2" LineBreakMode="TailTruncation" />
                                                 <Label Text="{Binding PriceText}" FontAttributes="Bold" FontSize="14"
-                                                       TextColor="{AppThemeBinding Light=#512BD4, Dark=#AC99EA}" />
+                                                       TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
                                             </VerticalStackLayout>
                                         </Border>
                                     </DataTemplate>
@@ -88,8 +88,8 @@
                 <!-- заголовок розділу (Електроніка / Зоотовари) -->
                 <CollectionView.GroupHeaderTemplate>
                     <DataTemplate x:DataType="models:CategoryGroup">
-                        <Label Text="{Binding Title}" FontSize="16" FontAttributes="Bold"
-                               Padding="14,16,14,6" />
+                        <Label Text="{Binding Title}" Style="{StaticResource H2}"
+                               Padding="16,16,16,8" />
                     </DataTemplate>
                 </CollectionView.GroupHeaderTemplate>
 
@@ -97,25 +97,27 @@
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:Category">
                         <Grid Padding="6,0">
-                            <Border StrokeThickness="0" StrokeShape="RoundRectangle 14"
-                                    BackgroundColor="{AppThemeBinding Light=White, Dark=#191B1F}"
-                                    Padding="12" MinimumHeightRequest="140">
+                            <Border Style="{StaticResource Card}" Padding="12">
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer
                                         Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenCategoryCommand}"
                                         CommandParameter="{Binding .}" />
                                 </Border.GestureRecognizers>
-                                <VerticalStackLayout Spacing="8">
-                                    <Border HeightRequest="72" StrokeThickness="0" StrokeShape="RoundRectangle 10"
-                                            Padding="6" IsVisible="{Binding HasImage}"
-                                            BackgroundColor="{AppThemeBinding Light=#F4F4F6, Dark=#22242A}">
+                                <!-- Рядки фіксовані (86,Auto,Auto), а не Auto по фото: інакше
+                                     плитки різної висоти й сітка «сходинками». Емодзі-фолбек
+                                     живе в ТОМУ САМОМУ рядку, тож плитка без фото не коротша. -->
+                                <Grid RowDefinitions="86,Auto,Auto" RowSpacing="8">
+                                    <Border Grid.Row="0" Padding="6" Style="{StaticResource Thumb}"
+                                            IsVisible="{Binding HasImage}">
                                         <Image Source="{Binding ImageUrl}" Aspect="AspectFit" />
                                     </Border>
-                                    <Label Text="{Binding Icon}" FontSize="34" IsVisible="{Binding NoImage}" />
-                                    <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="14"
-                                           MaxLines="2" LineBreakMode="TailTruncation" />
-                                    <Label Text="{Binding CountText}" FontSize="12" TextColor="Gray" />
-                                </VerticalStackLayout>
+                                    <Label Grid.Row="0" Text="{Binding Icon}" FontSize="40"
+                                           HorizontalOptions="Center" VerticalOptions="Center"
+                                           IsVisible="{Binding NoImage}" />
+                                    <Label Grid.Row="1" Text="{Binding Name}" Style="{StaticResource Body}"
+                                           FontAttributes="Bold" MaxLines="2" LineBreakMode="TailTruncation" />
+                                    <Label Grid.Row="2" Text="{Binding CountText}" Style="{StaticResource Caption}" />
+                                </Grid>
                             </Border>
                         </Grid>
                     </DataTemplate>

@@ -178,9 +178,18 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
             await Launcher.Default.OpenAsync(uri);
     }
 
-    /// Графік має сенс лише від двох точок. Менше — ховаємо: `GraphicsView` фіксованої
-    /// висоти інакше лишає чверть екрана порожнечі, а вимірів поки мало майже скрізь.
+    /// Графік має сенс лише коли є ЩО малювати: від двох точок І з реальним рухом ціни.
+    ///
+    /// Спершу тут була сама лише умова «≥2 точки». На живому кадрі вийшло гірше за
+    /// порожнечу: при незмінній ціні графік малював самотню червону риску над кнопкою —
+    /// схоже на артефакт розмітки, а не на дані. Причому підпис поруч уже казав те саме
+    /// словами («Ціна не змінювалась з 20.07»), тобто риска не додавала нічого.
     [ObservableProperty] private bool _hasChart;
+
+    /// Чи всі виміри однакові (ціна не рухалась) — тоді малювати нема чого.
+    private bool HistoryIsFlat() =>
+        History.Count > 0
+        && History.All(p => p.MinKop == History[0].MinKop && p.MaxKop == History[0].MinKop);
 
     /// Підпис під графіком. Кажемо те, що ЗНАЄМО, а не вибачаємось загальним «замало
     /// вимірів»: якщо ціна два дні поспіль однакова — це вже корисний факт. І навпаки,
@@ -189,8 +198,8 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
     {
         if (History.Count == 0) return "Історія ще порожня — перший вимір попереду";
         if (History.Count == 1) return $"Поки один вимір — {History[0].Date:dd.MM}";
-        var flat = History.All(p => p.MinKop == History[0].MinKop && p.MaxKop == History[0].MinKop);
-        return flat ? $"Ціна не змінювалась з {History[0].Date:dd.MM}" : null;   // мінялась — графік сам скаже
+        // мінялась — графік сам скаже; не мінялась — скаже цей рядок, і графік зайвий
+        return HistoryIsFlat() ? $"Ціна не змінювалась з {History[0].Date:dd.MM}" : null;
     }
 
     private async Task LoadHistory(int storeProductId)
@@ -203,7 +212,7 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
             History.Clear();
             foreach (var p in pts) History.Add(p);
             HistoryNote = DescribeHistory();
-            HasChart = History.Count >= 2;
+            HasChart = History.Count >= 2 && !HistoryIsFlat();
         }
         catch (Exception e)
         {

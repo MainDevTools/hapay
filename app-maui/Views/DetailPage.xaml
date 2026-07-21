@@ -18,46 +18,49 @@
     <ScrollView>
         <VerticalStackLayout Padding="16" Spacing="12">
 
-            <Image Source="{Binding Item.ImageUrl}" Aspect="AspectFit" HeightRequest="200" />
+            <!-- Фото на власній білій поверхні, а не «в повітрі»: у стрічці й каталозі
+                 воно теж на білому, тож перехід у картку не міняє вигляд товару. -->
+            <Border Style="{StaticResource Thumb}" Padding="12" HeightRequest="220">
+                <Image Source="{Binding Item.ImageUrl}" Aspect="AspectFit" />
+            </Border>
 
-            <Label Text="{Binding Item.Title}" FontSize="18" FontAttributes="Bold" />
-            <Label Text="{Binding Item.VariantNote}" TextColor="Gray"
+            <Label Text="{Binding Item.Title}" Style="{StaticResource H1}" FontSize="18" />
+            <Label Text="{Binding Item.VariantNote}" Style="{StaticResource Caption}"
                    IsVisible="{Binding Item.VariantNote, Converter={StaticResource NotEmpty}}" />
 
             <!-- ціна: ДІАПАЗОН по крамницях згори (§17) — «5 999 – 6 499 ₴» або одна ціна -->
-            <Label Text="{Binding PriceRangeText}" FontSize="24" FontAttributes="Bold" />
+            <Label Text="{Binding PriceRangeText}" Style="{StaticResource H1}" FontSize="26" />
 
             <!-- «Наявно в N крамницях» одразу під ціною; деталі — блок «Де купити» нижче -->
             <Label Text="{Binding OffersLine}" FontAttributes="Bold" FontSize="13"
-                   TextColor="{AppThemeBinding Light=#512BD4, Dark=#AC99EA}"
+                   TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
                    IsVisible="{Binding HasOffers}" />
 
             <!-- одна крамниця зі знижкою → класичне «стара ціна + −%» (для діапазону зайве) -->
             <HorizontalStackLayout Spacing="8" IsVisible="{Binding ShowSingleDiscount}">
-                <Label Text="{Binding Item.OldGrn}" FontSize="15" TextColor="Gray"
-                       TextDecorations="Strikethrough" VerticalOptions="Center" />
-                <Border BackgroundColor="#E23B3B" Padding="7,3" StrokeThickness="0"
-                        StrokeShape="RoundRectangle 7" VerticalOptions="Center">
+                <Label Text="{Binding Item.OldGrn}" Style="{StaticResource PriceOld}"
+                       FontSize="15" VerticalOptions="Center" />
+                <Border Style="{StaticResource PillDiscount}" Padding="7,3" VerticalOptions="Center">
                     <Label Text="{Binding Item.PctText}" TextColor="White" FontAttributes="Bold" FontSize="12" />
                 </Border>
             </HorizontalStackLayout>
 
-            <Label Text="Історія ціни" FontAttributes="Bold" TextColor="Gray" Margin="0,12,0,0" />
+            <Label Text="Історія ціни" Style="{StaticResource H2}" Margin="0,12,0,0" />
             <ActivityIndicator IsRunning="{Binding LoadingHistory}" IsVisible="{Binding LoadingHistory}"
                                HorizontalOptions="Start" />
-            <Label Text="{Binding HistoryNote}" TextColor="Gray"
+            <Label Text="{Binding HistoryNote}" Style="{StaticResource Caption}"
                    IsVisible="{Binding HistoryNote, Converter={StaticResource NotEmpty}}" />
             <GraphicsView x:Name="Chart" HeightRequest="180" IsVisible="{Binding HasChart}" />
 
             <!-- «Де купити» (T15/§17.5): той самий товар (mpn) у крамницях, від найдешевшої.
                  Видно лише коли є ≥2 крамниці — інакше блок не додає нічого. -->
             <VerticalStackLayout Spacing="8" IsVisible="{Binding HasOffers}" Margin="0,12,0,0">
-                <Label Text="Де купити" FontAttributes="Bold" TextColor="Gray" />
+                <Label Text="Де купити" Style="{StaticResource H2}" />
                 <VerticalStackLayout Spacing="6" BindableLayout.ItemsSource="{Binding Offers}">
                     <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="models:Offer">
-                            <Border StrokeThickness="0" StrokeShape="RoundRectangle 12" Padding="12,10"
-                                    BackgroundColor="{AppThemeBinding Light=#F4F4F6, Dark=#22242A}"
+                            <Border Style="{StaticResource Card}" Padding="14,12"
+                                    StrokeShape="RoundRectangle 12"
                                     Opacity="{Binding Opacity}">
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer
@@ -66,25 +69,26 @@
                                 </Border.GestureRecognizers>
                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                                     <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
-                                        <Label Text="{Binding Store}" FontAttributes="Bold" />
-                                        <Label Text="Немає в наявності" FontSize="11" TextColor="Gray"
+                                        <Label Text="{Binding Store}" Style="{StaticResource Body}"
+                                               FontAttributes="Bold" />
+                                        <Label Text="Немає в наявності" Style="{StaticResource Caption}"
+                                               FontSize="11"
                                                IsVisible="{Binding InStock, Converter={StaticResource Invert}}" />
                                     </VerticalStackLayout>
                                     <!-- ціна крамниці як згори картки: поточна + −% в рядок, стара перекреслена під ними -->
                                     <VerticalStackLayout Grid.Column="1" Spacing="1" HorizontalOptions="End">
                                         <HorizontalStackLayout Spacing="6" HorizontalOptions="End">
-                                            <Label Text="{Binding CurrentGrn}" FontAttributes="Bold"
+                                            <Label Text="{Binding CurrentGrn}" Style="{StaticResource PriceMain}"
                                                    FontSize="16" VerticalOptions="Center" />
-                                            <Border BackgroundColor="#E23B3B" Padding="5,2" StrokeThickness="0"
+                                            <Border Style="{StaticResource PillDiscount}" Padding="5,2"
                                                     StrokeShape="RoundRectangle 6" VerticalOptions="Center"
                                                     IsVisible="{Binding HasPct}">
                                                 <Label Text="{Binding PctText}" TextColor="White"
                                                        FontAttributes="Bold" FontSize="10" />
                                             </Border>
                                         </HorizontalStackLayout>
-                                        <Label Text="{Binding OldGrn}" FontSize="12" TextColor="Gray"
-                                               TextDecorations="Strikethrough" HorizontalOptions="End"
-                                               IsVisible="{Binding HasOld}" />
+                                        <Label Text="{Binding OldGrn}" Style="{StaticResource PriceOld}"
+                                               HorizontalOptions="End" IsVisible="{Binding HasOld}" />
                                     </VerticalStackLayout>
                                 </Grid>
                             </Border>
@@ -100,10 +104,12 @@
             <Button Text="{Binding WatchButtonText}" Command="{Binding WatchCommand}"
                     IsEnabled="{Binding WatchBusy, Converter={StaticResource Invert}}"
                     IsVisible="{Binding CanWatch}" HeightRequest="48"
-                    BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=#512BD4, Dark=#AC99EA}"
-                    BorderColor="{AppThemeBinding Light=#512BD4, Dark=#AC99EA}" BorderWidth="1" />
+                    BackgroundColor="Transparent"
+                    TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
+                    BorderColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
+                    BorderWidth="1" />
             <Label Text="{Binding WatchNote}" FontSize="13" HorizontalOptions="Center"
-                   TextColor="{AppThemeBinding Light=#512BD4, Dark=#AC99EA}"
+                   TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
                    IsVisible="{Binding WatchNote, Converter={StaticResource NotEmpty}}" />
         </VerticalStackLayout>
     </ScrollView>

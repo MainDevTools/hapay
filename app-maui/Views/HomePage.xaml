@@ -26,30 +26,39 @@
              екрана, і людина, яка відкрила категорію подивитись товари, бачила панель
              керування. Категорія тепер в одному рядку з сортуванням і ціною — назву
              обраної категорії й так видно в заголовку сторінки. -->
-        <VerticalStackLayout Grid.Row="0" Padding="12,4" Spacing="6">
-            <SearchBar Placeholder="Пошук за назвою…" Text="{Binding SearchText}" />
-            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="6">
-                <Picker Grid.Column="0" Title="Категорія" FontSize="13"
-                        ItemsSource="{Binding Categories}"
-                        ItemDisplayBinding="{Binding Display}"
-                        SelectedItem="{Binding SelectedCategory}" />
-                <Picker Grid.Column="1" Title="Сортування" FontSize="13"
-                        ItemsSource="{Binding SortOptions}"
-                        ItemDisplayBinding="{Binding Label}"
-                        SelectedItem="{Binding SelectedSort}" />
-                <Picker Grid.Column="2" Title="Ціна" FontSize="13"
-                        ItemsSource="{Binding PriceOptions}"
-                        ItemDisplayBinding="{Binding Label}"
-                        SelectedItem="{Binding SelectedPrice}" />
-            </Grid>
+        <VerticalStackLayout Grid.Row="0" Padding="12,8" Spacing="8">
+            <Border Style="{StaticResource FilterBar}">
+                <VerticalStackLayout Spacing="2">
+                    <SearchBar Placeholder="Пошук за назвою…" Text="{Binding SearchText}" />
+                    <!-- Ширини нерівні свідомо: назви категорій найдовші («Ноутбуки та
+                         ПК (933)»), підписи ціни найкоротші («Будь-яка»). При рівних
+                         третинах категорію різало просто на лічильнику. -->
+                    <Grid ColumnDefinitions="1.35*,*,0.8*" ColumnSpacing="6">
+                        <Picker Grid.Column="0" Title="Категорія" FontSize="13"
+                                ItemsSource="{Binding Categories}"
+                                ItemDisplayBinding="{Binding Display}"
+                                SelectedItem="{Binding SelectedCategory}" />
+                        <Picker Grid.Column="1" Title="Сортування" FontSize="13"
+                                ItemsSource="{Binding SortOptions}"
+                                ItemDisplayBinding="{Binding Label}"
+                                SelectedItem="{Binding SelectedSort}" />
+                        <Picker Grid.Column="2" Title="Ціна" FontSize="13"
+                                ItemsSource="{Binding PriceOptions}"
+                                ItemDisplayBinding="{Binding Label}"
+                                SelectedItem="{Binding SelectedPrice}" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
             <!-- у пошуку правила інші, ніж при гортанні — кажемо це прямо -->
-            <Label Text="Пошук — по всьому каталогу, не лише знижки" FontSize="12"
-                   TextColor="Gray" IsVisible="{Binding IsSearching}" />
+            <Label Text="Пошук — по всьому каталогу, не лише знижки"
+                   Style="{StaticResource Caption}" Margin="4,0"
+                   IsVisible="{Binding IsSearching}" />
             <!-- і окремо: чому видача вийшла за межі обраної категорії -->
-            <Label Text="{Binding SearchNote}" FontSize="12"
-                   TextColor="{AppThemeBinding Light=#512BD4, Dark=#AC99EA}"
+            <Label Text="{Binding SearchNote}" FontSize="12" Margin="4,0"
+                   TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
                    IsVisible="{Binding SearchNote, Converter={StaticResource NotEmpty}}" />
-            <Label Text="{Binding ErrorMessage}" TextColor="#E23B3B"
+            <Label Text="{Binding ErrorMessage}" Margin="4,0"
+                   TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}"
                    IsVisible="{Binding ErrorMessage, Converter={StaticResource NotEmpty}}" />
         </VerticalStackLayout>
 
@@ -68,47 +77,48 @@
 
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:Discount">
-                        <Grid Padding="12,6">
-                            <Border StrokeThickness="0" BackgroundColor="{AppThemeBinding Light=White, Dark=#191B1F}"
-                                    StrokeShape="RoundRectangle 15" Padding="10">
+                        <Grid Padding="12,4">
+                            <Border Style="{StaticResource Card}" Padding="10">
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer
                                         Command="{Binding Source={x:Reference Page}, Path=BindingContext.GoToDetailCommand}"
                                         CommandParameter="{Binding .}" />
                                 </Border.GestureRecognizers>
-                                <Grid ColumnDefinitions="74,*" ColumnSpacing="12">
+                                <Grid ColumnDefinitions="72,*" ColumnSpacing="10">
                                     <!-- фото в рамці з фоном: биті/відсутні картинки не виглядають дірою -->
-                                    <Border Grid.Column="0" StrokeThickness="0" StrokeShape="RoundRectangle 10"
-                                            BackgroundColor="{AppThemeBinding Light=#F4F4F6, Dark=#22242A}"
-                                            WidthRequest="74" HeightRequest="74" Padding="4"
+                                    <Border Grid.Column="0" Style="{StaticResource Thumb}"
+                                            WidthRequest="72" HeightRequest="72" Padding="4"
                                             VerticalOptions="Start">
                                         <Image Source="{Binding ImageUrl}" Aspect="AspectFit" />
                                     </Border>
                                     <VerticalStackLayout Grid.Column="1" Spacing="3">
                                         <Label Text="{Binding Title}" MaxLines="2" LineBreakMode="TailTruncation"
-                                               FontAttributes="Bold" />
+                                               Style="{StaticResource Body}" FontAttributes="Bold" />
                                         <!-- одна крамниця → її назва; група → «в N крамницях» без однієї назви -->
-                                        <Label Text="{Binding SubTitle}" FontSize="12" TextColor="Gray"
+                                        <Label Text="{Binding SubTitle}" Style="{StaticResource Caption}"
                                                IsVisible="{Binding ShowStoreLine}" />
-                                        <Label Text="{Binding StoresText}" FontSize="12" FontAttributes="Bold"
-                                               TextColor="{AppThemeBinding Light=#512BD4, Dark=#AC99EA}"
+                                        <Label Text="{Binding StoresText}" Style="{StaticResource Caption}"
+                                               FontAttributes="Bold"
+                                               TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
                                                IsVisible="{Binding HasMultiStores}" />
-                                        <!-- дата кінця акції, якщо крамниця її дала (Rozetka) -->
-                                        <Label Text="{Binding PromoText}" FontSize="11" TextColor="#E23B3B"
-                                               IsVisible="{Binding HasPromo}" />
+                                        <!-- Дата акції — нейтральним, а не червоним: червоне лишаємо ЛИШЕ
+                                             пігулці −N%. Раніше на картці було дві червоні плями, і в
+                                             стовпчику з п'яти карток око не мало за що зачепитись. -->
+                                        <Label Text="{Binding PromoText}" Style="{StaticResource Caption}"
+                                               FontSize="11" IsVisible="{Binding HasPromo}" />
                                         <!-- Ціна, стара ціна й −% — ОДНА думка, тож стоять поруч зліва.
                                              Раніше бейдж був притиснутий до правого краю (колонка «*»
                                              між ними), і око мусило стрибати через усю ширину картки,
                                              щоб зібрати «22 999 замість 42 999, це −47%». Порядок
                                              читання й ієрархія розмірів (18 → 12) роблять решту. -->
-                                        <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="7">
+                                        <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="7"
+                                              Margin="0,2,0,0">
                                             <Label Grid.Column="0" Text="{Binding PriceText}"
-                                                   FontAttributes="Bold" FontSize="18" VerticalOptions="End" />
-                                            <Label Grid.Column="1" Text="{Binding OldGrn}" FontSize="12"
-                                                   TextColor="Gray" TextDecorations="Strikethrough"
+                                                   Style="{StaticResource PriceMain}" VerticalOptions="End" />
+                                            <Label Grid.Column="1" Text="{Binding OldGrn}"
+                                                   Style="{StaticResource PriceOld}"
                                                    VerticalOptions="End" IsVisible="{Binding HasOld}" />
-                                            <Border Grid.Column="2" BackgroundColor="#E23B3B" Padding="6,3"
-                                                    StrokeThickness="0" StrokeShape="RoundRectangle 7"
+                                            <Border Grid.Column="2" Style="{StaticResource PillDiscount}"
                                                     IsVisible="{Binding HasPct}" VerticalOptions="End">
                                                 <Label Text="{Binding PctText}" TextColor="White"
                                                        FontAttributes="Bold" FontSize="11" />
@@ -119,13 +129,11 @@
                                              буквально суть «Хапая». Зелена пігулка, а не сірий
                                              підпис: рядок рідкісний (~2% карток) і сірим губився б;
                                              колір інший, ніж у −% (червоний), щоб не зливалися. -->
-                                        <Border IsVisible="{Binding HasCheaper}" Margin="0,3,0,0"
-                                                HorizontalOptions="Start" StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 7" Padding="7,3"
-                                                BackgroundColor="{AppThemeBinding Light=#E4F6EA, Dark=#16351F}">
+                                        <Border IsVisible="{Binding HasCheaper}" Margin="0,4,0,0"
+                                                HorizontalOptions="Start" Style="{StaticResource PillSave}">
                                             <Label Text="{Binding CheaperText}" FontSize="11"
                                                    FontAttributes="Bold"
-                                                   TextColor="{AppThemeBinding Light=#0F7B3E, Dark=#6FD59B}" />
+                                                   TextColor="{AppThemeBinding Light={StaticResource SaveFgLight}, Dark={StaticResource SaveFgDark}}" />
                                         </Border>
                                     </VerticalStackLayout>
                                 </Grid>

@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    Візуальна система «Хапая». Мержиться ПІСЛЯ шаблонних Colors/Styles, тому перекриває їх.
+
+    Навіщо окремим файлом, а не правками в Colors.xaml/Styles.xaml: ті два — з коробки MAUI,
+    їх ключі тягне десятки вбудованих стилів. Чіпати їх означає ризикувати «StaticResource not
+    found» у місцях, яких ми не бачимо. Тут — лише наш шар, і його видно цілком.
+
+    ЗМІНА КОЛЬОРУ БРЕНДУ = два перші рядки нижче (+ Platforms/Android/.../values/colors.xml,
+    бо смугу статусу малює андроїдна тема, а не MAUI).
+
+    Кольори станів НЕ довільні, вони вже несуть змісти:
+      червоний  — знижка (−N%)
+      зелений   — «дешевше в іншій крамниці» (наша економія)
+    Тому колір бренду мусить бути з ними несуперечливим — звідси синьо-бірюзова гілка.
+-->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- ── БРЕНД ──────────────────────────────────────────────────────────────
+         Тут лише НАШІ токени для власної розмітки. `Primary`/`PrimaryDark` живуть
+         у Colors.xaml і мусять збігатися з цими значеннями — перекривати їх звідси
+         марно (StaticResource у шаблонному Styles.xaml резолвиться раніше). -->
+    <Color x:Key="BrandLight">#0E7490</Color>
+    <Color x:Key="BrandDark">#5FD0E8</Color>
+
+    <!-- ── ПОВЕРХНІ ──────────────────────────────────────────────────────────────
+         Головна вада, яку це лікує: шаблон фарбує Page у White (Styles.xaml:405), а
+         картки в нас теж White — тобто картки були невидимі, і список читався як
+         суцільний потік тексту. Фон сторінки тепер сірий, картка — біла. -->
+    <Color x:Key="PageBgLight">#F1F2F4</Color>
+    <Color x:Key="PageBgDark">#0F1114</Color>
+    <Color x:Key="SurfaceLight">#FFFFFF</Color>
+    <Color x:Key="SurfaceDark">#1A1C20</Color>
+    <!-- Підкладка під фото товару — БІЛА, і це не випадковість. Фото крамниць зняті на
+         білому, але не всі: у частини тло прозоре. На сірій підкладці ті, що з білим тлом,
+         показували видимий білий прямокутник усередині сірої рамки (кабель, навушники,
+         Acer Nitro) — сітка виглядала рваною. На білій підкладці обидва типи зливаються.
+         У темній темі підкладка теж світла: фото на темному просто не читаються. -->
+    <Color x:Key="ThumbBgLight">#FFFFFF</Color>
+    <Color x:Key="ThumbBgDark">#E9EBEE</Color>
+
+    <!-- ── ТЕКСТ ─────────────────────────────────────────────────────────────── -->
+    <Color x:Key="TextLight">#14161A</Color>
+    <Color x:Key="TextDarkC">#ECEDEF</Color>
+    <Color x:Key="MutedLight">#6B7280</Color>
+    <Color x:Key="MutedDark">#9AA1AA</Color>
+
+    <!-- ── СТАНИ ─────────────────────────────────────────────────────────────── -->
+    <Color x:Key="DiscountLight">#D92D20</Color>
+    <Color x:Key="DiscountDark">#FF7A6E</Color>
+    <Color x:Key="SaveFgLight">#0F7B3E</Color>
+    <Color x:Key="SaveFgDark">#6FD59B</Color>
+    <Color x:Key="SaveBgLight">#E7F6EC</Color>
+    <Color x:Key="SaveBgDark">#14301F</Color>
+
+    <!-- ── БАЗОВІ ПЕРЕКРИТТЯ ─────────────────────────────────────────────────── -->
+    <Style TargetType="Page" ApplyToDerivedTypes="True">
+        <Setter Property="BackgroundColor"
+                Value="{AppThemeBinding Light={StaticResource PageBgLight}, Dark={StaticResource PageBgDark}}" />
+    </Style>
+
+    <!-- Шапка одного тону з фоном сторінки: раніше біла панель стикалась із фіолетовою
+         смугою статусу й читалась як недогляд. Смугу статусу задає андроїдна тема.
+
+         УВАГА, дорого куплено: неявний стиль перекривається ЦІЛКОМ, а не зливається.
+         Спершу я лишив тут три сеттери — і мовчки знищив усі TabBar* із шаблонного
+         стилю. Застосунок падав на старті: `IllegalArgumentException: valid TextAppearance`
+         у створенні BottomNavigationView (таббар Shell), бо кольори прийшли порожні.
+         Тому нижче ПОВНИЙ набір сеттерів шаблону — міняємо лише значення. Додаєш
+         сеттер у шаблон — додай і сюди. -->
+    <Style TargetType="Shell" ApplyToDerivedTypes="True">
+        <Setter Property="Shell.BackgroundColor"
+                Value="{AppThemeBinding Light={StaticResource PageBgLight}, Dark={StaticResource PageBgDark}}" />
+        <Setter Property="Shell.ForegroundColor"
+                Value="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDarkC}}" />
+        <Setter Property="Shell.TitleColor"
+                Value="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDarkC}}" />
+        <Setter Property="Shell.DisabledColor"
+                Value="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}" />
+        <Setter Property="Shell.UnselectedColor"
+                Value="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}" />
+        <Setter Property="Shell.NavBarHasShadow" Value="False" />
+        <Setter Property="Shell.TabBarBackgroundColor"
+                Value="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}" />
+        <Setter Property="Shell.TabBarForegroundColor"
+                Value="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
+        <Setter Property="Shell.TabBarTitleColor"
+                Value="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
+        <Setter Property="Shell.TabBarUnselectedColor"
+                Value="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}" />
+    </Style>
+
+    <!-- ── КОМПОНЕНТИ ────────────────────────────────────────────────────────── -->
+
+    <!-- Картка. Без тіні свідомо: у стрічці їх одночасно десятки, і тінь на Border
+         усередині CollectionView на Android коштує помітно більше, ніж дає. Контрасту
+         «біле на сірому» для розділення достатньо. -->
+    <Style x:Key="Card" TargetType="Border">
+        <Setter Property="StrokeThickness" Value="0" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 16" />
+        <Setter Property="BackgroundColor"
+                Value="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}" />
+    </Style>
+
+    <!-- Рамка фото: фіксований квадрат + Padding, щоб товари різних пропорцій не
+         стрибали й щоб биті/відсутні картинки не виглядали дірою. -->
+    <Style x:Key="Thumb" TargetType="Border">
+        <Setter Property="StrokeThickness" Value="0" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 12" />
+        <Setter Property="BackgroundColor"
+                Value="{AppThemeBinding Light={StaticResource ThumbBgLight}, Dark={StaticResource ThumbBgDark}}" />
+    </Style>
+
+    <!-- Типографічна шкала: рівно чотири рівні. Більше — і ієрархія перестає читатись. -->
+    <Style x:Key="H1" TargetType="Label">
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="TextColor"
+                Value="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDarkC}}" />
+    </Style>
+    <Style x:Key="H2" TargetType="Label">
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="TextColor"
+                Value="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDarkC}}" />
+    </Style>
+    <Style x:Key="Body" TargetType="Label">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="TextColor"
+                Value="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDarkC}}" />
+    </Style>
+    <Style x:Key="Caption" TargetType="Label">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="TextColor"
+                Value="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}" />
+    </Style>
+
+    <Style x:Key="PriceMain" TargetType="Label">
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="TextColor"
+                Value="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDarkC}}" />
+    </Style>
+    <Style x:Key="PriceOld" TargetType="Label">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="TextDecorations" Value="Strikethrough" />
+        <Setter Property="TextColor"
+                Value="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}" />
+    </Style>
+
+    <!-- Пігулка знижки. Червоне лишається ЛИШЕ тут: раніше тим самим червоним світилось
+         і «Акція діє до», тож у стовпчику було по дві червоні плями на картку й око не
+         мало за що зачепитись. Дата акції тепер нейтральна (Caption). -->
+    <Style x:Key="PillDiscount" TargetType="Border">
+        <Setter Property="StrokeThickness" Value="0" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 7" />
+        <Setter Property="Padding" Value="6,3" />
+        <Setter Property="BackgroundColor"
+                Value="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}" />
+    </Style>
+    <Style x:Key="PillSave" TargetType="Border">
+        <Setter Property="StrokeThickness" Value="0" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 7" />
+        <Setter Property="Padding" Value="7,3" />
+        <Setter Property="BackgroundColor"
+                Value="{AppThemeBinding Light={StaticResource SaveBgLight}, Dark={StaticResource SaveBgDark}}" />
+    </Style>
+
+    <!-- Панель фільтрів: пікери з підкресленням виглядали як поля форми. Загорнуті в
+         цю поверхню вони читаються як панель керування списком. -->
+    <Style x:Key="FilterBar" TargetType="Border">
+        <Setter Property="StrokeThickness" Value="0" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 14" />
+        <Setter Property="Padding" Value="6,2" />
+        <Setter Property="BackgroundColor"
+                Value="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}" />
+    </Style>
+</ResourceDictionary>

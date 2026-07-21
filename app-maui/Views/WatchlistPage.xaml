@@ -16,7 +16,7 @@
 
     <Grid RowDefinitions="Auto,*">
 
-        <Label Grid.Row="0" Text="{Binding ErrorMessage}" TextColor="#E23B3B" Padding="14,10"
+        <Label Grid.Row="0" Text="{Binding ErrorMessage}" TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}" Padding="14,10"
                IsVisible="{Binding ErrorMessage, Converter={StaticResource NotEmpty}}" />
 
         <RefreshView Grid.Row="1" IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefreshCommand}">
@@ -28,24 +28,22 @@
                         <Label Text="Поки нічого не відстежуєш" FontAttributes="Bold"
                                HorizontalOptions="Center" />
                         <Label Text="Відкрий товар і натисни «Стежити за ціною» — тут буде видно, як вона змінилась."
-                               TextColor="Gray" HorizontalTextAlignment="Center" />
+                               TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}" HorizontalTextAlignment="Center" />
                     </VerticalStackLayout>
                 </CollectionView.EmptyView>
 
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:WatchItem">
                         <Grid Padding="12,6">
-                            <Border StrokeThickness="0" StrokeShape="RoundRectangle 15" Padding="10"
-                                    BackgroundColor="{AppThemeBinding Light=White, Dark=#191B1F}">
+                            <Border Style="{StaticResource Card}" Padding="12">
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer
                                         Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenCommand}"
                                         CommandParameter="{Binding .}" />
                                 </Border.GestureRecognizers>
                                 <Grid ColumnDefinitions="74,*,Auto" ColumnSpacing="12">
-                                    <Border Grid.Column="0" StrokeThickness="0" StrokeShape="RoundRectangle 10"
-                                            BackgroundColor="{AppThemeBinding Light=#F4F4F6, Dark=#22242A}"
-                                            WidthRequest="74" HeightRequest="74" Padding="4"
+                                    <Border Grid.Column="0" Style="{StaticResource Thumb}"
+                                            WidthRequest="82" HeightRequest="82" Padding="6"
                                             VerticalOptions="Start">
                                         <Image Source="{Binding ImageUrl}" Aspect="AspectFit" />
                                     </Border>
@@ -54,18 +52,18 @@
                                         <Label Text="{Binding Title}" MaxLines="2"
                                                LineBreakMode="TailTruncation" FontAttributes="Bold" />
                                         <Label Text="{Binding StoresText}" FontSize="12" FontAttributes="Bold"
-                                               TextColor="{AppThemeBinding Light=#512BD4, Dark=#AC99EA}"
+                                               TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
                                                IsVisible="{Binding HasMultiStores}" />
                                         <Label Text="{Binding CurrentGrn}" FontAttributes="Bold" FontSize="17" />
                                         <!-- рух ціни показуємо ЛИШЕ коли є з чим порівняти -->
                                         <Label Text="{Binding DeltaText}" FontSize="12"
                                                TextColor="{Binding DeltaColor}"
                                                IsVisible="{Binding HasDelta}" />
-                                        <Label Text="{Binding SinceText}" FontSize="11" TextColor="Gray" />
+                                        <Label Text="{Binding SinceText}" FontSize="11" TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}" />
                                     </VerticalStackLayout>
 
                                     <Button Grid.Column="2" Text="✕" WidthRequest="40" HeightRequest="40"
-                                            Padding="0" BackgroundColor="Transparent" TextColor="Gray"
+                                            Padding="0" BackgroundColor="Transparent" TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}"
                                             VerticalOptions="Start"
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.RemoveCommand}"
                                             CommandParameter="{Binding .}" />

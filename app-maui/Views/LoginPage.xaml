@@ -16,7 +16,7 @@
         <VerticalStackLayout Padding="24" Spacing="16" VerticalOptions="Center" MaximumWidthRequest="480">
 
             <Label Text="Хапай" FontSize="30" FontAttributes="Bold" HorizontalOptions="Center" />
-            <Label Text="{Binding Title}" FontSize="18" TextColor="Gray" HorizontalOptions="Center" />
+            <Label Text="{Binding Title}" FontSize="18" TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}" HorizontalOptions="Center" />
 
             <Entry Placeholder="Email" Text="{Binding Email}"
                    Keyboard="Email" ReturnType="Next" />
@@ -24,7 +24,7 @@
                    IsPassword="True" ReturnType="Done"
                    ReturnCommand="{Binding SubmitCommand}" />
 
-            <Label Text="{Binding Error}" TextColor="#E23B3B"
+            <Label Text="{Binding Error}" TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}"
                    IsVisible="{Binding Error, Converter={StaticResource NotEmpty}}" />
 
             <Button Text="{Binding SubmitText}" Command="{Binding SubmitCommand}"
@@ -34,7 +34,7 @@
                                HorizontalOptions="Center" />
 
             <Button Text="{Binding ToggleText}" Command="{Binding ToggleCommand}"
-                    BackgroundColor="Transparent" TextColor="Gray" />
+                    BackgroundColor="Transparent" TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}" />
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

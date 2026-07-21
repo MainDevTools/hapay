@@ -10,7 +10,11 @@
     VS-проєкті взагалі не існувало).
 
     Скрипт копіює лише ті файли, які пишемо ми, і НІКОЛИ не чіпає `.csproj`
-    (пакети/версії оператор веде вручну) та згенероване (`obj/`, `bin/`, `Platforms/Android/Resources`).
+    (пакети/версії оператор веде вручну) та згенероване (`obj/`, `bin/`).
+
+    Копіюємо ЛИШЕ те, що є в репо, тож зайвого в цільовій теці не чіпаємо. Виняток
+    варто знати: `Platforms/Android/Resources/values/colors.xml` тепер НАШ (колір смуги
+    статусу), хоч решта `Platforms/Android/Resources` — згенерована.
 
 .PARAMETER Target
     Тека VS-проєкту. За замовчуванням — стандартне розташування на машині оператора.
@@ -46,8 +50,9 @@ if (-not (Get-ChildItem -Path $Target -Filter "*.csproj" -ErrorAction SilentlyCo
 
 # те, що пишемо ми. Усе інше (csproj, Platforms/Android/Resources, obj, bin) — не наше.
 $Dirs  = @("Models", "Services", "ViewModels", "Views", "Drawables", "Converters",
-           "Platforms\Android", "Resources\AppIcon", "Resources\Splash", "Resources\Images")
-$Files = @("MauiProgram.cs", "AppShell.xaml", "AppShell.xaml.cs")
+           "Platforms\Android", "Resources\AppIcon", "Resources\Splash", "Resources\Images",
+           "Resources\Styles")
+$Files = @("MauiProgram.cs", "AppShell.xaml", "AppShell.xaml.cs", "App.xaml")
 
 $plan = [System.Collections.Generic.List[object]]::new()
 
