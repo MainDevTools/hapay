@@ -553,6 +553,23 @@ def main():
     checks.append(("товар без MPN → бейджа нема",
                    len(rl) >= 1 and all(d.get("cheaper_kop") is None for d in rl), rl))
 
+    # сортування «де дешевше»: бейджеві картки нагору, від найбільшої різниці.
+    # Без нього сигнал (1.8% карток) практично не зустрічається під час гортання.
+    srt = client.get("/api/products?sort=cheaper").json()
+    with_ch = [x for x in srt if x.get("cheaper_kop")]
+    checks.append(("sort=cheaper: картки з дешевшим поруч — на початку",
+                   len(with_ch) >= 1 and srt[0].get("cheaper_kop") is not None,
+                   [bool(x.get("cheaper_kop")) for x in srt[:5]]))
+    checks.append(("sort=cheaper: різниця спадає",
+                   all((with_ch[i]["current_kop"] - with_ch[i]["cheaper_kop"])
+                       >= (with_ch[i+1]["current_kop"] - with_ch[i+1]["cheaper_kop"])
+                       for i in range(len(with_ch) - 1)),
+                   [x["current_kop"] - x["cheaper_kop"] for x in with_ch]))
+    # сортування НЕ фільтр: решта каталогу лишається доступною (інакше в смартфонах,
+    # де таких карток нема взагалі, екран був би глухим кутом)
+    checks.append(("sort=cheaper не відрізає решту каталогу",
+                   len(srt) > len(with_ch), (len(srt), len(with_ch))))
+
     for name, ok, val in checks:
         print(f"{'PASS' if ok else 'FAIL'}  {name}" + ("" if ok else f"  -> {val!r}"))
         failed += 0 if ok else 1

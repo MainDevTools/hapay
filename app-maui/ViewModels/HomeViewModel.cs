@@ -23,6 +23,7 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
     {
         // підписи короткі: пікери тепер по третині ширини (компактна панель фільтрів)
         new("За знижкою", "discount"),
+        new("Де дешевше", "cheaper"),   // той самий товар дешевший в іншій крамниці
         new("Дешевші", "cheap"),
         new("Дорожчі", "expensive"),
         new("Найновіші", "new"),
@@ -219,6 +220,16 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
                     SearchNote = $"У «{SelectedCategory?.Name}» нічого — показуємо з усіх категорій";
                 }
             }
+
+            // «Де дешевше» піднімає такі картки нагору, тож якщо навіть ПЕРША не має
+            // дешевшої пропозиції — їх нема в усій категорії. Кажемо це прямо: інакше
+            // людина гортає список, який на вигляд нічим не відрізняється від звичайного,
+            // і думає, що фільтр зламався. У смартфонах це штатний стан (заміряно:
+            // розкид ціни там 53 ₴ проти 1 468 ₴ на ноутбуках), а не помилка.
+            if (_page == 0 && SelectedSort?.Key == "cheaper" && batch.Count > 0 && !batch[0].HasCheaper)
+                SearchNote = string.IsNullOrEmpty(cat)
+                    ? "Ціни в крамницях однакові — дешевших пропозицій поруч не знайшли"
+                    : $"У «{SelectedCategory?.Name}» ціни в крамницях однакові — дешевшого поруч нема";
 
             foreach (var d in batch) Items.Add(d);
             _more = batch.Count >= 50;
