@@ -350,6 +350,23 @@ def main():
     checks.append(("add.ua товар персиснув із GTIN зі штрихкоду (не внутрішній SKU)",
                    ag is not None and ag[0] == "04820274801259", ag))
 
+    # ── пошук за кирилицею-фонетикою бренду (§9.1): «айфон» мусить знайти iPhone ────
+    # На проді (2026-07-22): iphone → 50 товарів, айфон → 6. Українець набирає кирилицею,
+    # а бренд у назві латиницею → ILIKE ANY з підстановкою (search.py). Оригінал теж
+    # лишається серед патернів, тож поведінка латинських запитів не змінюється.
+    client.post("/api/ingest", headers=ing_tok, json={"source": "Rozetka", "items": [
+        {"external_ref": "/ua/apple-iphone-translit-test.html",
+         "url": "https://rozetka.com.ua/ua/apple-iphone-translit-test.html",
+         "title": "Смартфон Apple iPhone 17 Pro 256GB translit-test",
+         "price_now_kop": 4999900, "price_old_kop": 5499900}]})
+    cyr = client.get("/api/products?q=айфон").json()
+    checks.append(("пошук «айфон» знаходить iPhone (транслітерація бренду)",
+                   any("iphone" in (d.get("title", "").lower()) for d in cyr), len(cyr)))
+    # контроль: латинський запит як і був — знаходить той самий товар
+    lat = client.get("/api/products?q=iPhone 17 Pro 256GB translit-test").json()
+    checks.append(("латинський пошук не зламався (той самий товар)",
+                   any("translit-test" in d.get("title", "") for d in lat), len(lat)))
+
     # Rozetka-лістинг: S26 SM-S942BZKGEUC збігається з Foxtrot (той самий MPN) →
     # ЖИВА крос-крамнична група «Де купити» з реальних адаптерів (не синтетика)
     rz = client.post("/api/ingest/html", headers=chdr, json={

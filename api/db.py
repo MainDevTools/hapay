@@ -6,6 +6,7 @@
 from __future__ import annotations
 from psycopg import errors
 from psycopg.rows import dict_row
+from search import search_patterns
 from taxonomy import category_ui, SECTION_ORDER
 
 # сортування — без de.-префікса: колонки беруться з CTE `best` (див. list_discounts)
@@ -39,7 +40,8 @@ def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, o
     if badge:
         where.append("de.badge_state = %s"); params.append(badge)
     if q:                                   # пошук за назвою (ILIKE — прощає часткові; §9.1)
-        where.append("sp.title ILIKE %s"); params.append(f"%{q.strip()}%")
+        # ILIKE ANY: оригінал + кирилиця-бренд→латиниця («айфон»→iPhone); див. search.py
+        where.append("sp.title ILIKE ANY(%s)"); params.append(search_patterns(q))
     if price_min is not None:               # ціна — копійки (інв. A); фільтр за поточною ціною
         where.append("de.current_kop >= %s"); params.append(price_min)
     if price_max is not None:
@@ -174,7 +176,7 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
     # звужувальні — лише для ВИБОРУ картки, не для пошуку дешевшої пропозиції
     narrow: list[str] = []
     if q:
-        narrow.append("title ILIKE %s"); params.append(f"%{q.strip()}%")
+        narrow.append("title ILIKE ANY(%s)"); params.append(search_patterns(q))
     if price_min is not None:
         narrow.append("current_kop >= %s"); params.append(price_min)
     if price_max is not None:
