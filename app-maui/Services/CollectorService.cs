@@ -15,7 +15,10 @@ public class CollectorService
     private readonly IWebRenderer _renderer;   // рендер SPA-крамниць (mode=render) — Android WebView
     private readonly HttpClient _store;    // ОКРЕМИЙ клієнт: БЕЗ нашого JWT (не світимо токен крамниці)
 
-    private const int MaxHtml = 5_000_000;                       // = серверна стеля; не вантажимо більше
+    // = серверна стеля (_MAX_HTML в api/ingest.py). Була 5 МБ і ВІДСТАЛА, коли сервер
+    // підняли до 12 (2026-07-20, прокручені render-сторінки): sitemap add.ua (5.1 МБ)
+    // падав із «сторінка завелика». Тримати рівною серверній.
+    private const int MaxHtml = 12_000_000;
     private static readonly TimeSpan Polite = TimeSpan.FromSeconds(2);  // §10.2 — пауза між запитами до хоста
 
     public CollectorService(ApiService api, IWebRenderer renderer)

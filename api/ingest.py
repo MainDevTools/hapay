@@ -441,15 +441,21 @@ HTML_SOURCES: dict[str, dict] = {
     # мають саме преміум-дерма бренди. La Roche-Posay: 60 товарів, усі зі штрихкодом
     # (напр. 3337875944960), усі є і в Подорожника. Тому цілимо в БРЕНДОВУ адресу.
     #
-    # `discover_re` = `/$`: лістинги add.ua кінчаються на «/», товари на «.html» — просто
-    # й надійно розрізняє (брендова адреса має підкреслення й кілька сегментів, під старий
-    # регекс не підходила). Лістинг → discover, товар → extract.
-    # ⚠ ЦІНА: до 60 рендерів товарів/добу (enqueue_pages). Тепер вони йдуть на La Roche,
-    # що реально матчиться, а не на Babaria в нікуди.
+    # ВІДКРИТТЯ — через SITEMAP (T20, 2026-07-22), замість render-лістинга бренду:
+    # sitemap-product_ua.xml — статичний XML (5.1 МБ, 41 387 товарів), який add.ua сама
+    # публікує в robots.txt для краулерів. Телефон тягне його plain GET-ом раз на 2 доби
+    # (lease перевизначає mode на fetch — WebView для XML і не потрібен, і шкідливий),
+    # сервер фільтрує `la-roche` → 186 карток La Roche (проти ~60 на брендлистингу — 3×
+    # ширше, і БЕЗ рендера на фазі відкриття).
+    #
+    # Економіка: 186 карток × render не влазять у щоденний повтор (~96 задач/добу/крамницю),
+    # тому sitemap-нащадки йдуть із repeat 2880 (2 доби): 186/2=93/добу ≈ здатність.
+    # `discover_re` лишається: якщо колись знову інджестимо лістинг — він і досі працює.
+    # ⚠ include_re МУСИТЬ бути специфічним: замір із `rosh` ловив «поро́шки» (porosh-ok).
     "AddUa": {"adapter": AdduaAdapter(), "mode": "render", "category": "kosmetyka",
-              "discover_re": r"/$", "max_pages": 60, "urls": (
-        ("https://www.add.ua/ua/kosmetika/l/marka_la-roche-posay/", "kosmetyka"),
-    )},
+              "discover_re": r"/$",
+              "sitemap": {"url": "https://www.add.ua/sitemap-product_ua.xml",
+                          "include_re": r"la-roche", "max": 200}},
     # Аптека 911 — третя аптека, mode=fetch (БЕЗ рендера, на відміну від add.ua: сайт
     # віддає повний SSR-HTML plain-GET'ом). Двофазна, як add.ua: штрихкод лише на картці.
     # `discover_re` = `^(?!.*-p\d)`: товари — `…-p<id>`, лістинги (бренд/категорія/`/page=N`)
@@ -566,6 +572,39 @@ def collector_label(authorization: str | None) -> str | None:
 def _host_ok(url: str, allowed: tuple[str, ...]) -> bool:
     host = (urlsplit(url).hostname or "").lower()
     return any(host == a or host.endswith("." + a) for a in allowed)
+
+
+_SM_LOC = re.compile(r"<loc>\s*(.*?)\s*</loc>", re.S)
+
+
+def sitemap_locs(xml: str, include_re: str | None, hosts: tuple[str, ...],
+                 cap: int) -> list[str]:
+    """URL зі sitemap-urlset → відфільтровані товарні URL (T20, sitemap-відкриття).
+
+    Правово найчистіший канал відкриття: sitemap крамниця публікує в robots.txt САМЕ
+    для авто-краулерів (вет 2026-07-22). Парсимо регексом, не XML-парсером: <loc> —
+    єдине, що нам треба, а регекс байдужий до неймспейсів/битих атрибутів.
+
+    `include_re` — звуження до полиці, що перетинається з каталогом (add.ua: `la-roche`).
+    ⚠ Патерн МУСИТЬ бути специфічним: перший замір із `rosh` зловив 1003 «товари», з
+    яких 817 — «поро́шки» (porosh-ok). Хости — та сама політика, що й у validate_item:
+    чужий хост у sitemap (навмисний чи ні) не має збити збір на сторонній сайт."""
+    inc = re.compile(include_re) if include_re else None
+    out: list[str] = []
+    seen: set[str] = set()
+    for loc in _SM_LOC.findall(xml):
+        u = loc.strip()
+        if inc and not inc.search(u):
+            continue
+        if not _host_ok(u, hosts):
+            continue
+        if u in seen:
+            continue
+        seen.add(u)
+        out.append(u)
+        if len(out) >= cap:
+            break
+    return out
 
 
 def validate_item(source: str, raw: dict) -> tuple[RawItem | None, str | None]:
@@ -704,6 +743,9 @@ def collect_plan() -> list[dict]:
         mode = cfg.get("mode", "fetch")
         if cfg.get("hub"):
             out.append({"source": name, "url": cfg["hub"], "kind": "hub", "mode": mode})
+        if cfg.get("sitemap"):                          # sitemap — завжди plain GET (XML)
+            out.append({"source": name, "url": cfg["sitemap"]["url"],
+                        "kind": "sitemap", "mode": "fetch"})
         for u, _c, _p in source_listings(cfg):          # лістинги + їхня пагінація
             out.append({"source": name, "url": u, "kind": "page", "mode": mode})
     return out
@@ -743,6 +785,16 @@ def ingest_html(conn, source: str, url: str, html: str) -> dict:
     #  · `discover_re` — регекс на лістинг-URL (add.ua): КОЖЕН лістинг категорії
     #    discover-ить свої товари, бо штрихкод там лише на сторінці товару. Регекс
     #    відрізняє лістинг (`/ua/<cat>/`) від товару (`/ua/<slug>.html`).
+    # фаза 0: sitemap-відкриття (T20) — статичний XML замість render-лістинга: телефон
+    # тягне його plain GET-ом (lease перевизначає mode на fetch), сервер фільтрує до
+    # полиці include_re і кладе картки в чергу. Маршрут — ПЕРЕД discover_re: sitemap-URL
+    # не мусить підходити під регекс лістингів.
+    sm = cfg.get("sitemap")
+    if sm and canon_ref(url) == canon_ref(sm["url"]):
+        locs = sitemap_locs(html, sm.get("include_re"), hosts, sm.get("max", 500))
+        return {"source": source, "kind": "sitemap", "discovered": locs,
+                "accepted": 0, "rejected": 0, "status": "ok"}
+
     is_hub = cfg.get("hub") and canon_ref(url) == canon_ref(cfg["hub"])
     dre = cfg.get("discover_re")
     if is_hub or (dre and re.search(dre, url)):

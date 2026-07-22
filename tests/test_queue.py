@@ -164,6 +164,36 @@ def main():
                        {s["source"] for s in st} >= {"Allo", "Foxtrot", "Moyo"},
                        [s["source"] for s in st]))
 
+        # ── sitemap-відкриття (T20) ───────────────────────────────────────────────
+        # Сів створює sitemap-задачу для джерел зі cfg["sitemap"] (AddUa), з рідшим
+        # повтором: sitemap читається раз на 2 доби (нові товари з'являються нечасто).
+        row = conn.execute("SELECT kind, repeat_min FROM collect_task "
+                           "WHERE source='AddUa' AND kind='sitemap'").fetchone()
+        checks.append(("сів створює sitemap-задачу AddUa (repeat 2880)",
+                       row is not None and row[1] == qtasks.SITEMAP_REPEAT_MIN, row))
+
+        # Оренда sitemap-задачі — mode='fetch' ЗАВЖДИ, хоч AddUa render: XML тягнеться
+        # plain GET-ом (WebView загорнув би його у власний viewer і спотворив DOM).
+        conn.execute("UPDATE collect_task SET leased_until = NULL, "
+                     "not_before = now() + interval '1 hour'")     # приспати все...
+        conn.execute("UPDATE collect_task SET not_before = now() - interval '1 minute' "
+                     "WHERE source='AddUa' AND kind='sitemap'")    # ...крім sitemap
+        got_sm = qtasks.lease_tasks(conn, "phone-sm", limit=3)
+        sm = next((t for t in got_sm if t["kind"] == "sitemap"), None)
+        checks.append(("оренда sitemap: mode=fetch попри render-джерело",
+                       sm is not None and sm["mode"] == "fetch", got_sm))
+
+        # enqueue з repeat-політикою: sitemap-нащадки йдуть рідше (2880), і ON CONFLICT
+        # оновлює repeat_min НАЯВНИХ задач — політика, не стан (як у seed_tasks).
+        purl = "https://www.add.ua/ua/test-sitemap-child.html"
+        qtasks.enqueue_pages(conn, "AddUa", [purl])                    # спершу як щоденна
+        qtasks.enqueue_pages(conn, "AddUa", [purl],
+                             repeat_min=qtasks.SITEMAP_REPEAT_MIN)     # тоді political update
+        rp = conn.execute("SELECT repeat_min FROM collect_task WHERE url=%s",
+                          (purl,)).fetchone()[0]
+        checks.append(("enqueue оновлює repeat наявної задачі (політика)",
+                       rp == qtasks.SITEMAP_REPEAT_MIN, rp))
+
     for name, ok, val in checks:
         print(f"{'PASS' if ok else 'FAIL'}  {name}" + ("" if ok else f"  -> {val!r}"))
         failed += 0 if ok else 1

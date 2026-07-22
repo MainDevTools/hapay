@@ -305,10 +305,15 @@ def ingest_html(body: dict, collector=Depends(require_collector), conn=Depends(g
         result = qingest.ingest_html(conn, source, url, html)
     except ValueError as e:
         raise HTTPException(400, str(e))
-    if result.get("kind") == "hub" and result.get("discovered"):
-        # лендинги — в чергу: фонові колектори розберуть їх із 15-хв розльотом,
-        # а кнопковий режим може дотягнути одразу (обидва шляхи співіснують)
-        result["enqueued"] = qtasks.enqueue_pages(conn, source, result["discovered"])
+    if result.get("kind") in ("hub", "sitemap") and result.get("discovered"):
+        # лендинги/картки — в чергу: фонові колектори розберуть їх із 15-хв розльотом,
+        # а кнопковий режим може дотягнути одразу (обидва шляхи співіснують).
+        # sitemap-нащадки — рідший повтор (2880): їх багато (add.ua 186 при здатності
+        # ~96/добу/крамницю), щоденний повтор не влазить і роздував би overdue сторожа.
+        rep = (qtasks.SITEMAP_REPEAT_MIN if result["kind"] == "sitemap"
+               else qtasks.PAGE_REPEAT_MIN)
+        result["enqueued"] = qtasks.enqueue_pages(conn, source, result["discovered"],
+                                                  repeat_min=rep)
     if result.get("kind") == "page" and result.get("accepted"):
         result["events"] = detect_pass(conn)    # бейджі лише коли справді щось прийняли (§8.4)
     task_id = body.get("task_id")
