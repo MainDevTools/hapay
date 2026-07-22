@@ -178,6 +178,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.moyo.ua/ua/bt/kbt/holodilniky/", "pobut-tehnika", 3),
         ("https://www.moyo.ua/ua/bt/kbt/stiralnie-mashiny/", "pobut-tehnika", 1),    # 24
         ("https://www.moyo.ua/ua/bt/kbt/posudomoechnie-mashi/", "pobut-tehnika", 1), # 24
+        ("https://www.moyo.ua/ua/bt/vstraivaemaya-tekh/vytyajki/", "vytyazhky", 2),   # Moyo: слаг «vytyajki»; MPN 16/24
         ("https://www.moyo.ua/ua/foto_video/photo_video/cameras/", "foto", 3),       # 24
         ("https://www.moyo.ua/ua/game_zone/game_console/", "konsoli", 2),            # 24
         ("https://www.moyo.ua/ua/acsessor/acum/accu_univers/", "aksesuary", 1),      # 24
@@ -212,6 +213,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://comfy.ua/smart-watches/", "smart-hodynnyky", 3),               # 50 карток
         ("https://comfy.ua/refrigerator/", "pobut-tehnika", 3),                  # 50 карток
         ("https://comfy.ua/wash-machines/", "pobut-tehnika", 1),                 # 50 карток
+        ("https://comfy.ua/ua/n-hood/", "vytyazhky", 2),   # Comfy: слаг «n-hood», /ua/-форма; render (не перевірено локально)
     )},
     # Rozetka (розвідка 2026-07-19): найбільший маркетплейс, Angular-SSR 60 карток;
     # масові перетини MPN (SM-S942BZKGEUC = Foxtrot S26, SM-A576BZVDEUC = Moyo/Allo A57).
@@ -283,6 +285,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://brain.com.ua/ukr/category/Navushnyky_ta_garnitury-c1365-157/", "audio", 3),
         ("https://brain.com.ua/ukr/category/Rozumni_godynnyky_ta_braslety-c7852/", "smart-hodynnyky", 3),
         ("https://brain.com.ua/ukr/category/Holodilniki-c897/", "pobut-tehnika", 3),
+        ("https://brain.com.ua/ukr/category/Kuhonni_vityazhki-c909/", "vytyazhky", 2),
     )},
     # Eldorado (розвідка 2026-07-20, у справжньому браузері): SPA + ЛІНИВІ ціни — без
     # прокрутки сторінка віддає товари з НУЛЕМ цін, тому лише mode="render" і лише з
@@ -386,6 +389,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://vencon.ua/catalog/stiralnye-mashiny", "pobut-tehnika"),      # 47/стор.
         ("https://vencon.ua/catalog/posudomoechnye-mashiny", "pobut-tehnika", 2),
         ("https://vencon.ua/catalog/sushilnye-mashiny", "pobut-tehnika", 2),
+        ("https://vencon.ua/ua/catalog/kuhonnye-vytyazhki", "vytyazhky", 2),   # MPN 1/47 — переважно перегляд
     )},
     # Telemart (розвідка 2026-07-21) — дванадцята крамниця. Розмітки schema.org тут
     # НЕМАЄ зовсім, тож екстракція йде нижнім тиром порядку (§8.4) — по класах. Це
