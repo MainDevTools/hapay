@@ -100,6 +100,7 @@ HTML_SOURCES: dict[str, dict] = {
              "page_tpl": "{base}?p={n}", "pages": 5, "urls": (
                  ("https://allo.ua/ua/products/mobile/klass-kommunikator_smartfon/", "smartfony"),
                  ("https://allo.ua/ua/products/notebooks/", "noutbuky"),
+                 ("https://allo.ua/ua/klaviatury/", "klaviatury", 2),   # слабкий матчер
                  ("https://allo.ua/ua/videokarty/", "videokarty", 2),   # MPN 43/60 (72%)
                  ("https://allo.ua/ua/ssd-nakopiteli/", "ssd", 2),   # MPN 60/60 (100%)
                  ("https://allo.ua/ua/processory/", "procesory", 2),   # MPN 31/60
@@ -161,6 +162,7 @@ HTML_SOURCES: dict[str, dict] = {
     "Foxtrot": {"adapter": FoxtrotAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
         ("https://www.foxtrot.com.ua/uk/shop/mobilnye_telefony.html", "smartfony"),
         ("https://www.foxtrot.com.ua/uk/shop/noutbuki.html", "noutbuky"),        # 42 товари
+        ("https://www.foxtrot.com.ua/uk/shop/klaviatury.html", "klaviatury", 2),  # MPN 21/42 (слабкий)
         ("https://www.foxtrot.com.ua/uk/shop/videokarti.html", "videokarty", 2), # 42/стор., MPN 33
         ("https://www.foxtrot.com.ua/uk/shop/zhestkie_diski_ssd_tverdotelnye.html", "ssd", 2),  # MPN 42/42
         ("https://www.foxtrot.com.ua/uk/shop/processori.html", "procesory", 2),  # MPN 40/40
@@ -199,6 +201,7 @@ HTML_SOURCES: dict[str, dict] = {
     "Moyo": {"adapter": MoyoAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
         ("https://www.moyo.ua/ua/telecommunication/smart/", "smartfony"),
         ("https://www.moyo.ua/ua/comp-and-periphery/notebooks/", "noutbuky"),    # 24 товари
+        ("https://www.moyo.ua/ua/acsessor/acsessor_for_comp/keyboard/", "klaviatury", 2),
         ("https://www.moyo.ua/ua/comp-and-periphery/periphery-and-compon/videokarty/", "videokarty", 2),  # MPN 15/24
         ("https://www.moyo.ua/ua/comp-and-periphery/inform_carrier/ssd/", "ssd", 2),  # MPN 21/24
         ("https://www.moyo.ua/ua/comp-and-periphery/periphery-and-compon/processory/", "procesory", 2),  # MPN 14/24
@@ -249,6 +252,7 @@ HTML_SOURCES: dict[str, dict] = {
               "page_tpl": "{base}?p={n}", "pages": 5, "urls": (
         ("https://comfy.ua/smartfon/", "smartfony"),
         ("https://comfy.ua/notebook/", "noutbuky"),                              # 50 карток
+        ("https://comfy.ua/ua/keywords/", "klaviatury", 2),   # slug «keywords» (клавіатури!), render
         ("https://comfy.ua/ua/graphics-cards/", "videokarty", 2),   # slug «graphics-cards», render
         ("https://comfy.ua/ua/ssd-nakopitel/", "ssd", 2),   # render
         ("https://comfy.ua/ua/processors/", "procesory", 2),   # render
@@ -285,6 +289,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://hard.rozetka.com.ua/ua/cases/c80090/", "korpusy", 2),
         ("https://hard.rozetka.com.ua/ua/coolers/c80099/", "kulery", 2),
         ("https://rozetka.com.ua/ua/notebooks/c80004/", "noutbuky"),             # 60 товарів
+        ("https://hard.rozetka.com.ua/ua/keyboards/c80171/", "klaviatury", 2),  # hard-піддомен
         ("https://rozetka.com.ua/ua/all-tv/c80037/", "tv"),                      # 60 товарів
         ("https://rozetka.com.ua/ua/tablets/c130309/", "planshety", 3),           # 60 товарів
         ("https://rozetka.com.ua/ua/headphones/c80027/", "audio", 3),             # 60 товарів
@@ -354,6 +359,7 @@ HTML_SOURCES: dict[str, dict] = {
               "page_tpl": "{base}page={n}/", "pages": 5, "urls": (
         ("https://brain.com.ua/ukr/Smartfoni_zvyazok-c297/", "smartfony", 1),    # департамент
         ("https://brain.com.ua/ukr/category/Noutbuky-c1191/", "noutbuky"),       # 24/стор.
+        ("https://brain.com.ua/ukr/category/Klaviatury-c1269-67/", "klaviatury", 2),
         ("https://brain.com.ua/ukr/category/Videokarty-c1403/", "videokarty", 2),# 24/стор., MPN 18
         ("https://brain.com.ua/ukr/category/SSD_dysky-c1484/", "ssd", 2),
         ("https://brain.com.ua/ukr/category/Procesory-c1097-128/", "procesory", 2),
@@ -384,6 +390,7 @@ HTML_SOURCES: dict[str, dict] = {
     "Eldorado": {"adapter": EldoradoAdapter(), "mode": "render", "urls": (
         ("https://eldorado.ua/uk/smartphones/c1038946/", "smartfony"),
         ("https://eldorado.ua/uk/notebooks/c1039096/", "noutbuky"),
+        ("https://eldorado.ua/uk/keyboards/c1039113/", "klaviatury"),   # render
         ("https://eldorado.ua/uk/gpu/c1209287/", "videokarty"),   # slug «gpu», render
         ("https://eldorado.ua/uk/1216773/c1216773/", "ssd"),   # slug — числовий id, render
         ("https://eldorado.ua/uk/1209289/c1209289/", "procesory"),   # slug — числовий id, render
@@ -432,6 +439,7 @@ HTML_SOURCES: dict[str, dict] = {
                  "pages": 3, "urls": (
         ("https://epicentrk.ua/ua/shop/smartfony-i-mobilnye-telefony/", "smartfony"),
         ("https://epicentrk.ua/ua/shop/noutbuki/", "noutbuky"),
+        ("https://epicentrk.ua/ua/shop/klaviatury/", "klaviatury", 2),
         ("https://epicentrk.ua/ua/shop/videokarty/", "videokarty", 2),   # MPN 51/60 (85%)
         ("https://epicentrk.ua/ua/shop/ssd-diski/", "ssd", 2),   # MPN 58/60 (97%)
         ("https://epicentrk.ua/ua/shop/protsessory/", "procesory", 2),   # MPN 23/60
@@ -522,6 +530,7 @@ HTML_SOURCES: dict[str, dict] = {
                  "pages": 3, "urls": (
         ("https://telemart.ua/tv/", "tv"),                        # 48/стор., 79% з артикулом
         ("https://telemart.ua/laptops/", "noutbuky"),             # 48/стор., 97%
+        ("https://telemart.ua/ua/keyboards/", "klaviatury", 2),   # MPN 26/48
         ("https://telemart.ua/ua/videocard/", "videokarty", 2),   # 48/стор., MPN 36
         ("https://telemart.ua/ua/ssd/", "ssd", 2),   # 48/стор., MPN 45 (94%)
         ("https://telemart.ua/ua/processor/", "procesory", 2),   # 48/стор., MPN 27
@@ -600,6 +609,7 @@ HTML_SOURCES: dict[str, dict] = {
     "KTC": {"adapter": KtcAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
         ("https://ktc.ua/smartphone/", "smartfony"),
         ("https://ktc.ua/notebook/", "noutbuky"),                                # 48 товарів
+        ("https://ktc.ua/keyboard/", "klaviatury", 2),                           # MPN 20/48
         ("https://ktc.ua/videocard/", "videokarty", 2),                          # 48/стор., MPN 38
         ("https://ktc.ua/ssd/", "ssd", 2),                                       # 48/стор., MPN 43 (90%)
         ("https://ktc.ua/cpu/", "procesory", 2),                                 # 48/стор., MPN 37 (77%)
