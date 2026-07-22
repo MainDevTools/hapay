@@ -115,6 +115,7 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/holodilniki/", "pobut-tehnika", 3),
                  ("https://allo.ua/ua/elektrochajniki/", "elektrochaynyky", 2),   # MPN 40/60
                  ("https://allo.ua/ua/tostery/", "tostery", 2),   # MPN 36/60
+                 ("https://allo.ua/ua/products/utugi/", "prasky", 2),
                  ("https://allo.ua/ua/stiralnye-mashiny/", "pobut-tehnika", 1),
                  ("https://allo.ua/ua/otdel-no-stojaschie-posudomoechnye-mashiny/", "pobut-tehnika", 1),
                  ("https://allo.ua/ua/vytjazhki/", "vytyazhky", 2),   # Allo пише «vytjazhki» через j
@@ -175,6 +176,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/mikrovolnovki.html", "mikrohvylovky", 3),
         ("https://www.foxtrot.com.ua/uk/shop/elektrochayniki.html", "elektrochaynyky", 2),  # MPN 33/42
         ("https://www.foxtrot.com.ua/uk/shop/tostery.html", "tostery", 2),  # MPN 30/42
+        ("https://www.foxtrot.com.ua/uk/shop/utugi.html", "prasky", 2),  # MPN 40/42 (+ відпарювачі)
         ("https://www.foxtrot.com.ua/uk/shop/pylesosy.html", "pylososy", 3),
         ("https://www.foxtrot.com.ua/uk/shop/cofevarki.html", "kavomashyny", 3),
         ("https://www.foxtrot.com.ua/uk/shop/mobilnye_telefony_telefon.html", "knopkovi-telefony", 3),
@@ -213,6 +215,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/microvolnovie-pechi/", "mikrohvylovky", 3),
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/electrochayniki/", "elektrochaynyky", 2),  # MPN 17/24
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/tosteri/", "tostery", 2),  # MPN 16/24
+        ("https://www.moyo.ua/ua/bt/mbt/utugi/", "prasky", 2),  # MPN 22/24
         ("https://www.moyo.ua/ua/bt/mbt/pylesosy/", "pylososy", 3),
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/kofevarki/", "kavomashyny", 3),
         ("https://www.moyo.ua/ua/telecommunication/cell_phones/", "knopkovi-telefony", 3),
@@ -252,6 +255,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://comfy.ua/refrigerator/", "pobut-tehnika", 3),                  # 50 карток
         ("https://comfy.ua/ua/electric-tea-pot/", "elektrochaynyky", 2),   # render
         ("https://comfy.ua/ua/toaster/", "tostery", 2),   # render
+        ("https://comfy.ua/ua/iron/", "prasky", 2),   # render
         ("https://comfy.ua/wash-machines/", "pobut-tehnika", 1),                 # 50 карток
         ("https://comfy.ua/ua/n-hood/", "vytyazhky", 2),   # Comfy: слаг «n-hood», /ua/-форма; render (не перевірено локально)
     )},
@@ -276,6 +280,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/holodilniki/c80125/", "pobut-tehnika", 3),    # 60 товарів
         ("https://bt.rozetka.com.ua/ua/electric_kettles/c80160/", "elektrochaynyky", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/toasters/c80145/", "tostery", 2),  # bt-піддомен
+        ("https://bt.rozetka.com.ua/ua/irons/c80161/", "prasky", 2),  # bt-піддомен
         ("https://rozetka.com.ua/ua/washing_machines/c80124/", "pobut-tehnika", 1),# 60 товарів
         # витяжки Rozetka — на піддомені bt.rozetka.com.ua (host-політика пропускає: .rozetka.com.ua)
         ("https://bt.rozetka.com.ua/ua/extractor_fans/c80140/", "vytyazhky", 2),
@@ -306,6 +311,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.ctrs.com.ua/mikrovolnovki/", "mikrohvylovky", 3),        # 47 товарів
         ("https://www.ctrs.com.ua/elektrochayniki/", "elektrochaynyky", 2),    # 47 чайників, 100%
         ("https://www.ctrs.com.ua/tostery/", "tostery", 2),
+        ("https://www.ctrs.com.ua/utyugi/", "prasky", 2),
         ("https://www.ctrs.com.ua/pylesosy/", "pylososy", 3),                  # 47 товарів
         ("https://www.ctrs.com.ua/kofemashiny/", "kavomashyny", 3),            # 47 товарів
         ("https://www.ctrs.com.ua/mobilnye-telefony/", "knopkovi-telefony", 3),# 47 товарів
@@ -378,6 +384,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://eldorado.ua/uk/holodilniki/c1061560/", "pobut-tehnika"),       # 40 карток
         ("https://eldorado.ua/uk/kettles/c1039051/", "elektrochaynyky"),   # render
         ("https://eldorado.ua/uk/toasters/c1042091/", "tostery"),   # render (+ сендвічниці/вафельниці)
+        ("https://eldorado.ua/uk/irons/c1039036/", "prasky"),   # render
         ("https://eldorado.ua/uk/hoods/c1039066/", "vytyazhky"),                 # 40 витяжок, MPN 19
     )},
     # KTC (розвідка 2026-07-19): SSR-лістинг /smartphone/, 48 карток, 54 SM-коди —
@@ -432,6 +439,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/mikrovolnovye-pechi/", "mikrohvylovky"),
         ("https://epicentrk.ua/ua/shop/elektrochayniki/", "elektrochaynyky", 2),   # MPN 31/60
         ("https://epicentrk.ua/ua/shop/tostery/", "tostery", 2),   # MPN 41/60
+        ("https://epicentrk.ua/ua/shop/utyugi/", "prasky", 2),
         ("https://epicentrk.ua/ua/shop/kofevarki/", "kavomashyny"),
         ("https://epicentrk.ua/ua/shop/multivarki/", "multypechi"),
         ("https://epicentrk.ua/ua/shop/blendery/", "blendery"),
