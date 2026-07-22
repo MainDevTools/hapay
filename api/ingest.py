@@ -21,6 +21,7 @@ from urllib.parse import urlsplit
 
 from adapters.addua import AdduaAdapter
 from adapters.allo import HUB as ALLO_HUB, AlloAdapter
+from adapters.apteka911 import Apteka911Adapter
 from adapters.base import RawItem, canon_ref
 from adapters.brain import BrainAdapter
 from adapters.citrus import CitrusAdapter
@@ -67,6 +68,9 @@ INGEST_SOURCES: dict[str, dict] = {
     # фото, перевірка стереже URL ТОВАРУ, а він на podorozhnyk.ua).
     "Podorozhnyk": {"base_url": "https://podorozhnyk.ua",  "hosts": ("podorozhnyk.ua",)},
     "AddUa":     {"base_url": "https://www.add.ua",        "hosts": ("add.ua",)},
+    # Аптека 911 — третя аптека. Фото на власному CDN; у hosts НЕ додаємо (перевірка
+    # стереже URL ТОВАРУ, а він на apteka911.ua).
+    "Apteka911": {"base_url": "https://apteka911.ua",      "hosts": ("apteka911.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -445,6 +449,18 @@ HTML_SOURCES: dict[str, dict] = {
     "AddUa": {"adapter": AdduaAdapter(), "mode": "render", "category": "kosmetyka",
               "discover_re": r"/$", "max_pages": 60, "urls": (
         ("https://www.add.ua/ua/kosmetika/l/marka_la-roche-posay/", "kosmetyka"),
+    )},
+    # Аптека 911 — третя аптека, mode=fetch (БЕЗ рендера, на відміну від add.ua: сайт
+    # віддає повний SSR-HTML plain-GET'ом). Двофазна, як add.ua: штрихкод лише на картці.
+    # `discover_re` = `^(?!.*-p\d)`: товари — `…-p<id>`, лістинги (бренд/категорія/`/page=N`)
+    # цього не мають → лістинг discover-ить, товар extract-иться. Помилка розрізнення
+    # безпечна: extract лістинга → [], discover картки → [] (обидва порожні, не падають).
+    # Seed — бренд La Roche (56 товарів): заміряно 2026-07-22, ~47% штрихкодів уже в каталозі
+    # (Podorozhnyk+AddUa) → крос-аптечні трійки. Vichy/інші — 0 перетину, тому не сіємо.
+    # max_pages=80: усі 56 товарів бренду на 1 сторінці (пагінація не потрібна), із запасом.
+    "Apteka911": {"adapter": Apteka911Adapter(), "mode": "fetch", "category": "kosmetyka",
+                  "discover_re": r"^(?!.*-p\d)", "max_pages": 80, "urls": (
+        ("https://apteka911.ua/ua/shop/brands/la-roche", "kosmetyka"),
     )},
     "KTC": {"adapter": KtcAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
         ("https://ktc.ua/smartphone/", "smartfony"),
