@@ -137,6 +137,10 @@ def main():
         # ── чесна ротація (антистарвейшн): усі дозрілі, але 3 крамниці «свіжі», 3 «древні»
         # → оренда бере ДРЕВНІ, а не перші за абеткою (інакше нові адаптери голодували б)
         conn.execute("UPDATE collect_task SET leased_until = NULL, not_before = now() - interval '1 hour'")
+        # sitemap (priority 10) глобально обганяє все і зламав би перевірку ротації
+        # СТОРІНОК — присипляємо його: ротація тут міряється саме на page-задачах
+        conn.execute("UPDATE collect_task SET not_before = now() + interval '1 hour' "
+                     "WHERE kind = 'sitemap'")
         srcs = [r[0] for r in conn.execute("SELECT DISTINCT source FROM collect_task "
                                            "ORDER BY source").fetchall()]
         if len(srcs) >= 4:
@@ -165,12 +169,14 @@ def main():
                        [s["source"] for s in st]))
 
         # ── sitemap-відкриття (T20) ───────────────────────────────────────────────
-        # Сів створює sitemap-задачу для джерел зі cfg["sitemap"] (AddUa), з рідшим
-        # повтором: sitemap читається раз на 2 доби (нові товари з'являються нечасто).
-        row = conn.execute("SELECT kind, repeat_min FROM collect_task "
+        # Сів створює sitemap-задачу для джерел зі cfg["sitemap"] (AddUa): рідший повтор
+        # (2880 — нові товари нечасто) і ВИЩИЙ пріоритет (10 < 50): з дефолтними 100
+        # задача голодувала за будь-якої дозрілої картки — впіймано на проді 2026-07-22.
+        row = conn.execute("SELECT repeat_min, priority FROM collect_task "
                            "WHERE source='AddUa' AND kind='sitemap'").fetchone()
-        checks.append(("сів створює sitemap-задачу AddUa (repeat 2880)",
-                       row is not None and row[1] == qtasks.SITEMAP_REPEAT_MIN, row))
+        checks.append(("сів: sitemap-задача AddUa (repeat 2880, priority 10)",
+                       row is not None and row[0] == qtasks.SITEMAP_REPEAT_MIN
+                       and row[1] == qtasks.SITEMAP_PRIORITY, row))
 
         # Оренда sitemap-задачі — mode='fetch' ЗАВЖДИ, хоч AddUa render: XML тягнеться
         # plain GET-ом (WebView загорнув би його у власний viewer і спотворив DOM).
