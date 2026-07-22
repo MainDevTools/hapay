@@ -47,6 +47,19 @@ def test_refine_keeps_real_phones():
     assert refine_category("smartfony", "Motorola G06 4/64GB Tapestry (PBA20002UA)") == "smartfony"
 
 
+def test_refine_splits_holodylnyky_from_pobut():
+    """Крок 1: холодильник із широкого лістинга «побутова техніка» → власна полиця."""
+    assert refine_category("pobut-tehnika", "Холодильник Samsung RB34C670EB1/UA No Frost") == "holodylnyky"
+    assert refine_category("pobut-tehnika", "Холодильник BOSCH KGN39VLCT") == "holodylnyky"
+
+
+def test_refine_keeps_other_appliances_in_pobut():
+    """Пральні/посудомийки/дрібне поки лишаються в pobut-tehnika (наступні кроки)."""
+    assert refine_category("pobut-tehnika", "Пральна машина LG F2WV3S7S6TE") == "pobut-tehnika"
+    assert refine_category("pobut-tehnika", "Посудомийна машина Bosch SMS4HMW00E") == "pobut-tehnika"
+    assert refine_category("pobut-tehnika", "Мультиварка Redmond RMC-M90") == "pobut-tehnika"
+
+
 def test_refine_only_device_categories():
     # не-пристроєву базу (зоо) не чіпає, навіть якщо слово збіглось
     assert refine_category("koty-suhyi-korm", "Корм з кабелем у назві (артефакт)") == "koty-suhyi-korm"
