@@ -10,7 +10,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from matching import extract_mpn          # noqa: E402
+from matching import extract_mpn, normalize_gtin, pick_gtin   # noqa: E402
 
 
 # ── знаходить ─────────────────────────────────────────────────────────────────
@@ -155,6 +155,91 @@ def test_regional_suffixes_stay_distinct():
 def test_deterministic():
     t = "Samsung Galaxy S25 Edge 5G 12/512GB TITANIUM (SM-S937BZTGEUC)"
     assert extract_mpn(t) == extract_mpn(t) == "SM-S937BZTGEUC"
+
+
+# ── GTIN / штрихкод (аптеки/медтовари, 2026-07-22) ────────────────────────────
+# Реальні штрихкоди зі стану Подорожника (розвідка 2026-07-22): Панкреатин 8000,
+# Аспаркам, Грипаут. Кожен пройшов контрольну цифру вручну при доборі.
+
+def test_gtin_real_ean13_canonical_to_14():
+    # EAN-13 → канонічний GTIN-14 (ведучий нуль): той самий товар, повний запис
+    assert normalize_gtin("4820135261796") == "04820135261796"
+    assert normalize_gtin("4820005740895") == "04820005740895"
+    assert normalize_gtin("8906044909250") == "08906044909250"
+
+
+def test_gtin_strips_noise_and_accepts_int():
+    # у розмітці штрихкод буває з пробілами/дефісами або числом
+    assert normalize_gtin(" 4820135261796 ") == "04820135261796"
+    assert normalize_gtin("482-013-526-1796") == "04820135261796"
+    assert normalize_gtin(4820135261796) == "04820135261796"
+
+
+def test_gtin_bad_check_digit_rejected():
+    """Остання цифра — контрольна сума решти. Зіпсований штрихкод НЕ пройде,
+    тож не створить хибної групи (перезлиття)."""
+    assert normalize_gtin("4820135261797") is None   # 796 → 797
+    assert normalize_gtin("4820135261790") is None
+    assert normalize_gtin("1234567890123") is None    # випадкові 13 цифр
+
+
+def test_gtin_restricted_circulation_rejected():
+    """Коди обмеженого обігу (внутрішньомагазинні, ваговий товар) НЕ глобальні:
+    той самий код у двох крамницях = різні товари. Приймати їх = гарантоване
+    перезлиття. EAN-13 із першою «2» відкидаємо навіть за валідної контрольної."""
+    # 2000000000015 — контрольна цифра ВАЛІДНА (=5), відкидається САМЕ через префікс 2,
+    # а не через биту суму: інакше тест не доводив би, що працює відсів обмеженого обігу
+    assert _gtin_check_manual("200000000001") == 5
+    assert normalize_gtin("2000000000015") is None
+    assert normalize_gtin("2812345678909") is None          # ще один EAN-13 з префіксом 2
+
+
+def test_gtin_wrong_length_rejected():
+    assert normalize_gtin("482013526") is None        # 9 цифр — не GTIN
+    assert normalize_gtin("48201352617961234") is None
+    assert normalize_gtin("") is None
+    assert normalize_gtin(None) is None
+    assert normalize_gtin("не число") is None
+
+
+def test_gtin_ean8_valid():
+    # EAN-8 з валідною контрольною (не обмеженого обігу) → GTIN-14
+    assert normalize_gtin("96385074") == "00000096385074"
+
+
+def test_upc12_and_ean13_same_product_same_key():
+    """UPC-12 і його EAN-13 (ведучий 0) — той самий товар; канон зводить до одного ключа."""
+    assert normalize_gtin("036000291452") == normalize_gtin("0036000291452") \
+        == "00036000291452"
+
+
+def test_two_pharmacies_same_barcode_match():
+    """Суть фічі: дві аптеки з тим самим штрихкодом → один ключ, збіг за побудовою."""
+    podorozhnyk = normalize_gtin("4820135261796")
+    apteka_b = normalize_gtin(" 4820135261796 ")     # інша крамниця, той самий код
+    assert podorozhnyk == apteka_b is not None
+
+
+def test_pick_gtin_deterministic_min():
+    """Товар із кількома штрихкодами → детермінований МІНІМАЛЬНИЙ валідний.
+    Однаковий набір у різних крамницях → однаковий ключ."""
+    a = pick_gtin(["4820135261796", "4820135260423"])
+    b = pick_gtin(["4820135260423", "4820135261796"])   # інший порядок
+    assert a == b == min("04820135261796", "04820135260423")
+
+
+def test_pick_gtin_skips_invalid():
+    # биті/обмежені коди в наборі пропускаємо, беремо валідний
+    assert pick_gtin(["biff", "4820135261797", "4820135261796"]) == "04820135261796"
+    assert pick_gtin(["2000000000015", "невалідний"]) is None
+    assert pick_gtin([]) is None
+    assert pick_gtin(None) is None
+
+
+def _gtin_check_manual(body: str):
+    """Хелпер тесту: контрольна цифра для тіла (щоб будувати валідні приклади навмисно)."""
+    s = sum(int(d) * (3 if i % 2 == 0 else 1) for i, d in enumerate(reversed(body)))
+    return (10 - s % 10) % 10
 
 
 def _main():
