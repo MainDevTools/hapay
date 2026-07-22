@@ -106,6 +106,8 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/operativnaja-pamjat/", "ram", 2),   # MPN 45/60
                  ("https://allo.ua/ua/materinskie-platy/", "materynski-platy", 2),   # MPN 17/60 (слабкий)
                  ("https://allo.ua/ua/bloki-pitanija/", "bzh", 2),   # MPN 32/60
+                 ("https://allo.ua/ua/korpusa/", "korpusy", 2),   # MPN 31/60 (слабкий)
+                 ("https://allo.ua/ua/sistemy-ohlazhdenija/", "kulery", 2),   # MPN 19/60
                  ("https://allo.ua/ua/televizory/", "tv"),
                  ("https://allo.ua/ua/products/internet-planshety/", "planshety", 3),
                  ("https://allo.ua/ua/naushniki/", "audio", 3),
@@ -159,6 +161,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/moduli_pamiati.html", "ram", 2),  # MPN 42/42
         ("https://www.foxtrot.com.ua/uk/shop/materinskie_plati.html", "materynski-platy", 2),  # MPN 9/42 (слабкий)
         ("https://www.foxtrot.com.ua/uk/shop/bloki_pytania.html", "bzh", 2),  # MPN 28/42
+        ("https://www.foxtrot.com.ua/uk/shop/korpusi_komputernie.html", "korpusy", 2),  # MPN 11/42 (слабкий)
+        ("https://www.foxtrot.com.ua/uk/shop/ventiliatori_dlia_korpusa_kulery-dlya-proczessora.html", "kulery", 2),  # MPN 29/42
         ("https://www.foxtrot.com.ua/uk/shop/led_televizory.html", "tv"),        # 42 товари
         ("https://www.foxtrot.com.ua/uk/shop/planshety.html", "planshety", 3),    # 42 товари
         ("https://www.foxtrot.com.ua/uk/shop/naushniki.html", "audio", 3),        # 42 товари
@@ -189,6 +193,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.moyo.ua/ua/comp-and-periphery/periphery-and-compon/ddr-dlya-pc/", "ram", 2),  # MPN 24/24
         ("https://www.moyo.ua/ua/comp-and-periphery/periphery-and-compon/materinskie-platy/", "materynski-platy", 2),  # MPN 13/24
         ("https://www.moyo.ua/ua/comp-and-periphery/periphery-and-compon/bloki-pitaniya/", "bzh", 2),  # MPN 22/24
+        ("https://www.moyo.ua/ua/comp-and-periphery/periphery-and-compon/korpusa-k-pc/", "korpusy", 2),  # MPN 11/24 (слабкий)
+        ("https://www.moyo.ua/ua/comp-and-periphery/periphery-and-compon/kuleri-i-radiatory/naznachenie_dlya_processora/", "kulery", 2),  # MPN 13/24
         ("https://www.moyo.ua/ua/foto_video/tv_audio/lcd_tv/", "tv"),            # 24 товари
         ("https://www.moyo.ua/ua/tablet_el_knigi/tablet/", "planshety", 3),       # 24 товари
         ("https://www.moyo.ua/ua/acsessor/ipod_headphones/", "audio", 3),         # 24 товари
@@ -231,6 +237,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://comfy.ua/ua/ddr/", "ram", 2),   # render
         ("https://comfy.ua/ua/motherboard/", "materynski-platy", 2),   # render
         ("https://comfy.ua/ua/power-supplies/", "bzh", 2),   # render
+        ("https://comfy.ua/ua/cases-for-pc/", "korpusy", 2),   # render
+        ("https://comfy.ua/ua/computer-cooling/", "kulery", 2),   # render
         ("https://comfy.ua/flat-tvs/", "tv"),                                    # 50 карток
         ("https://comfy.ua/plane-table-computer/", "planshety", 3),              # 50 карток
         ("https://comfy.ua/nayshniki/", "audio", 3),                             # 50 карток
@@ -250,6 +258,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://hard.rozetka.com.ua/ua/memory/c80081/", "ram", 2),
         ("https://hard.rozetka.com.ua/ua/motherboards/c80082/", "materynski-platy", 2),
         ("https://hard.rozetka.com.ua/ua/psu/c80086/", "bzh", 2),
+        ("https://hard.rozetka.com.ua/ua/cases/c80090/", "korpusy", 2),
+        ("https://hard.rozetka.com.ua/ua/coolers/c80099/", "kulery", 2),
         ("https://rozetka.com.ua/ua/notebooks/c80004/", "noutbuky"),             # 60 товарів
         ("https://rozetka.com.ua/ua/all-tv/c80037/", "tv"),                      # 60 товарів
         ("https://rozetka.com.ua/ua/tablets/c130309/", "planshety", 3),           # 60 товарів
@@ -317,6 +327,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://brain.com.ua/ukr/category/Operativna_pamyat-c3130/", "ram", 2),
         ("https://brain.com.ua/ukr/category/Systemni_materynski_platy-c1264-226/", "materynski-platy", 2),
         ("https://brain.com.ua/ukr/category/Bloky_jhyvlennya-c1442-221/", "bzh", 2),
+        ("https://brain.com.ua/ukr/category/Korpusy-c1441-271/", "korpusy", 2),
+        ("https://brain.com.ua/ukr/category/Kulery_do_procesoriv_termopasta-c1108/", "kulery", 2),
         ("https://brain.com.ua/ukr/category/Televizory-c1098/", "tv"),           # 24/стор., 34 стор.
         ("https://brain.com.ua/ukr/category/Planshety-c1192/", "planshety", 3),   # 24/стор.
         ("https://brain.com.ua/ukr/category/Navushnyky_ta_garnitury-c1365-157/", "audio", 3),
@@ -345,6 +357,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://eldorado.ua/uk/1209288/c1209288/", "ram"),   # slug — числовий id, render
         ("https://eldorado.ua/uk/1209286/c1209286/", "materynski-platy"),   # slug — числовий id, render
         ("https://eldorado.ua/uk/1209290/c1209290/", "bzh"),   # slug — числовий id, render
+        ("https://eldorado.ua/uk/1209527/c1209527/", "korpusy"),   # slug — числовий id, render
+        ("https://eldorado.ua/uk/1209578/c1209578/", "kulery"),   # slug — числовий id, render
         ("https://eldorado.ua/uk/led/c1038962/", "tv"),
         ("https://eldorado.ua/uk/tablet_pc/c1039006/", "planshety"),             # 40 карток
         ("https://eldorado.ua/uk/headphones/c1038998/", "audio"),                # 40 карток
@@ -385,6 +399,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/operativnaya-pamyat/", "ram", 2),   # MPN 50/60
         ("https://epicentrk.ua/ua/shop/materinskie-platy/", "materynski-platy", 2),   # MPN 25/60
         ("https://epicentrk.ua/ua/shop/bloki-pitaniya/", "bzh", 2),   # MPN 34/60
+        ("https://epicentrk.ua/ua/shop/korpusa-dlya-pk/", "korpusy", 2),   # MPN 27/60 (слабкий)
+        ("https://epicentrk.ua/ua/shop/kulery/", "kulery", 2),   # домішка термопасти, переважно кулери
         ("https://epicentrk.ua/ua/shop/televizory/", "tv"),
         ("https://epicentrk.ua/ua/shop/planshety/", "planshety"),
         ("https://epicentrk.ua/ua/shop/naushniki/", "audio"),
@@ -467,6 +483,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://telemart.ua/ua/ram/", "ram", 2),   # 48/стор., MPN 48 (100%)
         ("https://telemart.ua/ua/motherboard/", "materynski-platy", 2),   # MPN 6/48 (слабкий)
         ("https://telemart.ua/ua/powersuply/", "bzh", 2),   # MPN 40/48 (83%)
+        ("https://telemart.ua/ua/case/", "korpusy", 2),   # MPN 25/48 (слабкий)
+        ("https://telemart.ua/ua/sistemy-oxlazhdenija/", "kulery", 2),   # MPN 24/48
         ("https://telemart.ua/monitors/", "monitory"),            # 48/стор., 75%
         ("https://telemart.ua/earphones/", "audio"),              # 48/стор., 58%
         ("https://telemart.ua/wi-fi-routers/", "routery"),        # 48/стор., 39%
@@ -543,6 +561,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://ktc.ua/ram/", "ram", 2),                                       # 48/стор., MPN 48 (100%)
         ("https://ktc.ua/motherboard/", "materynski-platy", 2),                  # MPN 9/48 (слабкий)
         ("https://ktc.ua/power_supply/", "bzh", 2),                              # MPN 41/48 (85%)
+        ("https://ktc.ua/case/", "korpusy", 2),                                  # MPN 29/48 (слабкий)
+        ("https://ktc.ua/cpu_cooling/", "kulery", 2),                            # MPN 25/48
         ("https://ktc.ua/tv/", "tv"),                                            # 48 товарів
         ("https://ktc.ua/headphones/", "audio", 3),                              # 48 товарів
     )},
