@@ -147,6 +147,7 @@ HTML_SOURCES: dict[str, dict] = {
     "Foxtrot": {"adapter": FoxtrotAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
         ("https://www.foxtrot.com.ua/uk/shop/mobilnye_telefony.html", "smartfony"),
         ("https://www.foxtrot.com.ua/uk/shop/noutbuki.html", "noutbuky"),        # 42 товари
+        ("https://www.foxtrot.com.ua/uk/shop/videokarti.html", "videokarty", 2), # 42/стор., MPN 33
         ("https://www.foxtrot.com.ua/uk/shop/led_televizory.html", "tv"),        # 42 товари
         ("https://www.foxtrot.com.ua/uk/shop/planshety.html", "planshety", 3),    # 42 товари
         ("https://www.foxtrot.com.ua/uk/shop/naushniki.html", "audio", 3),        # 42 товари
@@ -219,6 +220,8 @@ HTML_SOURCES: dict[str, dict] = {
     # масові перетини MPN (SM-S942BZKGEUC = Foxtrot S26, SM-A576BZVDEUC = Moyo/Allo A57).
     "Rozetka": {"adapter": RozetkaAdapter(), "page_tpl": "{base}page={n}/", "pages": 5, "urls": (
         ("https://rozetka.com.ua/ua/mobile-phones/c80003/", "smartfony"),
+        # відеокарти Rozetka — на піддомені hard.rozetka.com.ua (host-політика пропускає)
+        ("https://hard.rozetka.com.ua/ua/videocards/c80087/", "videokarty", 2),
         ("https://rozetka.com.ua/ua/notebooks/c80004/", "noutbuky"),             # 60 товарів
         ("https://rozetka.com.ua/ua/all-tv/c80037/", "tv"),                      # 60 товарів
         ("https://rozetka.com.ua/ua/tablets/c130309/", "planshety", 3),           # 60 товарів
@@ -280,6 +283,7 @@ HTML_SOURCES: dict[str, dict] = {
               "page_tpl": "{base}page={n}/", "pages": 5, "urls": (
         ("https://brain.com.ua/ukr/Smartfoni_zvyazok-c297/", "smartfony", 1),    # департамент
         ("https://brain.com.ua/ukr/category/Noutbuky-c1191/", "noutbuky"),       # 24/стор.
+        ("https://brain.com.ua/ukr/category/Videokarty-c1403/", "videokarty", 2),# 24/стор., MPN 18
         ("https://brain.com.ua/ukr/category/Televizory-c1098/", "tv"),           # 24/стор., 34 стор.
         ("https://brain.com.ua/ukr/category/Planshety-c1192/", "planshety", 3),   # 24/стор.
         ("https://brain.com.ua/ukr/category/Navushnyky_ta_garnitury-c1365-157/", "audio", 3),
@@ -412,6 +416,7 @@ HTML_SOURCES: dict[str, dict] = {
                  "pages": 3, "urls": (
         ("https://telemart.ua/tv/", "tv"),                        # 48/стор., 79% з артикулом
         ("https://telemart.ua/laptops/", "noutbuky"),             # 48/стор., 97%
+        ("https://telemart.ua/ua/videocard/", "videokarty", 2),   # 48/стор., MPN 36
         ("https://telemart.ua/monitors/", "monitory"),            # 48/стор., 75%
         ("https://telemart.ua/earphones/", "audio"),              # 48/стор., 58%
         ("https://telemart.ua/wi-fi-routers/", "routery"),        # 48/стор., 39%
@@ -482,6 +487,7 @@ HTML_SOURCES: dict[str, dict] = {
     "KTC": {"adapter": KtcAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
         ("https://ktc.ua/smartphone/", "smartfony"),
         ("https://ktc.ua/notebook/", "noutbuky"),                                # 48 товарів
+        ("https://ktc.ua/videocard/", "videokarty", 2),                          # 48/стор., MPN 38
         ("https://ktc.ua/tv/", "tv"),                                            # 48 товарів
         ("https://ktc.ua/headphones/", "audio", 3),                              # 48 товарів
     )},
