@@ -260,10 +260,16 @@ def collect_lease(body: dict | None = None, collector=Depends(require_collector)
     """Видати ≤limit дозрілих задач (по 1 на крамницю — розліт 15 хв/крамниця).
     Порожньо = все зібрано нещодавно; телефон засинає до наступного опитування."""
     qtasks.seed_tasks(conn)                 # ледачий сів: нове в HTML_SOURCES → у черзі
-    limit = (body or {}).get("limit", 3)
+    body = body or {}
+    limit = body.get("limit", 3)
     if not isinstance(limit, int):
         raise HTTPException(400, "limit має бути int")
-    return {"tasks": qtasks.lease_tasks(conn, collector, limit), "collector": collector}
+    # `modes` (опц.) — робітник бере лише задачі свого режиму: PC-колектор ['fetch'],
+    # телефон не шле й бере все. Валідуємо тип; невідомі режими просто нічого не дадуть.
+    modes = body.get("modes")
+    if modes is not None and not (isinstance(modes, list) and all(isinstance(m, str) for m in modes)):
+        raise HTTPException(400, "modes має бути списком рядків")
+    return {"tasks": qtasks.lease_tasks(conn, collector, limit, modes), "collector": collector}
 
 
 @app.post("/api/collect/fail")
