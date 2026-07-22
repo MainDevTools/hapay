@@ -100,6 +100,7 @@ HTML_SOURCES: dict[str, dict] = {
              "page_tpl": "{base}?p={n}", "pages": 5, "urls": (
                  ("https://allo.ua/ua/products/mobile/klass-kommunikator_smartfon/", "smartfony"),
                  ("https://allo.ua/ua/products/notebooks/", "noutbuky"),
+                 ("https://allo.ua/ua/videokarty/", "videokarty", 2),   # MPN 43/60 (72%)
                  ("https://allo.ua/ua/televizory/", "tv"),
                  ("https://allo.ua/ua/products/internet-planshety/", "planshety", 3),
                  ("https://allo.ua/ua/naushniki/", "audio", 3),
@@ -172,6 +173,7 @@ HTML_SOURCES: dict[str, dict] = {
     "Moyo": {"adapter": MoyoAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
         ("https://www.moyo.ua/ua/telecommunication/smart/", "smartfony"),
         ("https://www.moyo.ua/ua/comp-and-periphery/notebooks/", "noutbuky"),    # 24 товари
+        ("https://www.moyo.ua/ua/comp-and-periphery/periphery-and-compon/videokarty/", "videokarty", 2),  # MPN 15/24
         ("https://www.moyo.ua/ua/foto_video/tv_audio/lcd_tv/", "tv"),            # 24 товари
         ("https://www.moyo.ua/ua/tablet_el_knigi/tablet/", "planshety", 3),       # 24 товари
         ("https://www.moyo.ua/ua/acsessor/ipod_headphones/", "audio", 3),         # 24 товари
@@ -208,6 +210,7 @@ HTML_SOURCES: dict[str, dict] = {
               "page_tpl": "{base}?p={n}", "pages": 5, "urls": (
         ("https://comfy.ua/smartfon/", "smartfony"),
         ("https://comfy.ua/notebook/", "noutbuky"),                              # 50 карток
+        ("https://comfy.ua/ua/graphics-cards/", "videokarty", 2),   # slug «graphics-cards», render
         ("https://comfy.ua/flat-tvs/", "tv"),                                    # 50 карток
         ("https://comfy.ua/plane-table-computer/", "planshety", 3),              # 50 карток
         ("https://comfy.ua/nayshniki/", "audio", 3),                             # 50 карток
@@ -306,6 +309,7 @@ HTML_SOURCES: dict[str, dict] = {
     "Eldorado": {"adapter": EldoradoAdapter(), "mode": "render", "urls": (
         ("https://eldorado.ua/uk/smartphones/c1038946/", "smartfony"),
         ("https://eldorado.ua/uk/notebooks/c1039096/", "noutbuky"),
+        ("https://eldorado.ua/uk/gpu/c1209287/", "videokarty"),   # slug «gpu», render
         ("https://eldorado.ua/uk/led/c1038962/", "tv"),
         ("https://eldorado.ua/uk/tablet_pc/c1039006/", "planshety"),             # 40 карток
         ("https://eldorado.ua/uk/headphones/c1038998/", "audio"),                # 40 карток
@@ -340,6 +344,7 @@ HTML_SOURCES: dict[str, dict] = {
                  "pages": 3, "urls": (
         ("https://epicentrk.ua/ua/shop/smartfony-i-mobilnye-telefony/", "smartfony"),
         ("https://epicentrk.ua/ua/shop/noutbuki/", "noutbuky"),
+        ("https://epicentrk.ua/ua/shop/videokarty/", "videokarty", 2),   # MPN 51/60 (85%)
         ("https://epicentrk.ua/ua/shop/televizory/", "tv"),
         ("https://epicentrk.ua/ua/shop/planshety/", "planshety"),
         ("https://epicentrk.ua/ua/shop/naushniki/", "audio"),
