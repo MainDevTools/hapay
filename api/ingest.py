@@ -160,6 +160,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/mobilnye_telefony_telefon.html", "knopkovi-telefony", 3),
         ("https://www.foxtrot.com.ua/uk/shop/roboti_pilesosi.html", "pylososy", 1),
         ("https://www.foxtrot.com.ua/uk/shop/drymachine.html", "pobut-tehnika", 1),
+        ("https://www.foxtrot.com.ua/uk/shop/vytyagki.html", "vytyazhky", 2),        # Foxtrot: слаг «vytyagki» через g
         ("https://www.foxtrot.com.ua/uk/shop/gk-monitory.html", "monitory", 3),
         ("https://www.foxtrot.com.ua/uk/shop/kondicyonery.html", "kondycionery", 3),
         ("https://www.foxtrot.com.ua/uk/shop/marshrutizatory.html", "routery", 3),
@@ -223,6 +224,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/smartwatch/c651392/", "smart-hodynnyky", 3),  # 60 товарів
         ("https://rozetka.com.ua/ua/holodilniki/c80125/", "pobut-tehnika", 3),    # 60 товарів
         ("https://rozetka.com.ua/ua/washing_machines/c80124/", "pobut-tehnika", 1),# 60 товарів
+        # витяжки Rozetka — на піддомені bt.rozetka.com.ua (host-політика пропускає: .rozetka.com.ua)
+        ("https://bt.rozetka.com.ua/ua/extractor_fans/c80140/", "vytyazhky", 2),
         ("https://rozetka.com.ua/ua/photo/c80001/", "foto", 3),                    # 69 товарів
         ("https://rozetka.com.ua/ua/consoles/c80020/", "konsoli", 2),              # 68 товарів
         # Аксесуари — глибина 1 (2026-07-21, за замiром на живій базі): лише 5% товарів
@@ -301,6 +304,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://eldorado.ua/uk/headphones/c1038998/", "audio"),                # 40 карток
         ("https://eldorado.ua/uk/smart_chasi/c1197093/", "smart-hodynnyky"),     # 13 карток
         ("https://eldorado.ua/uk/holodilniki/c1061560/", "pobut-tehnika"),       # 40 карток
+        ("https://eldorado.ua/uk/hoods/c1039066/", "vytyazhky"),                 # 40 витяжок, MPN 19
     )},
     # KTC (розвідка 2026-07-19): SSR-лістинг /smartphone/, 48 карток, 54 SM-коди —
     # S26/A07 перетини з рештою → більше груп «Де купити».
