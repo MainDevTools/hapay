@@ -47,15 +47,16 @@ def test_refine_keeps_real_phones():
     assert refine_category("smartfony", "Motorola G06 4/64GB Tapestry (PBA20002UA)") == "smartfony"
 
 
-def test_refine_splits_holodylnyky_from_pobut():
-    """Крок 1: холодильник із широкого лістинга «побутова техніка» → власна полиця."""
+def test_refine_splits_appliances_from_pobut():
+    """Кроки 1–2: холодильники й пральні з широкого лістинга → власні полиці."""
     assert refine_category("pobut-tehnika", "Холодильник Samsung RB34C670EB1/UA No Frost") == "holodylnyky"
     assert refine_category("pobut-tehnika", "Холодильник BOSCH KGN39VLCT") == "holodylnyky"
+    assert refine_category("pobut-tehnika", "Пральна машина LG F2WV3S7S6TE") == "pralni-mashyny"
+    assert refine_category("pobut-tehnika", "Прально-сушильна машина Candy RO4 1274DWMT") == "pralni-mashyny"
 
 
 def test_refine_keeps_other_appliances_in_pobut():
-    """Пральні/посудомийки/дрібне поки лишаються в pobut-tehnika (наступні кроки)."""
-    assert refine_category("pobut-tehnika", "Пральна машина LG F2WV3S7S6TE") == "pobut-tehnika"
+    """Посудомийки/дрібне поки лишаються в pobut-tehnika (наступні кроки)."""
     assert refine_category("pobut-tehnika", "Посудомийна машина Bosch SMS4HMW00E") == "pobut-tehnika"
     assert refine_category("pobut-tehnika", "Мультиварка Redmond RMC-M90") == "pobut-tehnika"
 
