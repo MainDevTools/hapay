@@ -54,6 +54,13 @@ def test_refine_splits_appliances_from_pobut():
     assert refine_category("pobut-tehnika", "Пральна машина LG F2WV3S7S6TE") == "pralni-mashyny"
     assert refine_category("pobut-tehnika", "Прально-сушильна машина Candy RO4 1274DWMT") == "pralni-mashyny"
     assert refine_category("pobut-tehnika", "Посудомийна машина Bosch SMS4HMW00E") == "posudomyiky"
+    assert refine_category("pobut-tehnika", "Сушильна машина Samsung DV90T6240LE/UA") == "sushylni-mashyny"
+
+
+def test_refine_pralna_sushylna_combo_stays_washer():
+    """«Прально-сушильна» — комбо, що ПЕРЕ: лишається в пральних (пральні перевіряються
+    раніше за сушильні у кортежі). Інакше комбо роздвоїлось би між полицями."""
+    assert refine_category("pobut-tehnika", "Прально-сушильна машина Candy RO4 1274DWMT") == "pralni-mashyny"
 
 
 def test_refine_keeps_other_appliances_in_pobut():
