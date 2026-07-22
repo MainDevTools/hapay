@@ -19,6 +19,7 @@ import os
 import re
 from urllib.parse import urlsplit
 
+from adapters.addua import AdduaAdapter
 from adapters.allo import HUB as ALLO_HUB, AlloAdapter
 from adapters.base import RawItem, canon_ref
 from adapters.brain import BrainAdapter
@@ -65,6 +66,7 @@ INGEST_SOURCES: dict[str, dict] = {
     # Подорожник — перша аптека. Фото на i.podorozhnyk.com; у hosts НЕ додаємо (там лише
     # фото, перевірка стереже URL ТОВАРУ, а він на podorozhnyk.ua).
     "Podorozhnyk": {"base_url": "https://podorozhnyk.ua",  "hosts": ("podorozhnyk.ua",)},
+    "AddUa":     {"base_url": "https://www.add.ua",        "hosts": ("add.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -424,6 +426,21 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://podorozhnyk.ua/krasa-ta-doglyad/", "kosmetyka"),            # ~3206, 98%
         ("https://podorozhnyk.ua/tovari-medichnogo-priznachennya/", "medtovary"),  # ~5132, 100%
     )},
+    # add.ua (Аптека Доброго Дня) — ДРУГА аптека, ДВОФАЗНА. Штрихкод (ключ GTIN) тут лише
+    # на сторінці товару, не в лістингу, тож збираємо як хаб: лістинг discover-ить URL
+    # товарів → кожен телефон дотягує (рендер) → extract парсить штрихкод. Дорого, тому
+    # СВІДОМО лише дермокосметика — єдиний розділ, де асортимент перетинається з
+    # Подорожником (заміряно 2026-07-22: спільні La Roche-Posay та ін.; вітаміни/гігієна
+    # дали нуль перетину). Cloudflare → mode=render.
+    #
+    # `discover_re` розрізняє лістинг (`/ua/kosmetika/`) від товару (`/ua/<slug>.html`):
+    # лістинг → discover, товар → extract. max_pages 60 = повна перша сторінка розділу.
+    # ⚠ ЦІНА ЗБОРУ: до 60 рендерів товарів/добу (їх кладе enqueue_pages у чергу). Це
+    # свідомий обмін заради надійних GTIN-порівнянь у вузькій, але реальній смузі.
+    "AddUa": {"adapter": AdduaAdapter(), "mode": "render", "category": "kosmetyka",
+              "discover_re": r"/ua/[a-z0-9-]+/$", "max_pages": 60, "urls": (
+        ("https://www.add.ua/ua/kosmetika/", "kosmetyka"),
+    )},
     "KTC": {"adapter": KtcAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
         ("https://ktc.ua/smartphone/", "smartfony"),
         ("https://ktc.ua/notebook/", "noutbuky"),                                # 48 товарів
@@ -699,8 +716,15 @@ def ingest_html(conn, source: str, url: str, html: str) -> dict:
     cfg = HTML_SOURCES[source]
     adapter = cfg["adapter"]
 
-    # фаза 1: хаб → лендинги (discover робить СЕРВЕР, не застосунок)
-    if cfg.get("hub") and canon_ref(url) == canon_ref(cfg["hub"]):
+    # фаза 1: лістинг/хаб → URL для збору (discover робить СЕРВЕР, не застосунок).
+    # Два способи розпізнати сторінку-джерело посилань:
+    #  · `hub` — ЄДИНИЙ URL хаба акцій (Allo);
+    #  · `discover_re` — регекс на лістинг-URL (add.ua): КОЖЕН лістинг категорії
+    #    discover-ить свої товари, бо штрихкод там лише на сторінці товару. Регекс
+    #    відрізняє лістинг (`/ua/<cat>/`) від товару (`/ua/<slug>.html`).
+    is_hub = cfg.get("hub") and canon_ref(url) == canon_ref(cfg["hub"])
+    dre = cfg.get("discover_re")
+    if is_hub or (dre and re.search(dre, url)):
         try:
             landings = adapter.discover(html)[: cfg.get("max_pages", 20)]
         except Exception as e:

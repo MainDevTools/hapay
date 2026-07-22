@@ -326,6 +326,30 @@ def main():
     checks.append(("HTML-шлях зберіг gtin+match_key (не загубив tuple при asdict)",
                    tuple(pg) == (2, 2, 2), pg))
 
+    # ── add.ua ДВОФАЗНИЙ (друга аптека): лістинг discover-ить товари, товар несе штрихкод ──
+    # Штрихкод (ключ GTIN) add.ua дає лише на сторінці товару, тож збираємо як хаб:
+    # лістинг → discover_re впізнає його → повертає URL товарів (kind=hub); товар →
+    # extract → персист із GTIN зі рядка «Штрих-код» (а не з ld+json SKU).
+    al = client.post("/api/ingest/html", headers=chdr, json={
+        "source": "AddUa", "url": "https://www.add.ua/ua/kosmetika/",
+        "html": _cas("addua_listing.html")})
+    aj = al.json()
+    checks.append(("add.ua лістинг → kind=hub, 3 товар-URL (discover_re)",
+                   al.status_code == 200 and aj.get("kind") == "hub"
+                   and len(aj.get("discovered", [])) == 3 and aj.get("accepted") == 0, aj))
+    ap = client.post("/api/ingest/html", headers=chdr, json={
+        "source": "AddUa",
+        "url": "https://www.add.ua/ua/healix-heliks-omega-3-1000-mkg-kapsuly-90.html",
+        "html": _cas("addua_product.html")})
+    checks.append(("add.ua сторінка товару → 1 прийнято (extract, не discover)",
+                   ap.status_code == 200 and ap.json().get("kind") == "page"
+                   and ap.json().get("accepted") == 1, ap.json()))
+    with psycopg.connect(URL, autocommit=True) as c:
+        ag = c.execute("SELECT gtin FROM store_product sp JOIN source s USING (source_id) "
+                       "WHERE s.name = 'AddUa'").fetchone()
+    checks.append(("add.ua товар персиснув із GTIN зі штрихкоду (не внутрішній SKU)",
+                   ag is not None and ag[0] == "04820274801259", ag))
+
     # Rozetka-лістинг: S26 SM-S942BZKGEUC збігається з Foxtrot (той самий MPN) →
     # ЖИВА крос-крамнична група «Де купити» з реальних адаптерів (не синтетика)
     rz = client.post("/api/ingest/html", headers=chdr, json={
