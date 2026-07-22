@@ -107,6 +107,7 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/holodilniki/", "pobut-tehnika", 3),
                  ("https://allo.ua/ua/stiralnye-mashiny/", "pobut-tehnika", 1),
                  ("https://allo.ua/ua/otdel-no-stojaschie-posudomoechnye-mashiny/", "pobut-tehnika", 1),
+                 ("https://allo.ua/ua/vytjazhki/", "vytyazhky", 2),   # Allo пише «vytjazhki» через j
                  ("https://allo.ua/ua/igrovye-pristavki/", "konsoli", 2),
                  ("https://allo.ua/ua/universalnye-mobilnye-batarei/", "aksesuary", 1),
                  ("https://allo.ua/ua/products/pylesosy/", "pylososy", 3),
@@ -242,6 +243,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.ctrs.com.ua/holodilniki/", "pobut-tehnika", 3),            # 47 товарів
         ("https://www.ctrs.com.ua/stiralnye-mashiny/", "pobut-tehnika", 1),      # 47 товарів
         ("https://www.ctrs.com.ua/posudomoechnye-mashiny/", "pobut-tehnika", 1), # 47 товарів
+        ("https://www.ctrs.com.ua/vytyazhki/", "vytyazhky", 2),                  # 47 витяжок
         ("https://www.ctrs.com.ua/cameras/", "foto", 3),                        # 35 товарів
         ("https://www.ctrs.com.ua/igrovye-pristavki/", "konsoli", 2),           # 47 товарів
         ("https://www.ctrs.com.ua/portativnye-batarei/", "aksesuary", 1),       # 47 товарів
@@ -335,6 +337,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/stiralnye-mashiny/", "pobut-tehnika", 1),
         ("https://epicentrk.ua/ua/shop/posudomoechnye-mashiny/", "pobut-tehnika", 1),
         ("https://epicentrk.ua/ua/shop/sushilnye-mashiny/", "pobut-tehnika", 1),
+        ("https://epicentrk.ua/ua/shop/vytyazhki/", "vytyazhky", 2),
         ("https://epicentrk.ua/ua/shop/monitory/", "monitory"),
         ("https://epicentrk.ua/ua/shop/konditsionery/", "kondycionery"),
         ("https://epicentrk.ua/ua/shop/marshrutizatory-i-wi-fi-routery/", "routery"),
