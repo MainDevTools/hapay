@@ -94,28 +94,18 @@ def seed_tasks(conn) -> int:
     return n
 
 
-def lease_tasks(conn, worker: str, limit: int = 3,
-                modes: list[str] | None = None) -> list[dict]:
+def lease_tasks(conn, worker: str, limit: int = 3) -> list[dict]:
     """Атомарно видати ≤limit дозрілих задач — ПО ОДНІЙ на крамницю (розліт).
 
     Конкурентна безпека: у READ COMMITTED другий UPDATE перечитує WHERE на вже
     оновленому рядку → умова «вільна» хибна → рядок мовчки випадає. Два телефони
     не отримають ту саму задачу. Потім not_before УСІХ задач орендованих source
     зсувається на +SOURCE_SPACING_MIN — «1 запит/крамниця/15 хв».
-
-    `modes` — обмежити джерелами цього режиму збору (COLLECT_MODE). PC-колектор
-    просить `['fetch']` і не краде render-задачі в телефона; None (телефон) = всі.
-    Так кілька робітників (телефон+PC) ділять чергу за здатністю, без конфлікту.
     """
     limit = max(1, min(int(limit), MAX_LEASE))
-    mode_filter, mode_params = "", ()
-    if modes:
-        allowed = [s for s, m in COLLECT_MODE.items() if m in modes]
-        mode_filter = "AND source = ANY(%s)"
-        mode_params = (allowed,)
     with conn.cursor(row_factory=dict_row) as cur:
         leased = cur.execute(
-            f"""UPDATE collect_task
+            """UPDATE collect_task
                SET leased_by = %s,
                    leased_until = now() + make_interval(mins => %s)
                WHERE task_id IN (
@@ -124,7 +114,6 @@ def lease_tasks(conn, worker: str, limit: int = 3,
                        FROM collect_task
                        WHERE not_before <= now()
                          AND (leased_until IS NULL OR leased_until < now())
-                         {mode_filter}
                        ORDER BY source, priority, not_before   -- 1 задача/крамницю
                    ) pick
                    ORDER BY priority, not_before                -- НАЙДОВШЕ очікувані першими (не абетка)
@@ -133,7 +122,7 @@ def lease_tasks(conn, worker: str, limit: int = 3,
                  AND not_before <= now()
                  AND (leased_until IS NULL OR leased_until < now())
                RETURNING task_id, source, url, kind""",
-            (worker, LEASE_TTL_MIN, *mode_params, limit)).fetchall()
+            (worker, LEASE_TTL_MIN, limit)).fetchall()
     if leased:
         conn.execute(
             "UPDATE collect_task "

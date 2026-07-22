@@ -148,27 +148,6 @@ def main():
             checks.append(("чесна ротація: бере найдовше очікувані, не за абеткою",
                            bool(picked) and picked.isdisjoint(set(fresh)), (sorted(picked), fresh)))
 
-        # ── фільтр за режимом (PC-колектор, T-reliab): modes=['fetch'] не віддає render ──
-        # PC збирає лише fetch-крамниці зі свого IP; render (Comfy/Brain/…) лишається
-        # телефону. Так два робітники ділять чергу за здатністю, не крадучи задач.
-        from api.ingest import COLLECT_MODE
-        render_srcs = {s for s, m in COLLECT_MODE.items() if m == "render"}
-        conn.execute("UPDATE collect_task SET leased_until = NULL, not_before = now() - interval '1 min'")
-        pc = qtasks.lease_tasks(conn, "pc-worker", limit=99, modes=["fetch"])
-        checks.append(("оренда modes=[fetch]: жодного render-джерела",
-                       len(pc) > 0 and render_srcs.isdisjoint({t["source"] for t in pc}),
-                       sorted({t["source"] for t in pc})))
-        conn.execute("UPDATE collect_task SET leased_until = NULL, not_before = now() - interval '1 min'")
-        ren = qtasks.lease_tasks(conn, "pc-worker2", limit=99, modes=["render"])
-        checks.append(("оренда modes=[render]: лише render-джерела",
-                       bool(ren) and all(t["source"] in render_srcs for t in ren),
-                       sorted({t["source"] for t in ren})))
-        conn.execute("UPDATE collect_task SET leased_until = NULL, not_before = now() - interval '1 min'")
-        allm = qtasks.lease_tasks(conn, "pc-worker3", limit=99)          # None = телефон, усе
-        checks.append(("оренда без modes (телефон) віддає й render-джерела",
-                       {t["source"] for t in allm} >= render_srcs,
-                       sorted({t["source"] for t in allm})))
-
         # ── enqueue_pages: лендинги хаба → у чергу, ідемпотентно, з розльотом ─────
         urls = ["https://allo.ua/ua/events-and-discounts/aaa-action/",
                 "https://allo.ua/ua/events-and-discounts/bbb-action/"]
