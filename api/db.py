@@ -26,9 +26,10 @@ def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, o
                    price_min=None, price_max=None):
     """Стрічка знижок — АГРЕГАТОРНА (T15/§17): одна картка на ТОВАР, не на крамницю.
 
-    Товари з однаковим mpn колапсуються в одну картку, яку представляє НАЙДЕШЕВША
-    пропозиція (клієнт показує «від X ₴· в N крамницях», а не назву однієї крамниці —
-    інакше «чому Foxtrot, а не Allo?»). Товари без mpn — кожен сам собі (gkey='sp:<id>').
+    Товари з однаковим ключем (match_key = GTIN, інакше артикул) колапсуються в одну
+    картку, яку представляє НАЙДЕШЕВША пропозиція (клієнт показує «від X ₴· в N
+    крамницях», а не назву однієї крамниці — інакше «чому Foxtrot, а не Allo?»). Товари
+    без ключа — кожен сам собі (gkey='sp:<id>').
     `offers_n` = к-сть РІЗНИХ крамниць у групі; «Де купити» (product_offers) деталізує.
     """
     where = ["de.ended_at IS NULL"]
@@ -47,10 +48,10 @@ def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, o
     sql = f"""
         WITH ev AS (
             SELECT de.discount_event_id, sp.store_product_id, sp.title, sp.url, sp.image_url,
-                   sp.variant_note, sp.mpn, s.name AS store,
+                   sp.variant_note, sp.match_key, s.name AS store,
                    de.current_kop, de.old_declared_kop, de.reference_kop,
                    de.declared_pct, de.verified_pct, de.badge_state, de.computed_at,
-                   COALESCE(sp.mpn, 'sp:' || sp.store_product_id) AS gkey
+                   COALESCE(sp.match_key, 'sp:' || sp.store_product_id) AS gkey
             FROM discount_event de
             JOIN store_product sp USING (store_product_id)
             JOIN source s USING (source_id)
@@ -60,7 +61,7 @@ def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, o
         best AS (   -- одна картка на групу: представляє найдешевша (в наявності пріоритетно)
             SELECT DISTINCT ON (gkey)
                    discount_event_id, store_product_id, title, url, image_url, variant_note,
-                   mpn, store, current_kop, old_declared_kop, reference_kop,
+                   match_key, store, current_kop, old_declared_kop, reference_kop,
                    declared_pct, verified_pct, badge_state, computed_at
             FROM ev
             ORDER BY gkey, current_kop, badge_state
@@ -69,9 +70,9 @@ def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, o
                b.variant_note, b.store, b.current_kop, b.old_declared_kop, b.reference_kop,
                b.declared_pct, b.verified_pct, b.badge_state,
                {_PROMO_COL}
-               CASE WHEN b.mpn IS NULL THEN 1
+               CASE WHEN b.match_key IS NULL THEN 1
                     ELSE (SELECT count(DISTINCT sp2.source_id)
-                          FROM store_product sp2 WHERE sp2.mpn = b.mpn)
+                          FROM store_product sp2 WHERE sp2.match_key = b.match_key)
                END AS offers_n
         FROM best b
         JOIN store_product sp0 USING (store_product_id)
@@ -155,7 +156,7 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
     бейдж на картці (has_discount), не єдиний критерій. `only_discounts=True` звужує до
     знижкових (сумісність зі старою стрічкою). Ціна — з останнього price_snapshot.
 
-    `cheaper_kop`/`cheaper_store` — та сама модель (mpn) ДЕШЕВШЕ в іншій крамниці.
+    `cheaper_kop`/`cheaper_store` — та сама модель (той самий match_key) ДЕШЕВШЕ в іншій крамниці.
     Сенс: представника групи обирає `best` — «знижкова пріоритетно, тоді найдешевша»,
     тож картка з гучним −47% цілком може бути дорожчою за звичайну ціну поруч. Це і є
     суть «Хапая», тож кажемо про це прямо, навіть коли це псує вигляд власної знижки.
@@ -192,12 +193,12 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
             ORDER BY ps.store_product_id, ps.seen_at DESC
         ),
         ev AS (
-            SELECT l.store_product_id, sp.title, sp.url, sp.image_url, sp.variant_note, sp.mpn,
+            SELECT l.store_product_id, sp.title, sp.url, sp.image_url, sp.variant_note, sp.match_key,
                    s.name AS store, sp.source_id, sp.first_seen_at,
                    l.current_kop, l.old_declared_kop,
                    de.discount_event_id, de.declared_pct, de.verified_pct,
                    COALESCE(de.badge_state, 'none') AS badge_state,
-                   COALESCE(sp.mpn, 'sp:' || sp.store_product_id) AS gkey,
+                   COALESCE(sp.match_key, 'sp:' || sp.store_product_id) AS gkey,
                    (sp.title ~* %s) AS used,
                    -- відсоток ІЗ СИРОГО снапшота (як його показує картка), а не з
                    -- discount_event: порівнювати треба саме те, що бачить людина
@@ -223,7 +224,7 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
         ),
         best AS (   -- одна картка на групу (MPN): найдешевша, знижкова пріоритетно
             SELECT DISTINCT ON (gkey)
-                   gkey, store_product_id, title, url, image_url, variant_note, mpn, store,
+                   gkey, store_product_id, title, url, image_url, variant_note, match_key, store,
                    source_id, first_seen_at, current_kop, old_declared_kop, declared_pct,
                    verified_pct, badge_state, discount_event_id, shown_pct
             FROM ev {narrow_sql}
@@ -245,9 +246,9 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
                      AND hol.n >= {_HOLLOW_MIN_PEERS}         -- вже каже cheaper_store
                     THEN hol.n END AS same_price_n,
                {_PROMO_COL}
-               CASE WHEN b.mpn IS NULL THEN 1
+               CASE WHEN b.match_key IS NULL THEN 1
                     ELSE (SELECT count(DISTINCT sp2.source_id)
-                          FROM store_product sp2 WHERE sp2.mpn = b.mpn)
+                          FROM store_product sp2 WHERE sp2.match_key = b.match_key)
                END AS offers_n
         FROM best b
         JOIN store_product sp0 USING (store_product_id)
@@ -289,11 +290,12 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
 
 def product_offers(conn, store_product_id: int):
     """«Де купити» (T15/§17.5): ПО ОДНІЙ (найдешевшій) пропозиції на КРАМНИЦЮ з тим
-    самим товаром (однаковий mpn), сортовано від найдешевшої. Включає сам товар.
+    самим товаром (однаковий match_key: GTIN або артикул), сортовано від найдешевшої.
+    Включає сам товар.
 
     Дедуп по крамниці (не по товару): родовий артикул (OPPO CPH2801, Motorola PBA…)
     спільний для кольорових варіантів → без дедупу «Де купити» двічі писало б ту саму
-    крамницю. Товар без mpn → [] (нема ключа групування). Ціна — з СИРОГО
+    крамницю. Товар без ключа → [] (нема на чому групувати). Ціна — з СИРОГО
     price_snapshot (оффер крамниці існує й без активної знижки).
     """
     sql = """
@@ -302,8 +304,8 @@ def product_offers(conn, store_product_id: int):
                    (sp.title ~* %s) AS is_used
             FROM store_product sp
             JOIN source s USING (source_id)
-            WHERE sp.mpn IS NOT NULL
-              AND sp.mpn = (SELECT mpn FROM store_product WHERE store_product_id = %s)
+            WHERE sp.match_key IS NOT NULL
+              AND sp.match_key = (SELECT match_key FROM store_product WHERE store_product_id = %s)
         ),
         last_price AS (
             SELECT DISTINCT ON (ps.store_product_id)
@@ -379,8 +381,8 @@ def categories(conn):
             GROUP BY c.category_id, c.slug, c.name
         ),
         grp AS (   -- канонічність моделі: скільки РІЗНИХ крамниць її продають
-            SELECT mpn, count(DISTINCT source_id) AS stores
-            FROM store_product WHERE mpn IS NOT NULL GROUP BY mpn
+            SELECT match_key, count(DISTINCT source_id) AS stores
+            FROM store_product WHERE match_key IS NOT NULL GROUP BY match_key
         )
         SELECT cnt.slug, cnt.name, cnt.n, pic.image_url
         FROM cnt
@@ -390,7 +392,7 @@ def categories(conn):
             JOIN source s USING (source_id)
             JOIN discount_event de ON de.store_product_id = sp.store_product_id
                                   AND de.ended_at IS NULL
-            LEFT JOIN grp g ON g.mpn = sp.mpn
+            LEFT JOIN grp g ON g.match_key = sp.match_key
             WHERE sp.category_id = cnt.category_id
               AND sp.image_url IS NOT NULL
               AND sp.title !~* %s
@@ -554,9 +556,9 @@ def list_watchlist_user(conn, user_id: int):
                w.price_at_add_kop, sp.title, sp.url, sp.image_url,
                s.name AS store, l.price_now_kop AS current_kop,
                (l.price_now_kop - w.price_at_add_kop) AS delta_kop,
-               CASE WHEN sp.mpn IS NULL THEN 1
+               CASE WHEN sp.match_key IS NULL THEN 1
                     ELSE (SELECT count(DISTINCT sp2.source_id)
-                          FROM store_product sp2 WHERE sp2.mpn = sp.mpn)
+                          FROM store_product sp2 WHERE sp2.match_key = sp.match_key)
                END AS offers_n
         FROM watchlist w
         LEFT JOIN store_product sp ON w.kind = 'store_product' AND sp.store_product_id = w.ref_id

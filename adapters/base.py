@@ -21,6 +21,7 @@ class RawItem:
     image_url: str | None = None       # вказівник на фото (НЕ байти — §7.4)
     discount_pct: int | None = None    # знижка з бейджа крамниці (для sanity, не для бейджа §5)
     promo_until: str | None = None     # ISO-дата кінця дії ціни (schema.org priceValidUntil), якщо крамниця дає
+    gtins: tuple[str, ...] = ()        # штрихкоди EAN/UPC із розмітки (аптеки/медтовари); ключ матчингу сильніший за назву
 
 
 _SPACES = "    "   # nbsp, narrow-nbsp, thin, figure

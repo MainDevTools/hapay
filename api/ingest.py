@@ -33,6 +33,7 @@ from adapters.rozetka import RozetkaAdapter
 from adapters.telemart import TelemartAdapter
 from adapters.vencon import VenconAdapter
 from db.store import load_categories, persist_items, upsert_source
+from matching import normalize_gtin
 
 # ── Сервер — АВТОРИТЕТ, хто може бути джерелом і які хости валідні ────────────────
 # Колектор не може «вигадати» джерело: лише ці назви приймаються, і URL кожного
@@ -553,6 +554,16 @@ def validate_item(source: str, raw: dict) -> tuple[RawItem | None, str | None]:
     if not (isinstance(promo, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", promo)):
         promo = None
 
+    # gtins — штрихкоди (аптеки/медтовари). Довіряй, але ПЕРЕВІРЯЙ: сервер не бере код на
+    # слово, а проганяє через normalize_gtin (контрольна цифра + відсів обмеженого обігу),
+    # інакше зіпсований чи внутрішньомагазинний код створив би хибну групу. Лишаємо ЛИШЕ
+    # валідні; стелю к-сті тримаємо проти роздування payload.
+    raw_gtins = raw.get("gtins")
+    gtins: tuple[str, ...] = ()
+    if isinstance(raw_gtins, list):
+        gtins = tuple(str(g) for g in raw_gtins[:20]
+                      if isinstance(g, (str, int)) and normalize_gtin(g))
+
     return RawItem(
         external_ref=canon_ref(ext),
         url=url,
@@ -563,6 +574,7 @@ def validate_item(source: str, raw: dict) -> tuple[RawItem | None, str | None]:
         image_url=img,
         variant_note=variant,
         promo_until=promo,
+        gtins=gtins,
     ), None
 
 

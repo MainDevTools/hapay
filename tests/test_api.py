@@ -411,6 +411,50 @@ def main():
     checks.append(("2 кольори 1 крамниці → offers_n=1 (не бреше про 2 крамниці)",
                    bool(oppo) and all(d.get("offers_n") == 1 for d in oppo),
                    [d.get("offers_n") for d in oppo]))
+    # ── GTIN-групування (аптеки/медтовари, 2026-07-22) ────────────────────────────
+    # Суть: у цих назв НЕМАЄ артикула (extract_mpn → None), тож за назвою вони НЕ
+    # зійшлися б — рівно та стеля, об яку розбився матчинг для консолей/кормів (T17).
+    # Але штрихкод той самий, тож match_key = GTIN зводить їх в одну групу. Дві РІЗНІ
+    # назви у двох крамницях → одна картка, offers_n=2.
+    GT = ["4820135261796"]              # реальний EAN-13 (валідна контрольна цифра)
+    client.post("/api/ingest", headers=ing_tok, json={"source": "Foxtrot", "items": [
+        {"external_ref": "/ua/shop/tonometr-microlife-a2.html",
+         "url": "https://www.foxtrot.com.ua/ua/shop/tonometr-microlife-a2.html",
+         "title": "Тонометр Microlife BP A2 Basic автоматичний",
+         "price_now_kop": 129900, "price_old_kop": 159900, "gtins": GT}]})
+    client.post("/api/ingest", headers=ing_tok, json={"source": "Moyo", "items": [
+        {"external_ref": "/ua/tonometr-microlife.html",
+         "url": "https://www.moyo.ua/ua/tonometr-microlife.html",
+         "title": "Вимірювач тиску Microlife (автоматичний)",
+         "price_now_kop": 139900, "price_old_kop": 159900, "gtins": GT}]})
+    gt_card = client.get("/api/discounts?q=Microlife").json()
+    checks.append(("GTIN: різні назви без артикула, той самий штрихкод → ОДНА картка",
+                   len(gt_card) == 1, len(gt_card)))
+    checks.append(("GTIN-група → offers_n=2 (дві крамниці за штрихкодом)",
+                   bool(gt_card) and gt_card[0].get("offers_n") == 2,
+                   [d.get("offers_n") for d in gt_card]))
+    if gt_card:
+        go = client.get(f"/api/product/{gt_card[0]['store_product_id']}/offers").json()
+        checks.append(("GTIN «Де купити»: дві крамниці (Foxtrot + Moyo) за штрихкодом",
+                       {o["store"] for o in go} == {"Foxtrot", "Moyo"},
+                       [o.get("store") for o in go]))
+    # контроль: невалідний штрихкод (бита контрольна цифра) НЕ створює групу —
+    # два товари з «4820135261797» лишаються кожен сам собі (match_key від назви/None)
+    client.post("/api/ingest", headers=ing_tok, json={"source": "Foxtrot", "items": [
+        {"external_ref": "/ua/shop/plastyr-a.html",
+         "url": "https://www.foxtrot.com.ua/ua/shop/plastyr-a.html",
+         "title": "Пластир медичний А", "price_now_kop": 5000, "price_old_kop": 9000,
+         "gtins": ["4820135261797"]}]})
+    client.post("/api/ingest", headers=ing_tok, json={"source": "Moyo", "items": [
+        {"external_ref": "/ua/plastyr-b.html",
+         "url": "https://www.moyo.ua/ua/plastyr-b.html",
+         "title": "Пластир медичний Б", "price_now_kop": 6000, "price_old_kop": 9000,
+         "gtins": ["4820135261797"]}]})
+    bad = client.get("/api/discounts?q=Пластир медичний").json()
+    checks.append(("битий штрихкод не групує → 2 окремі картки, offers_n=1 кожна",
+                   len(bad) == 2 and all(d.get("offers_n") == 1 for d in bad),
+                   [(d.get("title"), d.get("offers_n")) for d in bad]))
+
     if oppo:
         oo = client.get(f"/api/product/{oppo[0]['store_product_id']}/offers").json()
         checks.append(("«Де купити»: одна пропозиція на крамницю (дедуп Foxtrot)",
