@@ -308,6 +308,24 @@ def main():
     checks.append(("ingest/html Moyo-лістинг → 3 прийнято",
                    mr.status_code == 200 and mr.json().get("accepted") == 3, mr.json()))
 
+    # ── HTML-шлях мусить ЗБЕРЕГТИ gtins (регресія 2026-07-22) ──────────────────────
+    # Реальний збір іде саме HTML-шляхом: adapter.extract → dataclasses.asdict → validate.
+    # asdict лишає поле-tuple ТУПЛОМ, а validate_item перевіряв лише `isinstance(list)` →
+    # губив УСІ штрихкоди. На проді Подорожник зібрав 58 товарів із 0 gtin, хоча адаптер
+    # брав 60/60. JSON-шлях (/api/ingest) баг маскував — там gtins приходить списком.
+    # Тому перевірка мусить іти саме через /api/ingest/html, як цей тест.
+    pr = client.post("/api/ingest/html", headers=chdr, json={
+        "source": "Podorozhnyk", "url": "https://podorozhnyk.ua/vitamini-ta-dobavki/",
+        "html": _cas("podorozhnyk_listing.html")})
+    checks.append(("ingest/html Подорожник → 2 прийнято (рецептурний пропущено)",
+                   pr.status_code == 200 and pr.json().get("accepted") == 2, pr.json()))
+    with psycopg.connect(URL, autocommit=True) as c:
+        pg = c.execute("SELECT count(*), count(gtin), count(match_key) "
+                       "FROM store_product sp JOIN source s USING (source_id) "
+                       "WHERE s.name = 'Podorozhnyk'").fetchone()
+    checks.append(("HTML-шлях зберіг gtin+match_key (не загубив tuple при asdict)",
+                   tuple(pg) == (2, 2, 2), pg))
+
     # Rozetka-лістинг: S26 SM-S942BZKGEUC збігається з Foxtrot (той самий MPN) →
     # ЖИВА крос-крамнична група «Де купити» з реальних адаптерів (не синтетика)
     rz = client.post("/api/ingest/html", headers=chdr, json={

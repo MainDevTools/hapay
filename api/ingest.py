@@ -585,9 +585,12 @@ def validate_item(source: str, raw: dict) -> tuple[RawItem | None, str | None]:
     # слово, а проганяє через normalize_gtin (контрольна цифра + відсів обмеженого обігу),
     # інакше зіпсований чи внутрішньомагазинний код створив би хибну групу. Лишаємо ЛИШЕ
     # валідні; стелю к-сті тримаємо проти роздування payload.
+    # tuple ТЕЖ: HTML-шлях подає елемент як dataclasses.asdict(RawItem), де поле-tuple
+    # лишається tuple — не list. Перевіряти лише list означало губити ВСІ штрихкоди на
+    # реальному шляху збору (adapter→asdict→validate_item); JSON-шлях це маскував.
     raw_gtins = raw.get("gtins")
     gtins: tuple[str, ...] = ()
-    if isinstance(raw_gtins, list):
+    if isinstance(raw_gtins, (list, tuple)):
         gtins = tuple(str(g) for g in raw_gtins[:20]
                       if isinstance(g, (str, int)) and normalize_gtin(g))
 
