@@ -169,6 +169,11 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
         await Shell.Current.GoToAsync(route);
     }
 
+    /// Стеження з тулбара (як у каталозі). Не залогінений → спершу вхід: список акаунтний.
+    [RelayCommand]
+    private async Task Watchlist() => await Shell.Current.GoToAsync(
+        _auth.IsLoggedIn ? nameof(WatchlistPage) : nameof(LoginPage));
+
     private async Task ReloadAsync()
     {
         var gen = ++_gen;              // нове покоління → будь-який in-flight запит застарілий

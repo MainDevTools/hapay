@@ -6,9 +6,25 @@
     xmlns:views="clr-namespace:Hapay.Views"
     Shell.FlyoutBehavior="Disabled">
 
-    <ShellContent
-        Title="Хапай"
-        ContentTemplate="{DataTemplate views:CatalogPage}"
-        Route="CatalogPage" />
+    <!-- Нижній таб-бар: два режими перегляду. Доти навігація була пласка (усе push із
+         каталогу), і глобальної стрічки знижок як окремого входу НЕ БУЛО — щоб побачити
+         знижки, треба було спершу відкрити категорію. Тепер «Знижки» — постійний таб.
+
+         ⚠ Таб «Знижки» має Route="znizhky", а push-перегляд категорії реєструється
+         окремим маршрутом nameof(HomePage) (AppShell.xaml.cs). Ідентифікатори різні,
+         тож тап по категорії в «Каталозі» пушить СВІЙ HomePage у стек цього таба й не
+         конфліктує з табом «Знижки» (окремий екземпляр, глобальна стрічка). -->
+    <TabBar>
+        <ShellContent
+            Title="Каталог"
+            Icon="{AppThemeBinding Light=ic_catalog_light.png, Dark=ic_catalog_dark.png}"
+            ContentTemplate="{DataTemplate views:CatalogPage}"
+            Route="CatalogPage" />
+        <ShellContent
+            Title="Знижки"
+            Icon="{AppThemeBinding Light=ic_discount_light.png, Dark=ic_discount_dark.png}"
+            ContentTemplate="{DataTemplate views:HomePage}"
+            Route="znizhky" />
+    </TabBar>
 
 </Shell>

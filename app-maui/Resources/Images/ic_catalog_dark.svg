@@ -1,0 +1,5 @@
+<!-- Таб «Каталог». Сітка 2×2 — усталений знак «усі розділи». Пара light/dark, бо
+     MAUI запікає колір у PNG (див. ic_watch). -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z" fill="#FFFFFF"/>
+</svg>
