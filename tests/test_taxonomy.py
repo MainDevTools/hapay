@@ -53,12 +53,13 @@ def test_refine_splits_appliances_from_pobut():
     assert refine_category("pobut-tehnika", "Холодильник BOSCH KGN39VLCT") == "holodylnyky"
     assert refine_category("pobut-tehnika", "Пральна машина LG F2WV3S7S6TE") == "pralni-mashyny"
     assert refine_category("pobut-tehnika", "Прально-сушильна машина Candy RO4 1274DWMT") == "pralni-mashyny"
+    assert refine_category("pobut-tehnika", "Посудомийна машина Bosch SMS4HMW00E") == "posudomyiky"
 
 
 def test_refine_keeps_other_appliances_in_pobut():
-    """Посудомийки/дрібне поки лишаються в pobut-tehnika (наступні кроки)."""
-    assert refine_category("pobut-tehnika", "Посудомийна машина Bosch SMS4HMW00E") == "pobut-tehnika"
+    """Дрібне (мультиварки/праски/…) поки лишається в pobut-tehnika (наступні кроки)."""
     assert refine_category("pobut-tehnika", "Мультиварка Redmond RMC-M90") == "pobut-tehnika"
+    assert refine_category("pobut-tehnika", "Праска Philips DST8050/80") == "pobut-tehnika"
 
 
 def test_refine_only_device_categories():

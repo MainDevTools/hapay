@@ -67,8 +67,9 @@ _ACC_RE = re.compile(
 # (ті самі слова як ILIKE), спрацьовують на словах, яких у назві іншого приладу не буває.
 # Крок за кроком: холодильники (0019). Далі — дописати рядок + категорію + бекфіл.
 _APPLIANCE_RE = (
-    ("holodylnyky",   re.compile(r"холодильник", re.I)),
+    ("holodylnyky",    re.compile(r"холодильник", re.I)),
     ("pralni-mashyny", re.compile(r"пральн|стиральн", re.I)),
+    ("posudomyiky",    re.compile(r"посудомий|посудомоеч", re.I)),
 )
 
 
@@ -115,6 +116,7 @@ CATEGORY_UI = {
     "pobut-tehnika":   ("Побутова техніка", "🧺"),
     "holodylnyky":     ("Побутова техніка", "🧊"),
     "pralni-mashyny":  ("Побутова техніка", "🌀"),
+    "posudomyiky":     ("Побутова техніка", "🍽️"),
     "mikrohvylovky":   ("Побутова техніка", "🍲"),
     "pylososy":        ("Побутова техніка", "🧹"),
     "kavomashyny":     ("Побутова техніка", "☕"),
