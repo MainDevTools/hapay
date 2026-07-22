@@ -29,6 +29,7 @@ from adapters.epicentr import EpicentrAdapter
 from adapters.foxtrot import FoxtrotAdapter
 from adapters.ktc import KtcAdapter
 from adapters.moyo import MoyoAdapter
+from adapters.podorozhnyk import PodorozhnykAdapter
 from adapters.rozetka import RozetkaAdapter
 from adapters.telemart import TelemartAdapter
 from adapters.vencon import VenconAdapter
@@ -61,6 +62,9 @@ INGEST_SOURCES: dict[str, dict] = {
     "Epicentr": {"base_url": "https://epicentrk.ua",       "hosts": ("epicentrk.ua",)},
     "Vencon":   {"base_url": "https://vencon.ua",          "hosts": ("vencon.ua",)},
     "Telemart": {"base_url": "https://telemart.ua",        "hosts": ("telemart.ua",)},
+    # Подорожник — перша аптека. Фото на i.podorozhnyk.com; у hosts НЕ додаємо (там лише
+    # фото, перевірка стереже URL ТОВАРУ, а він на podorozhnyk.ua).
+    "Podorozhnyk": {"base_url": "https://podorozhnyk.ua",  "hosts": ("podorozhnyk.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -396,6 +400,29 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://telemart.ua/wi-fi-routers/", "routery"),        # 48/стор., 39%
         ("https://telemart.ua/consoles/", "konsoli", 2),          # 17 товарів, 64%
         ("https://telemart.ua/iphone/", "smartfony", 2),          # 22 товари, 100%
+    )},
+    # Подорожник (розвідка 2026-07-22) — ПЕРША аптека, тринадцяте джерело. Аптечний
+    # домен вирішив T17: на відміну від електроніки, тут є GTIN (штрихкод) на кожному
+    # товарі, тож матчинг надійний. Але одна аптека груп «Де купити» не дає — цінність
+    # зараз у GTIN-каталозі, порівняння зійдуться з другою аптекою.
+    #
+    # Екстракція — з ВБУДОВАНОГО JSON-стану сторінки (adapters/podorozhnyk.py), не CSS і
+    # не рендер: plain-GET віддає повний стан із name/price/gtins/status/restrictions.
+    #
+    # ЛИШЕ НЕРЕЦЕПТУРНІ розділи (рішення власника про юр-безпечну форму): звичайні
+    # споживчі товари, юридично як електроніка. Рецептурне адаптер відкидає окремо
+    # (restrictions.prescription) — навіть якщо трапиться в цих розділах (замір знайшов
+    # 1 у косметиці).
+    #
+    # Пагінація `/<cat>/page-N/` перевірена фактом: стор.2 і 3 віддають інші товари,
+    # перетин зі стор.1 нульовий. Глибина 3 — каталог закладається, поглибимо з 2-ю аптекою.
+    "Podorozhnyk": {"adapter": PodorozhnykAdapter(), "page_tpl": "{base}page-{n}/",
+                    "pages": 3, "urls": (
+        ("https://podorozhnyk.ua/vitamini-ta-dobavki/", "vitaminy"),          # ~5829, 100% GTIN
+        ("https://podorozhnyk.ua/tovari-dlya-ditej/", "dytyache"),            # ~5966, 93%
+        ("https://podorozhnyk.ua/osobista-gigiyena/", "gigiyena"),            # ~5694, 98%
+        ("https://podorozhnyk.ua/krasa-ta-doglyad/", "kosmetyka"),            # ~3206, 98%
+        ("https://podorozhnyk.ua/tovari-medichnogo-priznachennya/", "medtovary"),  # ~5132, 100%
     )},
     "KTC": {"adapter": KtcAdapter(), "page_tpl": "{base}?page={n}", "pages": 5, "urls": (
         ("https://ktc.ua/smartphone/", "smartfony"),
