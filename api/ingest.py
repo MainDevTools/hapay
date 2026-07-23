@@ -21,6 +21,7 @@ from urllib.parse import urlsplit
 
 from adapters.addua import AdduaAdapter
 from adapters.allo import HUB as ALLO_HUB, AlloAdapter
+from adapters.antoshka import AntoshkaAdapter
 from adapters.apteka911 import Apteka911Adapter
 from adapters.autopresent import AutopresentAdapter
 from adapters.base import RawItem, canon_ref
@@ -101,6 +102,8 @@ INGEST_SOURCES: dict[str, dict] = {
                     "hosts": ("autopresent.com.ua",)},
     # MasterZoo — зоо-мережа №2 (розвідка 2026-07-23). Анти-бот-челендж → render.
     "MasterZoo": {"base_url": "https://masterzoo.ua",      "hosts": ("masterzoo.ua",)},
+    # Antoshka — дитяча мережа (розвідка 2026-07-23). Magento, SSR.
+    "Antoshka":  {"base_url": "https://antoshka.ua",       "hosts": ("antoshka.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -1181,6 +1184,22 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://masterzoo.ua/ua/catalog/sobaki/korm-dlya-sobak/sukhiy-korm-dlya-sobak/", "psy-suhyi-korm"),
         ("https://masterzoo.ua/ua/catalog/sobaki/korm-dlya-sobak/vologiy-korm-dlya-sobak/", "psy-konservy"),
         ("https://masterzoo.ua/ua/catalog/sobaki/amunczya-dlya-sobak/", "amunitsiya"),
+    )},
+    # Antoshka (розвідка 2026-07-23) — дитяча мережа, ПЕРШИЙ спеціаліст розділу
+    # «Дитячі товари», 7/7 слагів. Magento, ?p=N-пагінація справжня (стор.2 → 30/30
+    # нових) → pages=2 на великих (коляски: 866 товарів у категорії), 1 на тонких.
+    # Радіоняні (2 поз.) і ваги (2 поз.) — тонкі, але кошт 1 задача кожна.
+    # Стерилізатори в крамниці мішані з підігрівачами — реєструємо як є.
+    # Матчер: бренди преміум (Cybex/Chicco/Anex) — заміряти після перших зборів.
+    "Antoshka": {"adapter": AntoshkaAdapter(), "page_tpl": "{base}?p={n}",
+                 "pages": 2, "urls": (
+        ("https://antoshka.ua/uk/proguljanki/ditjachi-koljaski/", "kolyasky"),
+        ("https://antoshka.ua/uk/proguljanki/ditjachi-avtokrisla/", "avtokrisla"),
+        ("https://antoshka.ua/uk/materinstvo/molokovidsmokutvachi/", "molokovidsmoktuvachi", 1),
+        ("https://antoshka.ua/uk/goduvannja/pidigrivachi-ta-sterilizatori/", "sterylizatory", 1),
+        ("https://antoshka.ua/uk/kimnata/pobutova-tehnika/radionjani/", "radionyani", 1),
+        ("https://antoshka.ua/uk/kimnata/pobutova-tehnika/vagi-dlja-novonarodzhenih/", "dytyachi-vagy", 1),
+        ("https://antoshka.ua/uk/goduvannja/stil-ci-dlja-goduvannja/", "stilchyky"),
     )},
     # Zootovary (розвідка 2026-07-23) — зоо-спеціаліст, 5 категорій «Зоотоварів».
     # Пагінація справжня (?page=2 → 34/34 нових, перевірено фактом) → pages=2,
