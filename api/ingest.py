@@ -166,6 +166,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/kompyuternue_myshy.html", "myshi", 2),  # MPN 16/42 (слабкий)
         ("https://www.foxtrot.com.ua/uk/shop/web-kamery.html", "veb-kamery", 2),  # MPN 17/42
         ("https://www.foxtrot.com.ua/uk/shop/istochniki_besbereboyinogo_pitaniya.html", "dbzh", 2),  # MPN 29/42
+        ("https://www.foxtrot.com.ua/uk/shop/kovriki_dlya_myshki.html", "kylymky", 2),  # MPN 17/42 (слабкий)
         ("https://www.foxtrot.com.ua/uk/shop/videokarti.html", "videokarty", 2), # 42/стор., MPN 33
         ("https://www.foxtrot.com.ua/uk/shop/zhestkie_diski_ssd_tverdotelnye.html", "ssd", 2),  # MPN 42/42
         ("https://www.foxtrot.com.ua/uk/shop/processori.html", "procesory", 2),  # MPN 40/40
@@ -208,6 +209,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.moyo.ua/ua/acsessor/acsessor_for_comp/mouse/", "myshi", 2),
         ("https://www.moyo.ua/ua/comp-and-periphery/kompiyternaj_perefir/webcams/", "veb-kamery", 2),
         ("https://www.moyo.ua/ua/comp-and-periphery/kompiyternaj_perefir/ibp/", "dbzh", 2),  # MPN 21/24
+        ("https://www.moyo.ua/ua/acsessor/acsessor_for_comp/mousepad/", "kylymky", 2),
         ("https://www.moyo.ua/ua/comp-and-periphery/periphery-and-compon/videokarty/", "videokarty", 2),  # MPN 15/24
         ("https://www.moyo.ua/ua/comp-and-periphery/inform_carrier/ssd/", "ssd", 2),  # MPN 21/24
         ("https://www.moyo.ua/ua/comp-and-periphery/periphery-and-compon/processory/", "procesory", 2),  # MPN 14/24
@@ -299,6 +301,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://hard.rozetka.com.ua/ua/mouses/c80172/", "myshi", 2),  # hard-піддомен
         ("https://rozetka.com.ua/ua/web_cameras/c180143/", "veb-kamery", 2),  # головний домен
         ("https://hard.rozetka.com.ua/ua/ups/c80108/", "dbzh", 2),  # hard-піддомен
+        ("https://hard.rozetka.com.ua/ua/gaming-surfaces/c80112/", "kylymky", 2),  # hard-піддомен
         ("https://rozetka.com.ua/ua/all-tv/c80037/", "tv"),                      # 60 товарів
         ("https://rozetka.com.ua/ua/tablets/c130309/", "planshety", 3),           # 60 товарів
         ("https://rozetka.com.ua/ua/headphones/c80027/", "audio", 3),             # 60 товарів
@@ -371,6 +374,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://brain.com.ua/ukr/category/Klaviatury-c1269-67/", "klaviatury", 2),
         ("https://brain.com.ua/ukr/category/Myshky-c1272-68/", "myshi", 2),
         ("https://brain.com.ua/ukr/category/Vebkamery-c1360-153/", "veb-kamery", 2),
+        ("https://brain.com.ua/ukr/category/Kylymky-c1040/", "kylymky", 2),
         ("https://brain.com.ua/ukr/category/Videokarty-c1403/", "videokarty", 2),# 24/стор., MPN 18
         ("https://brain.com.ua/ukr/category/SSD_dysky-c1484/", "ssd", 2),
         ("https://brain.com.ua/ukr/category/Procesory-c1097-128/", "procesory", 2),
@@ -455,6 +459,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/kompyuternye-myshki/", "myshi", 2),
         ("https://epicentrk.ua/ua/shop/veb-kamery/", "veb-kamery", 2),
         ("https://epicentrk.ua/ua/shop/istochniki-bespereboynogo-pitaniya/", "dbzh", 2),
+        ("https://epicentrk.ua/ua/shop/kovriki-dlya-kompyuternykh-myshek/", "kylymky", 2),
         ("https://epicentrk.ua/ua/shop/videokarty/", "videokarty", 2),   # MPN 51/60 (85%)
         ("https://epicentrk.ua/ua/shop/ssd-diski/", "ssd", 2),   # MPN 58/60 (97%)
         ("https://epicentrk.ua/ua/shop/protsessory/", "procesory", 2),   # MPN 23/60
@@ -549,6 +554,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://telemart.ua/ua/mouse/", "myshi", 2),   # MPN 27/48
         ("https://telemart.ua/ua/web-cam/", "veb-kamery", 2),   # MPN 21/48
         ("https://telemart.ua/ua/ups/", "dbzh", 2),   # MPN 33/48
+        ("https://telemart.ua/ua/kovriki/", "kylymky", 2),   # MPN 24/48
         ("https://telemart.ua/ua/videocard/", "videokarty", 2),   # 48/стор., MPN 36
         ("https://telemart.ua/ua/ssd/", "ssd", 2),   # 48/стор., MPN 45 (94%)
         ("https://telemart.ua/ua/processor/", "procesory", 2),   # 48/стор., MPN 27
