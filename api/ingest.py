@@ -226,6 +226,14 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/ochki-virtual-noj-real-nosti/", "vr-okulyary", 2),  # MPN 14/60
                  ("https://allo.ua/ua/fonari/", "likhtari", 2),                        # MPN 25/60
                  ("https://allo.ua/ua/termosy/", "termosy", 2),                        # MPN 24/60 (Xiaomi-тайл)
+                 ("https://allo.ua/ua/smesiteli/", "zmishuvachi", 2),                  # MPN 33/60
+                 ("https://allo.ua/ua/skovorody/", "skovorody", 2),                    # MPN 40/60 (Tefal)
+                 ("https://allo.ua/ua/kuhonnye-nozhi/", "nozhi-kukhonni", 2),          # MPN 15/60
+                 ("https://allo.ua/ua/binokli/", "binokli", 2),                        # MPN 4/60
+                 ("https://allo.ua/ua/teleskopy/", "teleskopy", 2),                    # MPN 5/60
+                 ("https://allo.ua/ua/sintezatory/", "syntezatory", 2),                # MPN 18/60
+                 ("https://allo.ua/ua/gitary/", "hitary", 2),                          # MPN 4/60
+                 ("https://allo.ua/ua/3d-printery/", "3d-printery", 2),                # MPN 12/60
                  ("https://allo.ua/ua/datchiki-dlja-signalizacij/", "datchyky-syhnalizatsiyi", 2),  # Ajax 29/60
                  ("https://allo.ua/ua/komplekty-signalizacij/", "komplekty-syhnalizatsiy", 2),      # MPN 28/60
                  ("https://allo.ua/ua/umnye-rozetki/", "rozumni-rozetky", 2),         # weak: MPN 10/60
@@ -612,6 +620,15 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/3d_glasses/c131143/", "vr-okulyary", 2),  # головний домен
         ("https://rozetka.com.ua/ua/fonari-i-aksessuary/c85432/", "likhtari", 2),  # головний домен
         ("https://rozetka.com.ua/ua/termosy-i-butylki/c4627638/", "termosy", 2),  # головний домен
+        ("https://bt.rozetka.com.ua/ua/boilers/c80131/", "boylery", 2),  # bt-піддомен
+        ("https://rozetka.com.ua/ua/skovorody/c4626754/", "skovorody", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/nozhi-kuhonnie/c4626670/", "nozhi-kukhonni", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/binoculars/c83917/", "binokli", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/telescopes/c89847/", "teleskopy", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/synthesizers/c286764/", "syntezatory", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/gitary/c4628348/", "hitary", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/3d_printers/c1593467/", "3d-printery", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/rashodnie-materiali-dlya-3d-printerov/c4671751/", "filament-3d", 2),  # єдине джерело (0140)
         ("https://rozetka.com.ua/ua/cleaners/c155534/", "myyky", 2),  # головний домен
         ("https://rozetka.com.ua/ua/niveliri/c4672248/", "vymiryuvalni", 2),  # головний домен (рівні)
         ("https://rozetka.com.ua/ua/dalnomeri/c4672183/", "vymiryuvalni", 2),  # головний домен (далекоміри)
@@ -950,6 +967,12 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/ochki-virtualnoy-realnosti/", "vr-okulyary", 2),  # MPN 6/60 (дешевий тайл)
         ("https://epicentrk.ua/ua/shop/fonari/", "likhtari", 2),   # MPN 31/60
         ("https://epicentrk.ua/ua/shop/termosy/", "termosy", 2),   # MPN 13/60 (Flamberg-тайл)
+        ("https://epicentrk.ua/ua/shop/smesiteli/", "zmishuvachi", 2),   # MPN 20/60
+        ("https://epicentrk.ua/ua/shop/skovorodki/", "skovorody", 2),   # MPN 4/60
+        ("https://epicentrk.ua/ua/shop/binokli/", "binokli", 2),   # MPN 7/60
+        ("https://epicentrk.ua/ua/shop/teleskopy/", "teleskopy", 2),   # MPN 8/60
+        ("https://epicentrk.ua/ua/shop/gitary/", "hitary", 2),   # MPN 3/60
+        ("https://epicentrk.ua/ua/shop/3d-printery/", "3d-printery", 2),   # MPN 15/60
         ("https://epicentrk.ua/ua/shop/datchiki-signalizatsii/", "datchyky-syhnalizatsiyi", 2),  # Emos-тайл
         ("https://epicentrk.ua/ua/shop/portativnye-elektrostantsii/", "zaryadni-stantsiyi", 2),  # MPN 8/60; НЕ EV-чарджери!
         ("https://epicentrk.ua/ua/shop/solnechnye-paneli/", "sonyachni-paneli", 2),  # MPN 20/60
