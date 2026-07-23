@@ -139,6 +139,7 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/opryskivateli/", "obpryskuvachi", 2),
                  ("https://allo.ua/ua/nasosy/", "nasosy", 2),
                  ("https://allo.ua/ua/videoregistratory/", "videoreyestratory", 2),
+                 ("https://allo.ua/ua/avtomagnitoly/", "avtomagnitoly", 2),
                  ("https://allo.ua/ua/tostery/", "tostery", 2),   # MPN 36/60
                  ("https://allo.ua/ua/products/utugi/", "prasky", 2),
                  ("https://allo.ua/ua/products/masorubki/", "myasorubky", 2),
@@ -236,6 +237,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/opriskivatel.html", "obpryskuvachi", 2),
         ("https://www.foxtrot.com.ua/uk/shop/electro_pump.html", "nasosy", 2),
         ("https://www.foxtrot.com.ua/uk/shop/videoreg.html", "videoreyestratory", 2),
+        ("https://www.foxtrot.com.ua/uk/shop/avtomagnitoly.html", "avtomagnitoly", 2),
         ("https://www.foxtrot.com.ua/uk/shop/tostery.html", "tostery", 2),  # MPN 30/42
         ("https://www.foxtrot.com.ua/uk/shop/utugi.html", "prasky", 2),  # MPN 40/42 (+ відпарювачі)
         ("https://www.foxtrot.com.ua/uk/shop/myasorybki.html", "myasorubky", 2),  # MPN 33/42
@@ -436,6 +438,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/pumps/c155952/", "nasosy", 2),  # головний домен
         ("https://rozetka.com.ua/ua/snowthrow/c182187/", "snihoprybyrachi", 2),  # головний домен
         ("https://auto.rozetka.com.ua/ua/vdr/c153617/", "videoreyestratory", 2),  # auto-піддомен
+        ("https://auto.rozetka.com.ua/ua/mediareceivers/c275389/", "avtomagnitoly", 2),  # auto-піддомен
         ("https://bt.rozetka.com.ua/ua/toasters/c80145/", "tostery", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/irons/c80161/", "prasky", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/meat_choppers/c80176/", "myasorubky", 2),  # bt-піддомен
@@ -564,6 +567,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://eldorado.ua/uk/generators/c1285119/", "generatory"),   # render
         ("https://eldorado.ua/uk/1284692/c1284692/", "myyky"),   # render
         ("https://eldorado.ua/uk/1067831/c1067831/", "videoreyestratory"),   # render
+        ("https://eldorado.ua/uk/car_receivers/c1038991/", "avtomagnitoly"),   # render
         ("https://eldorado.ua/uk/toasters/c1042091/", "tostery"),   # render (+ сендвічниці/вафельниці)
         ("https://eldorado.ua/uk/irons/c1039036/", "prasky"),   # render
         ("https://eldorado.ua/uk/meat-grinder/c1039054/", "myasorubky"),   # render
@@ -657,6 +661,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/nasosy/", "nasosy", 2),
         ("https://epicentrk.ua/ua/shop/snegouborochnaya-tekhnika-i-inventar/", "snihoprybyrachi", 2),
         ("https://epicentrk.ua/ua/shop/videoregistratory/", "videoreyestratory", 2),
+        ("https://epicentrk.ua/ua/shop/avtomagnitoly/", "avtomagnitoly", 2),
         ("https://epicentrk.ua/ua/shop/tostery/", "tostery", 2),   # MPN 41/60
         ("https://epicentrk.ua/ua/shop/utyugi/", "prasky", 2),
         ("https://epicentrk.ua/ua/shop/myasorubki/", "myasorubky", 2),

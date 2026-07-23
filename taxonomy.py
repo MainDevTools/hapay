@@ -169,6 +169,7 @@ CATEGORY_UI = {
     # M310 Plus, DDPai Z50) — extract_mpn бере лише дужкові «(A810)», інші губить. Заміряно
     # 2026-07-23: лише 3 спільні ключі Foxtrot/Epicentr/Allo. Per-store історія повна.
     "videoreyestratory": ("Авто", "🎥"),
+    "avtomagnitoly":   ("Авто", "📻"),
     "videokarty":      ("Електроніка", "🎇"),
     "ssd":             ("Електроніка", "💾"),
     "procesory":       ("Електроніка", "🧠"),
