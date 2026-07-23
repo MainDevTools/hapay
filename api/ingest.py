@@ -1135,6 +1135,25 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://stylus.ua/uk/igrovye-pristavki/", "konsoli"),
         ("https://stylus.ua/uk/umnye-chasy-smart-watch/", "smart-hodynnyky"),    # MPN 6/30
         ("https://stylus.ua/uk/naushniki-i-garnitury/", "audio"),                # MPN 15/30
+        # ── розширення 2026-07-23: +16 категорій (2 хвилі слаг-здогадів, усі
+        # верифіковано фактом ≥10 карток; невгадані за 2 хвилі routery/geympady/
+        # kolonky/foto/fitnes-braslety/dbzh — зупинились, гальма).
+        ("https://stylus.ua/uk/processory-cpu/", "procesory"),
+        ("https://stylus.ua/uk/materinskie-platy/", "materynski-platy"),
+        ("https://stylus.ua/uk/operativnaya-pamyat/", "ram"),
+        ("https://stylus.ua/uk/korpusa/", "korpusy"),
+        ("https://stylus.ua/uk/bloki-pitaniya/", "bzh"),
+        ("https://stylus.ua/uk/myshki/", "myshi"),
+        ("https://stylus.ua/uk/klaviatury/", "klaviatury"),
+        ("https://stylus.ua/uk/veb-kamery/", "veb-kamery"),
+        ("https://stylus.ua/uk/karty-pamyati/", "karty-pamyati"),
+        ("https://stylus.ua/uk/usb-fleshki/", "usb-fleshky"),
+        ("https://stylus.ua/uk/vneshnie-zhestkie-diski/", "zovnishni-hdd"),
+        ("https://stylus.ua/uk/vneshnie-akkumulyatory/", "powerbank"),
+        ("https://stylus.ua/uk/proektory/", "proektory"),
+        ("https://stylus.ua/uk/kvadrokoptery/", "drony"),
+        ("https://stylus.ua/uk/ekshn-kamery/", "ekshn-kamery"),
+        ("https://stylus.ua/uk/elektronnye-knigi/", "e-knygy"),
     )},
     # Med-magazin (розвідка 2026-07-23) — спеціаліст медтехніки, повна синергія з
     # розділом «Медтехніка» (5/5 категорій). Пагінація Vue/AJAX (?page=2 → ті самі
@@ -1290,6 +1309,11 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://jabko.ua/apple-watch/", "smart-hodynnyky"),
         ("https://jabko.ua/gadzheti-i-drugoe/naushniki/", "audio"),
         ("https://jabko.ua/gadzheti-i-drugoe/gopro/kameri-gopro/", "ekshn-kamery"),  # MPN 18/24
+        # ── розширення 2026-07-23: приставки (PS5-домінанта) + електросамокати
+        # (5 поз., але друге спец-джерело спорт-слага). DJI-хаб НЕ взято — мішає
+        # стабілізатори/гімбали з дронами, тегувати чуже не можна.
+        ("https://jabko.ua/igrovi-pristavky/", "konsoli"),
+        ("https://jabko.ua/gadzheti-i-drugoe/elektrotransport/", "elektrosamokaty"),
     )},
     # Zootovary (розвідка 2026-07-23) — зоо-спеціаліст, 5 категорій «Зоотоварів».
     # Пагінація справжня (?page=2 → 34/34 нових, перевірено фактом) → pages=2,
