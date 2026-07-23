@@ -118,6 +118,7 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/feny/", "feny", 2),
                  ("https://allo.ua/ua/elektrobritvy/", "brytvy", 2),
                  ("https://allo.ua/ua/trimmery/", "trymery", 2),   # персональні (не садові)
+                 ("https://allo.ua/ua/epiljatory/", "epilyatory", 2),
                  ("https://allo.ua/ua/tostery/", "tostery", 2),   # MPN 36/60
                  ("https://allo.ua/ua/products/utugi/", "prasky", 2),
                  ("https://allo.ua/ua/products/masorubki/", "myasorubky", 2),
@@ -190,6 +191,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/feny.html", "feny", 2),  # MPN 36/42
         ("https://www.foxtrot.com.ua/uk/shop/elektrobritvy.html", "brytvy", 2),
         ("https://www.foxtrot.com.ua/uk/shop/trimmery_trymmer.html", "trymery", 2),  # MPN 28/42
+        ("https://www.foxtrot.com.ua/uk/shop/epilyatory.html", "epilyatory", 2),
         ("https://www.foxtrot.com.ua/uk/shop/tostery.html", "tostery", 2),  # MPN 30/42
         ("https://www.foxtrot.com.ua/uk/shop/utugi.html", "prasky", 2),  # MPN 40/42 (+ відпарювачі)
         ("https://www.foxtrot.com.ua/uk/shop/myasorybki.html", "myasorubky", 2),  # MPN 33/42
@@ -240,6 +242,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.moyo.ua/ua/bt/tekhnika-lichnogo-po/feni/", "feny", 2),  # MPN 18/24
         ("https://www.moyo.ua/ua/bt/tekhnika-lichnogo-po/elecricheskie-britvi/", "brytvy", 2),
         ("https://www.moyo.ua/ua/bt/tekhnika-lichnogo-po/trimmer/", "trymery", 2),  # MPN 21/24
+        ("https://www.moyo.ua/ua/bt/tekhnika-lichnogo-po/epilatory/", "epilyatory", 2),
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/tosteri/", "tostery", 2),  # MPN 16/24
         ("https://www.moyo.ua/ua/bt/mbt/utugi/", "prasky", 2),  # MPN 22/24
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/myasorubki/", "myasorubky", 2),  # MPN 22/24
@@ -287,6 +290,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://comfy.ua/ua/hair-dryer/", "feny", 2),   # render
         ("https://comfy.ua/ua/razor/", "brytvy", 2),   # render
         ("https://comfy.ua/ua/trimmers/", "trymery", 2),   # render
+        ("https://comfy.ua/ua/epilator/", "epilyatory", 2),   # render
         ("https://comfy.ua/ua/toaster/", "tostery", 2),   # render
         ("https://comfy.ua/ua/iron/", "prasky", 2),   # render
         ("https://comfy.ua/ua/meat-grinder/", "myasorubky", 2),   # render
@@ -323,6 +327,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://bt.rozetka.com.ua/ua/hairdryers/c81227/", "feny", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/men_electric_shavers/c81226/", "brytvy", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/trimmeri/c4660433/", "trymery", 2),  # bt-піддомен, персональні
+        ("https://bt.rozetka.com.ua/ua/epilators_female_shavers/c81225/", "epilyatory", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/toasters/c80145/", "tostery", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/irons/c80161/", "prasky", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/meat_choppers/c80176/", "myasorubky", 2),  # bt-піддомен
@@ -439,6 +444,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://eldorado.ua/uk/hair-dryers/c1039072/", "feny"),   # render
         ("https://eldorado.ua/uk/shavers/c1039071/", "brytvy"),   # render
         ("https://eldorado.ua/uk/mens_hair/c1059388/", "trymery"),   # render (машинки+тримери)
+        ("https://eldorado.ua/uk/epilators/c1039070/", "epilyatory"),   # render
         ("https://eldorado.ua/uk/toasters/c1042091/", "tostery"),   # render (+ сендвічниці/вафельниці)
         ("https://eldorado.ua/uk/irons/c1039036/", "prasky"),   # render
         ("https://eldorado.ua/uk/meat-grinder/c1039054/", "myasorubky"),   # render
@@ -505,6 +511,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/feny/", "feny", 2),   # MPN 42/60
         ("https://epicentrk.ua/ua/shop/elektrobritvy-dlya-muzhchin/", "brytvy", 2),
         ("https://epicentrk.ua/ua/shop/trimmery-dlya-strizhki/", "trymery", 2),
+        ("https://epicentrk.ua/ua/shop/epilyatory-i-zhenskie-elektrobritvy/", "epilyatory", 2),
         ("https://epicentrk.ua/ua/shop/tostery/", "tostery", 2),   # MPN 41/60
         ("https://epicentrk.ua/ua/shop/utyugi/", "prasky", 2),
         ("https://epicentrk.ua/ua/shop/myasorubki/", "myasorubky", 2),
