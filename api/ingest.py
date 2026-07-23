@@ -36,6 +36,7 @@ from adapters.foxtrot import FoxtrotAdapter
 from adapters.interatletika import InteratletikaAdapter
 from adapters.ktc import KtcAdapter
 from adapters.medmagazin import MedmagazinAdapter
+from adapters.makeup import MakeupAdapter
 from adapters.masterzoo import MasterzooAdapter
 from adapters.maudau import MaudauAdapter
 from adapters.moyo import MoyoAdapter
@@ -112,6 +113,8 @@ INGEST_SOURCES: dict[str, dict] = {
     # MAUDAU — маркетплейс (розвідка 2026-07-23; вердикт «SPA без render» застарів —
     # SSR віддає ціни plain-GET'ом). Вхід — дитячі категорії (спадок Pampik).
     "MAUDAU":    {"base_url": "https://maudau.com.ua",     "hosts": ("maudau.com.ua",)},
+    # MakeUp — дрогерія з поличкою техніки (розвідка 2026-07-23). AWS WAF → render.
+    "MakeUp":    {"base_url": "https://makeup.com.ua",     "hosts": ("makeup.com.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -1175,6 +1178,20 @@ HTML_SOURCES: dict[str, dict] = {
     "Autopresent": {"adapter": AutopresentAdapter(), "urls": (
         ("https://autopresent.com.ua/ua/bezopasnost-i-komfort/videoregistratory/", "videoreyestratory"),
         ("https://autopresent.com.ua/ua/zvuk/avtomagnitoly/", "avtomagnitoly"),
+    )},
+    # MakeUp (розвідка 2026-07-23) — дрогерія-гігант із поличкою техніки, ПЕРШИЙ
+    # спеціаліст «Краси і догляду»: 4/6 слагів, 5 лістингів (укладка = стайлери +
+    # фени-щітки). Електробритв/тримерів-приладів нема (їхні «бритви» — ручні
+    # станки), НЕ реєструємо. mode="render": категорії за AWS WAF (aws-waf-token) —
+    # без токена 0KB; WebView проходить челендж природно. Пагінація клієнтська
+    # (?page=2 → ті самі SKU) → top-36/лістинг. MPN 7-17/36 (Philips/BaByliss) —
+    # помірний крос-матч із core-крамницями.
+    "MakeUp": {"adapter": MakeupAdapter(), "mode": "render", "urls": (
+        ("https://makeup.com.ua/ua/categorys/257467/", "feny"),
+        ("https://makeup.com.ua/ua/categorys/1273075/", "ukladka-volossya"),     # стайлери
+        ("https://makeup.com.ua/ua/categorys/566809/", "ukladka-volossya"),      # фени-щітки
+        ("https://makeup.com.ua/ua/categorys/538127/", "zubni-shchitky"),
+        ("https://makeup.com.ua/ua/categorys/1015565/", "epilyatory"),
     )},
     # MasterZoo (розвідка 2026-07-23, два заходи) — зоо-мережа №2, 5 категорій.
     # mode="render": анти-бот-челендж — без куки challenge_passed сервер віддає
