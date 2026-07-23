@@ -39,6 +39,7 @@ from adapters.storgom import StorgomAdapter
 from adapters.stylus import StylusAdapter
 from adapters.telemart import TelemartAdapter
 from adapters.vencon import VenconAdapter
+from adapters.zootovary import ZootovaryAdapter
 from db.store import load_categories, persist_items, upsert_source
 from matching import normalize_gtin
 
@@ -86,6 +87,8 @@ INGEST_SOURCES: dict[str, dict] = {
     "MedMagazin": {"base_url": "https://med-magazin.ua",   "hosts": ("med-magazin.ua",)},
     # Fotosale — фотоспеціаліст (розвідка 2026-07-23). Класичний SSR без фреймворка.
     "Fotosale":  {"base_url": "https://fotosale.ua",       "hosts": ("fotosale.ua",)},
+    # Zootovary — зоо-спеціаліст (розвідка 2026-07-23). Класичний SSR (osCommerce-рід).
+    "Zootovary": {"base_url": "https://zootovary.ua",      "hosts": ("zootovary.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -1127,6 +1130,20 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://fotosale.ua/ua/digital-cameras", "foto"),
         ("https://fotosale.ua/ua/catalog_rub3860.htm", "ekshn-kamery"),          # GoPro; MPN 19/19
         ("https://fotosale.ua/ua/catalog_rub350.htm", "karty-pamyati"),          # MPN 18/20
+    )},
+    # Zootovary (розвідка 2026-07-23) — зоо-спеціаліст, 5 категорій «Зоотоварів».
+    # Пагінація справжня (?page=2 → 34/34 нових, перевірено фактом) → pages=2,
+    # ~70 top-позицій/категорію по 35 на сторінку. Шампуні для котів/псів окремої
+    # категорії не мають (лише мішаний грумінг) — не реєструємо. Головна пастка —
+    # КОМА-ТИСЯЧНИК у цінах («2,739 ₴» = 2739 грн) — чиститься в адаптері, покрито
+    # касетним тестом. Матчер слабкий (описові назви кормів) → per-store Omnibus.
+    "Zootovary": {"adapter": ZootovaryAdapter(), "page_tpl": "{base}?page={n}",
+                  "pages": 2, "urls": (
+        ("https://zootovary.ua/uk/korm-dlja-koshek-c-23_98.html", "koty-suhyi-korm"),
+        ("https://zootovary.ua/uk/konservy-dlja-koshek-c-23_99.html", "koty-konservy"),
+        ("https://zootovary.ua/uk/korm-dlya-sobak-c-22_24.html", "psy-suhyi-korm"),
+        ("https://zootovary.ua/uk/konservy-dlya-sobak-c-22_30.html", "psy-konservy"),
+        ("https://zootovary.ua/uk/amunitsiya-dlya-sobak-c-22_648.html", "amunitsiya"),
     )},
 }
 # режим збору per-source: 'fetch' (plain GET) | 'render' (WebView — SPA-крамниці).
