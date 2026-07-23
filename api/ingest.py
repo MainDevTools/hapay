@@ -131,6 +131,7 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/kompressory/", "kompresory", 2),
                  ("https://allo.ua/ua/nabory-instrumentov/", "nabory-instrumentu", 2),
                  ("https://allo.ua/ua/trimmery-i-motokosy/", "motokosy", 2),
+                 ("https://allo.ua/ua/gazonokosilki/", "gazonokosarky", 2),
                  ("https://allo.ua/ua/tostery/", "tostery", 2),   # MPN 36/60
                  ("https://allo.ua/ua/products/utugi/", "prasky", 2),
                  ("https://allo.ua/ua/products/masorubki/", "myasorubky", 2),
@@ -220,6 +221,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/metric_lazernii-nivelir.html", "vymiryuvalni", 2),
         ("https://www.foxtrot.com.ua/uk/shop/solyariy.html", "nabory-instrumentu", 2),  # legacy-слаг наборів
         ("https://www.foxtrot.com.ua/uk/shop/trimeri.html", "motokosy", 2),  # садові (не персональні)
+        ("https://www.foxtrot.com.ua/uk/shop/gazonokosilki.html", "gazonokosarky", 2),
         ("https://www.foxtrot.com.ua/uk/shop/tostery.html", "tostery", 2),  # MPN 30/42
         ("https://www.foxtrot.com.ua/uk/shop/utugi.html", "prasky", 2),  # MPN 40/42 (+ відпарювачі)
         ("https://www.foxtrot.com.ua/uk/shop/myasorybki.html", "myasorubky", 2),  # MPN 33/42
@@ -285,6 +287,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.moyo.ua/ua/instrument/stacionarnoe_oborudo/generatoryi/", "generatory", 2),
         ("https://www.moyo.ua/ua/instrument/ruchnoy_instrument/naboryi_ruchnyih_ins/", "nabory-instrumentu", 2),
         ("https://www.moyo.ua/ua/instrument/sadovaya_technika/sadovyie_trimmeryi/", "motokosy", 2),
+        ("https://www.moyo.ua/ua/instrument/sadovaya_technika/gazonokosilki/", "gazonokosarky", 2),
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/tosteri/", "tostery", 2),  # MPN 16/24
         ("https://www.moyo.ua/ua/bt/mbt/utugi/", "prasky", 2),  # MPN 22/24
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/myasorubki/", "myasorubky", 2),  # MPN 22/24
@@ -346,6 +349,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://comfy.ua/ua/measuring-devices/", "vymiryuvalni", 2),   # render (широкі вимірювальні)
         ("https://comfy.ua/ua/tool-sets/", "nabory-instrumentu", 2),   # render
         ("https://comfy.ua/ua/brushcutters/", "motokosy", 2),   # render
+        ("https://comfy.ua/ua/lawn-mower/", "gazonokosarky", 2),   # render
         ("https://comfy.ua/ua/toaster/", "tostery", 2),   # render
         ("https://comfy.ua/ua/iron/", "prasky", 2),   # render
         ("https://comfy.ua/ua/meat-grinder/", "myasorubky", 2),   # render
@@ -399,6 +403,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/dalnomeri/c4672183/", "vymiryuvalni", 2),  # головний домен (далекоміри)
         ("https://rozetka.com.ua/ua/tool_kits/c298224/", "nabory-instrumentu", 2),  # головний домен
         ("https://rozetka.com.ua/ua/trimmers/c155089/", "motokosy", 2),  # головний домен (садові)
+        ("https://rozetka.com.ua/ua/grass_cutters/c155072/", "gazonokosarky", 2),  # головний домен
         ("https://bt.rozetka.com.ua/ua/toasters/c80145/", "tostery", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/irons/c80161/", "prasky", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/meat_choppers/c80176/", "myasorubky", 2),  # bt-піддомен
@@ -610,6 +615,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/dalnomery/", "vymiryuvalni", 2),
         ("https://epicentrk.ua/ua/shop/nabory-instrumentov/", "nabory-instrumentu", 2),
         ("https://epicentrk.ua/ua/shop/motokosy-i-trimmery-sadovye/", "motokosy", 2),
+        ("https://epicentrk.ua/ua/shop/gazonokosilki/", "gazonokosarky", 2),
         ("https://epicentrk.ua/ua/shop/tostery/", "tostery", 2),   # MPN 41/60
         ("https://epicentrk.ua/ua/shop/utyugi/", "prasky", 2),
         ("https://epicentrk.ua/ua/shop/myasorubki/", "myasorubky", 2),
