@@ -178,6 +178,8 @@ CATEGORY_UI = {
     "zvolozhuvachi":   ("Клімат", "🌫️"),
     "ochyshchuvachi":  ("Клімат", "🍃"),
     "osushuvachi":     ("Клімат", "🏜️"),
+    "ventylatory":     ("Клімат", "🌀"),
+    "meteostantsii":   ("Клімат", "🌦️"),
     "videokarty":      ("Електроніка", "🎇"),
     "ssd":             ("Електроніка", "💾"),
     "procesory":       ("Електроніка", "🧠"),
