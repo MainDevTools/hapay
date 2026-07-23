@@ -174,6 +174,8 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/products/kartridzhy/", "kartridzhi", 2),
                  ("https://allo.ua/ua/shredery/", "shredery", 2),
                  ("https://allo.ua/ua/laminatory/", "laminatory", 2),
+                 ("https://allo.ua/ua/tonometry/", "tonometry", 2),       # weak: MPN 9/60
+                 ("https://allo.ua/ua/gljukometry/", "glyukometry", 2),   # weak: MPN 0/60
                  ("https://allo.ua/ua/tostery/", "tostery", 2),   # MPN 36/60
                  ("https://allo.ua/ua/products/utugi/", "prasky", 2),
                  ("https://allo.ua/ua/products/masorubki/", "myasorubky", 2),
@@ -482,6 +484,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://comfy.ua/ua/printers/", "printery-bfp", 2),   # render
         ("https://comfy.ua/ua/scanners/", "skanery", 2),   # render
         ("https://comfy.ua/ua/ink-cartridge/", "kartridzhi", 2),   # render
+        ("https://comfy.ua/ua/tonometers/", "tonometry", 2),   # render
         ("https://comfy.ua/ua/toaster/", "tostery", 2),   # render
         ("https://comfy.ua/ua/iron/", "prasky", 2),   # render
         ("https://comfy.ua/ua/meat-grinder/", "myasorubky", 2),   # render
@@ -584,6 +587,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/kartridgi-struynie/c4671731/", "kartridzhi", 2),  # головний домен (струменеві)
         ("https://rozetka.com.ua/ua/shredders/c132946/", "shredery", 2),  # головний домен
         ("https://rozetka.com.ua/ua/laminator/c248894/", "laminatory", 2),  # головний домен
+        ("https://bt.rozetka.com.ua/ua/tonometry/c2635172/", "tonometry", 2),  # bt-піддомен
+        ("https://apteka.rozetka.com.ua/ua/glyukometry/c4627802/", "glyukometry", 2),  # apteka-піддомен
         ("https://bt.rozetka.com.ua/ua/toasters/c80145/", "tostery", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/irons/c80161/", "prasky", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/meat_choppers/c80176/", "myasorubky", 2),  # bt-піддомен
@@ -859,6 +864,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/skanery/", "skanery", 2),
         ("https://epicentrk.ua/ua/shop/raskhodnye-materialy-dlya-printerov-i-mfu/", "kartridzhi", 2),
         ("https://epicentrk.ua/ua/shop/laminatory/", "laminatory", 2),
+        ("https://epicentrk.ua/ua/shop/tonometry/", "tonometry", 2),   # weak: MPN 21/60
         ("https://epicentrk.ua/ua/shop/tostery/", "tostery", 2),   # MPN 41/60
         ("https://epicentrk.ua/ua/shop/utyugi/", "prasky", 2),
         ("https://epicentrk.ua/ua/shop/myasorubki/", "myasorubky", 2),
