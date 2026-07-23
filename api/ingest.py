@@ -176,6 +176,8 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/laminatory/", "laminatory", 2),
                  ("https://allo.ua/ua/tonometry/", "tonometry", 2),       # weak: MPN 9/60
                  ("https://allo.ua/ua/gljukometry/", "glyukometry", 2),   # weak: MPN 0/60
+                 ("https://allo.ua/ua/pul-soksimetry/", "pulsoksimetry", 2),  # weak; мішає Garmin HRM
+                 ("https://allo.ua/ua/termometry/", "termometry", 2),         # weak: MPN 3/60
                  ("https://allo.ua/ua/tostery/", "tostery", 2),   # MPN 36/60
                  ("https://allo.ua/ua/products/utugi/", "prasky", 2),
                  ("https://allo.ua/ua/products/masorubki/", "myasorubky", 2),
@@ -485,6 +487,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://comfy.ua/ua/scanners/", "skanery", 2),   # render
         ("https://comfy.ua/ua/ink-cartridge/", "kartridzhi", 2),   # render
         ("https://comfy.ua/ua/tonometers/", "tonometry", 2),   # render
+        ("https://comfy.ua/ua/termometry/", "termometry", 2),   # render
         ("https://comfy.ua/ua/toaster/", "tostery", 2),   # render
         ("https://comfy.ua/ua/iron/", "prasky", 2),   # render
         ("https://comfy.ua/ua/meat-grinder/", "myasorubky", 2),   # render
@@ -589,6 +592,9 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/laminator/c248894/", "laminatory", 2),  # головний домен
         ("https://bt.rozetka.com.ua/ua/tonometry/c2635172/", "tonometry", 2),  # bt-піддомен
         ("https://apteka.rozetka.com.ua/ua/glyukometry/c4627802/", "glyukometry", 2),  # apteka-піддомен
+        ("https://bt.rozetka.com.ua/ua/ingalyatory/c2776042/", "nebulayzery", 2),  # bt-піддомен
+        ("https://apteka.rozetka.com.ua/ua/pulsoksimetri/c4672048/", "pulsoksimetry", 2),  # apteka-піддомен
+        ("https://apteka.rozetka.com.ua/ua/termometry-dlya-tela/c4627816/", "termometry", 2),  # apteka-піддомен
         ("https://bt.rozetka.com.ua/ua/toasters/c80145/", "tostery", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/irons/c80161/", "prasky", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/meat_choppers/c80176/", "myasorubky", 2),  # bt-піддомен
@@ -865,6 +871,9 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/raskhodnye-materialy-dlya-printerov-i-mfu/", "kartridzhi", 2),
         ("https://epicentrk.ua/ua/shop/laminatory/", "laminatory", 2),
         ("https://epicentrk.ua/ua/shop/tonometry/", "tonometry", 2),   # weak: MPN 21/60
+        ("https://epicentrk.ua/ua/shop/ingalyatory/", "nebulayzery", 2),   # weak: MPN 8/60
+        ("https://epicentrk.ua/ua/shop/pulsoksimetry/", "pulsoksimetry", 2),   # weak: MPN 8/60
+        ("https://epicentrk.ua/ua/shop/termometry-meditsinskie/", "termometry", 2),   # weak: MPN 5/60
         ("https://epicentrk.ua/ua/shop/tostery/", "tostery", 2),   # MPN 41/60
         ("https://epicentrk.ua/ua/shop/utyugi/", "prasky", 2),
         ("https://epicentrk.ua/ua/shop/myasorubki/", "myasorubky", 2),

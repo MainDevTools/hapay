@@ -227,6 +227,9 @@ CATEGORY_UI = {
     # Longevita, XPRO) + короткі/descriptive коди. Per-store детекція повна.
     "tonometry":       ("Медтехніка", "🩺"),
     "glyukometry":     ("Медтехніка", "🩸"),
+    "nebulayzery":     ("Медтехніка", "💨"),
+    "pulsoksimetry":   ("Медтехніка", "🫁"),
+    "termometry":      ("Медтехніка", "🌡️"),
     "procesory":       ("Електроніка", "🧠"),
     "ram":             ("Електроніка", "🎛️"),
     "materynski-platy": ("Електроніка", "🔲"),
