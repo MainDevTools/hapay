@@ -223,6 +223,9 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/laminatory/", "laminatory", 2),
                  ("https://allo.ua/ua/ip-kamery/", "ip-kamery", 2),                   # MPN 37/60
                  ("https://allo.ua/ua/videodomofony/", "videodomofony", 2),           # MPN 18/60, відео 50/60
+                 ("https://allo.ua/ua/ochki-virtual-noj-real-nosti/", "vr-okulyary", 2),  # MPN 14/60
+                 ("https://allo.ua/ua/fonari/", "likhtari", 2),                        # MPN 25/60
+                 ("https://allo.ua/ua/termosy/", "termosy", 2),                        # MPN 24/60 (Xiaomi-тайл)
                  ("https://allo.ua/ua/datchiki-dlja-signalizacij/", "datchyky-syhnalizatsiyi", 2),  # Ajax 29/60
                  ("https://allo.ua/ua/komplekty-signalizacij/", "komplekty-syhnalizatsiy", 2),      # MPN 28/60
                  ("https://allo.ua/ua/umnye-rozetki/", "rozumni-rozetky", 2),         # weak: MPN 10/60
@@ -605,6 +608,10 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/komplekty-signalizatsiy/c236220/", "komplekty-syhnalizatsiy", 2),  # головний домен
         ("https://rozetka.com.ua/ua/umnoe-osveshchenie/c4638351/", "rozumne-osvitlennya", 2),  # головний домен; єдине джерело (0125)
         ("https://rozetka.com.ua/ua/video_intercoms/c259633/", "videodomofony", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/geymerskie-kresla/c4657827/", "ihrovi-krisla", 2),  # головний домен; єдине джерело (0127)
+        ("https://rozetka.com.ua/ua/3d_glasses/c131143/", "vr-okulyary", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/fonari-i-aksessuary/c85432/", "likhtari", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/termosy-i-butylki/c4627638/", "termosy", 2),  # головний домен
         ("https://rozetka.com.ua/ua/cleaners/c155534/", "myyky", 2),  # головний домен
         ("https://rozetka.com.ua/ua/niveliri/c4672248/", "vymiryuvalni", 2),  # головний домен (рівні)
         ("https://rozetka.com.ua/ua/dalnomeri/c4672183/", "vymiryuvalni", 2),  # головний домен (далекоміри)
@@ -940,6 +947,9 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/raskhodnye-materialy-dlya-printerov-i-mfu/", "kartridzhi", 2),
         ("https://epicentrk.ua/ua/shop/laminatory/", "laminatory", 2),
         ("https://epicentrk.ua/ua/shop/ip-kamery/", "ip-kamery", 2),   # MPN 21/60 (Tapo-тайл)
+        ("https://epicentrk.ua/ua/shop/ochki-virtualnoy-realnosti/", "vr-okulyary", 2),  # MPN 6/60 (дешевий тайл)
+        ("https://epicentrk.ua/ua/shop/fonari/", "likhtari", 2),   # MPN 31/60
+        ("https://epicentrk.ua/ua/shop/termosy/", "termosy", 2),   # MPN 13/60 (Flamberg-тайл)
         ("https://epicentrk.ua/ua/shop/datchiki-signalizatsii/", "datchyky-syhnalizatsiyi", 2),  # Emos-тайл
         ("https://epicentrk.ua/ua/shop/portativnye-elektrostantsii/", "zaryadni-stantsiyi", 2),  # MPN 8/60; НЕ EV-чарджери!
         ("https://epicentrk.ua/ua/shop/solnechnye-paneli/", "sonyachni-paneli", 2),  # MPN 20/60
