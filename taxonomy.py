@@ -159,6 +159,7 @@ CATEGORY_UI = {
     "gazonokosarky":   ("Садова техніка", "🌱"),
     "pyly-lancjugovi": ("Садова техніка", "🪓"),
     "povitroduvky":    ("Садова техніка", "🍂"),
+    "kultyvatory":     ("Садова техніка", "🚜"),
     "videokarty":      ("Електроніка", "🎇"),
     "ssd":             ("Електроніка", "💾"),
     "procesory":       ("Електроніка", "🧠"),

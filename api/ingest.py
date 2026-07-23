@@ -134,6 +134,7 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/gazonokosilki/", "gazonokosarky", 2),
                  ("https://allo.ua/ua/cepnye-pily/", "pyly-lancjugovi", 2),
                  ("https://allo.ua/ua/sadovye-pylesosy/", "povitroduvky", 2),
+                 ("https://allo.ua/ua/motobloki/", "kultyvatory", 2),
                  ("https://allo.ua/ua/tostery/", "tostery", 2),   # MPN 36/60
                  ("https://allo.ua/ua/products/utugi/", "prasky", 2),
                  ("https://allo.ua/ua/products/masorubki/", "myasorubky", 2),
@@ -226,6 +227,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/gazonokosilki.html", "gazonokosarky", 2),
         ("https://www.foxtrot.com.ua/uk/shop/cepnie_pili.html", "pyly-lancjugovi", 2),
         ("https://www.foxtrot.com.ua/uk/shop/garden_misc_sadovye-pylesosy.html", "povitroduvky", 2),
+        ("https://www.foxtrot.com.ua/uk/shop/kultivator.html", "kultyvatory", 2),
         ("https://www.foxtrot.com.ua/uk/shop/tostery.html", "tostery", 2),  # MPN 30/42
         ("https://www.foxtrot.com.ua/uk/shop/utugi.html", "prasky", 2),  # MPN 40/42 (+ відпарювачі)
         ("https://www.foxtrot.com.ua/uk/shop/myasorybki.html", "myasorubky", 2),  # MPN 33/42
@@ -293,6 +295,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.moyo.ua/ua/instrument/sadovaya_technika/sadovyie_trimmeryi/", "motokosy", 2),
         ("https://www.moyo.ua/ua/instrument/sadovaya_technika/gazonokosilki/", "gazonokosarky", 2),
         ("https://www.moyo.ua/ua/instrument/sadovaya_technika/vozduhoduvki/", "povitroduvky", 2),
+        ("https://www.moyo.ua/ua/instrument/sadovaya_technika/motokultivatoryi/", "kultyvatory", 2),
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/tosteri/", "tostery", 2),  # MPN 16/24
         ("https://www.moyo.ua/ua/bt/mbt/utugi/", "prasky", 2),  # MPN 22/24
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/myasorubki/", "myasorubky", 2),  # MPN 22/24
@@ -357,6 +360,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://comfy.ua/ua/lawn-mower/", "gazonokosarky", 2),   # render
         ("https://comfy.ua/ua/chainsaws/", "pyly-lancjugovi", 2),   # render
         ("https://comfy.ua/ua/garden-vacuum-cleaners/", "povitroduvky", 2),   # render
+        ("https://comfy.ua/ua/cultivators/", "kultyvatory", 2),   # render
         ("https://comfy.ua/ua/toaster/", "tostery", 2),   # render
         ("https://comfy.ua/ua/iron/", "prasky", 2),   # render
         ("https://comfy.ua/ua/meat-grinder/", "myasorubky", 2),   # render
@@ -413,6 +417,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/grass_cutters/c155072/", "gazonokosarky", 2),  # головний домен
         ("https://rozetka.com.ua/ua/chainsaws/c155515/", "pyly-lancjugovi", 2),  # головний домен
         ("https://rozetka.com.ua/ua/blowers/c156363/", "povitroduvky", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/kulivatory-i-motobloki/c155824/", "kultyvatory", 2),  # головний домен
         ("https://bt.rozetka.com.ua/ua/toasters/c80145/", "tostery", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/irons/c80161/", "prasky", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/meat_choppers/c80176/", "myasorubky", 2),  # bt-піддомен
@@ -627,6 +632,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/gazonokosilki/", "gazonokosarky", 2),
         ("https://epicentrk.ua/ua/shop/benzopily-i-elektropily/", "pyly-lancjugovi", 2),
         ("https://epicentrk.ua/ua/shop/pylesosy-sadovye/", "povitroduvky", 2),
+        ("https://epicentrk.ua/ua/shop/kultivatory-i-motobloki/", "kultyvatory", 2),
         ("https://epicentrk.ua/ua/shop/tostery/", "tostery", 2),   # MPN 41/60
         ("https://epicentrk.ua/ua/shop/utyugi/", "prasky", 2),
         ("https://epicentrk.ua/ua/shop/myasorubki/", "myasorubky", 2),
