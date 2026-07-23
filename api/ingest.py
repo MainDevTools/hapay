@@ -167,6 +167,8 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/besprovodnye-tochki-dostupa/", "tochky-dostupu", 2),
                  ("https://allo.ua/ua/fitnes-braslety/", "fitnes-braslety", 2),
                  ("https://allo.ua/ua/universalnye-mobilnye-batarei/", "powerbank", 2),
+                 ("https://allo.ua/ua/aksessuary-k-igrovym-pristavkam/tip_manip-gejmpad/", "geympady", 2),  # фасет
+                 ("https://allo.ua/ua/portativnaja-akustika/", "portatyvni-kolonky", 2),
                  ("https://allo.ua/ua/tostery/", "tostery", 2),   # MPN 36/60
                  ("https://allo.ua/ua/products/utugi/", "prasky", 2),
                  ("https://allo.ua/ua/products/masorubki/", "myasorubky", 2),
@@ -291,6 +293,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/marshrutizatory_tochki-dostupa.html", "tochky-dostupu", 2),
         ("https://www.foxtrot.com.ua/uk/shop/smart_brasleti.html", "fitnes-braslety", 2),
         ("https://www.foxtrot.com.ua/uk/shop/portativnie_zariadnie_ustroistva.html", "powerbank", 2),
+        ("https://www.foxtrot.com.ua/uk/shop/igrovue_manipulyatory_gamepad.html", "geympady", 2),
+        ("https://www.foxtrot.com.ua/uk/shop/portativnaia_akustika_bluetooth.html", "portatyvni-kolonky", 2),
         ("https://www.foxtrot.com.ua/uk/shop/tostery.html", "tostery", 2),  # MPN 30/42
         ("https://www.foxtrot.com.ua/uk/shop/utugi.html", "prasky", 2),  # MPN 40/42 (+ відпарювачі)
         ("https://www.foxtrot.com.ua/uk/shop/myasorybki.html", "myasorubky", 2),  # MPN 33/42
@@ -557,6 +561,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/wireless-access-points/c80195/", "tochky-dostupu", 2),  # головний домен
         ("https://rozetka.com.ua/ua/fitnes-trekery/c4627554/", "fitnes-braslety", 2),  # головний домен
         ("https://rozetka.com.ua/ua/universalnye-mobilnye-batarei/c387969/", "powerbank", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/djoysticks/c80173/", "geympady", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/portativnie-kolonki/c4671531/", "portatyvni-kolonky", 2),  # головний домен
         ("https://bt.rozetka.com.ua/ua/toasters/c80145/", "tostery", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/irons/c80161/", "prasky", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/meat_choppers/c80176/", "myasorubky", 2),  # bt-піддомен

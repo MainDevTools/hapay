@@ -214,6 +214,8 @@ CATEGORY_UI = {
     "tochky-dostupu":  ("Електроніка", "🛜"),
     "fitnes-braslety": ("Електроніка", "💪"),
     "powerbank":       ("Електроніка", "🔋"),
+    "geympady":        ("Електроніка", "🕹️"),
+    "portatyvni-kolonky": ("Електроніка", "🔊"),
     "procesory":       ("Електроніка", "🧠"),
     "ram":             ("Електроніка", "🎛️"),
     "materynski-platy": ("Електроніка", "🔲"),
