@@ -1266,6 +1266,17 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://maudau.com.ua/category/radioniani", "radionyani"),             # 48 поз.
         ("https://maudau.com.ua/category/dytiachi-vahy", "dytyachi-vagy"),
         ("https://maudau.com.ua/category/stilchyky-dlia-hoduvannia-i-bustery", "stilchyky"),  # MPN 23/48
+        # ── розширення 2026-07-23: зоотовари (7 лістингів, верифіковано 48/48 кожен).
+        # МAUDAU — третє зоо-джерело; шампуні котів/псів — ПЕРШЕ джерело цих слагів
+        # (Zootovary/MasterZoo окремих шампунь-категорій не мають). «Купання» містить
+        # шампуні/кондиціонери/спреї — беремо як є, крамниця так ділить.
+        ("https://maudau.com.ua/category/sukhyi-korm-dlia-kotiv", "koty-suhyi-korm"),
+        ("https://maudau.com.ua/category/volohyi-korm-dlia-kotiv", "koty-konservy"),
+        ("https://maudau.com.ua/category/sukhyi-korm-dlia-sobak", "psy-suhyi-korm"),
+        ("https://maudau.com.ua/category/volohyi-korm-dlia-sobak", "psy-konservy"),
+        ("https://maudau.com.ua/category/amunitsiia-dlia-sobak", "amunitsiya"),
+        ("https://maudau.com.ua/category/zasoby-dlia-kupannia-kishok", "koty-shampuni"),
+        ("https://maudau.com.ua/category/zasoby-dlia-kupannia-sobak", "psy-shampuni"),
     )},
     # Yabko (розвідка 2026-07-23) — Apple-мережа, 6 сильних крос-категорій
     # (iPad MPN 24/24, GoPro 18/24, Watch 10/24). Головна пастка — span.old
