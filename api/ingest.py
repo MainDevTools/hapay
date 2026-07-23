@@ -122,6 +122,7 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/stajlery-i-nabory-dlja-ukladki/", "ukladka-volossya", 2),  # без фенів
                  ("https://allo.ua/ua/jelektricheskie-zubnye-schetki/", "zubni-shchitky", 2),
                  ("https://allo.ua/ua/shurupoverty/", "shurupoverty", 2),
+                 ("https://allo.ua/ua/perforatory/", "perforatory", 2),
                  ("https://allo.ua/ua/tostery/", "tostery", 2),   # MPN 36/60
                  ("https://allo.ua/ua/products/utugi/", "prasky", 2),
                  ("https://allo.ua/ua/products/masorubki/", "myasorubky", 2),
@@ -198,6 +199,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/plojki.html", "ukladka-volossya", 2),
         ("https://www.foxtrot.com.ua/uk/shop/zubnye_schetki_elektricheskaya-zybnaya-shhetka.html", "zubni-shchitky", 2),
         ("https://www.foxtrot.com.ua/uk/shop/shurupoverti.html", "shurupoverty", 2),
+        ("https://www.foxtrot.com.ua/uk/shop/puncher.html", "perforatory", 2),
         ("https://www.foxtrot.com.ua/uk/shop/tostery.html", "tostery", 2),  # MPN 30/42
         ("https://www.foxtrot.com.ua/uk/shop/utugi.html", "prasky", 2),  # MPN 40/42 (+ відпарювачі)
         ("https://www.foxtrot.com.ua/uk/shop/myasorybki.html", "myasorubky", 2),  # MPN 33/42
@@ -252,6 +254,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.moyo.ua/ua/bt/tekhnika-lichnogo-po/schipci-dlya-ukladki/", "ukladka-volossya", 2),
         ("https://www.moyo.ua/ua/bt/tekhnika-lichnogo-po/elertricheskie_zubni/", "zubni-shchitky", 2),
         ("https://www.moyo.ua/ua/instrument/electroinstrument/shurupovertyi/", "shurupoverty", 2),
+        ("https://www.moyo.ua/ua/instrument/electroinstrument/perforatoryi/", "perforatory", 2),
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/tosteri/", "tostery", 2),  # MPN 16/24
         ("https://www.moyo.ua/ua/bt/mbt/utugi/", "prasky", 2),  # MPN 22/24
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/myasorubki/", "myasorubky", 2),  # MPN 22/24
@@ -303,6 +306,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://comfy.ua/ua/hair-stylers/", "ukladka-volossya", 2),   # render, без фенів
         ("https://comfy.ua/ua/n-are-of-body-and-person/", "zubni-shchitky", 2),   # render (електрощітки)
         ("https://comfy.ua/ua/screwdrivers/", "shurupoverty", 2),   # render
+        ("https://comfy.ua/ua/perforators/", "perforatory", 2),   # render
         ("https://comfy.ua/ua/toaster/", "tostery", 2),   # render
         ("https://comfy.ua/ua/iron/", "prasky", 2),   # render
         ("https://comfy.ua/ua/meat-grinder/", "myasorubky", 2),   # render
@@ -343,6 +347,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://bt.rozetka.com.ua/ua/hairdressing/c81231/", "ukladka-volossya", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/zubnye-schetki-i-irrigatory/c437994/", "zubni-shchitky", 2),  # bt-піддомен
         ("https://rozetka.com.ua/ua/shurupoverty-i-elektrootvertki/c152499/", "shurupoverty", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/rock_drills/c153621/", "perforatory", 2),  # головний домен
         ("https://bt.rozetka.com.ua/ua/toasters/c80145/", "tostery", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/irons/c80161/", "prasky", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/meat_choppers/c80176/", "myasorubky", 2),  # bt-піддомен
@@ -463,6 +468,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://eldorado.ua/uk/hai-traighteners_curling-irons_and_stylers/c1039073/", "ukladka-volossya"),   # render
         ("https://eldorado.ua/uk/1061587/c1061587/", "zubni-shchitky"),   # render
         ("https://eldorado.ua/uk/1284672/c1284672/", "shurupoverty"),   # render
+        ("https://eldorado.ua/uk/1284694/c1284694/", "perforatory"),   # render
         ("https://eldorado.ua/uk/toasters/c1042091/", "tostery"),   # render (+ сендвічниці/вафельниці)
         ("https://eldorado.ua/uk/irons/c1039036/", "prasky"),   # render
         ("https://eldorado.ua/uk/meat-grinder/c1039054/", "myasorubky"),   # render
@@ -533,6 +539,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/pribory-dlya-ukladki-volos/", "ukladka-volossya", 2),
         ("https://epicentrk.ua/ua/shop/elektricheskie-zubnye-shchetki/", "zubni-shchitky", 2),
         ("https://epicentrk.ua/ua/shop/shurupoverty/", "shurupoverty", 2),
+        ("https://epicentrk.ua/ua/shop/perforatory/", "perforatory", 2),
         ("https://epicentrk.ua/ua/shop/tostery/", "tostery", 2),   # MPN 41/60
         ("https://epicentrk.ua/ua/shop/utyugi/", "prasky", 2),
         ("https://epicentrk.ua/ua/shop/myasorubki/", "myasorubky", 2),
