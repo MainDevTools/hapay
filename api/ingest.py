@@ -221,6 +221,8 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/products/kartridzhy/", "kartridzhi", 2),
                  ("https://allo.ua/ua/shredery/", "shredery", 2),
                  ("https://allo.ua/ua/laminatory/", "laminatory", 2),
+                 ("https://allo.ua/ua/ip-kamery/", "ip-kamery", 2),                   # MPN 37/60
+                 ("https://allo.ua/ua/umnye-rozetki/", "rozumni-rozetky", 2),         # weak: MPN 10/60
                  ("https://allo.ua/ua/zarjadnye-stancii/", "zaryadni-stantsiyi", 2),  # MPN 11/60
                  ("https://allo.ua/ua/solnechnye-paneli/", "sonyachni-paneli", 2),    # MPN 26/60
                  ("https://allo.ua/ua/tonometry/", "tonometry", 2),       # weak: MPN 9/60
@@ -316,6 +318,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/compressors.html", "kompresory", 2),
         ("https://www.foxtrot.com.ua/uk/shop/generators.html", "generatory", 2),
         ("https://www.foxtrot.com.ua/uk/shop/portativnye-zaryadnye-stancii.html", "zaryadni-stantsiyi", 2),  # MPN 17/42
+        ("https://www.foxtrot.com.ua/uk/shop/ip_kamery.html", "ip-kamery", 2),   # MPN 23/42 (Dahua-тайл)
         ("https://www.foxtrot.com.ua/uk/shop/carwasher.html", "myyky", 2),
         ("https://www.foxtrot.com.ua/uk/shop/metric_lazernii-nivelir.html", "vymiryuvalni", 2),
         ("https://www.foxtrot.com.ua/uk/shop/solyariy.html", "nabory-instrumentu", 2),  # legacy-слаг наборів
@@ -593,6 +596,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/generators/c152564/", "generatory", 2),  # головний домен
         ("https://rozetka.com.ua/ua/zaryadnie-stantsii-4674585/c4674585/", "zaryadni-stantsiyi", 2),  # головний домен
         ("https://rozetka.com.ua/ua/fotoelektricheskie-paneli/c4629920/", "sonyachni-paneli", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/ip_cam/c156790/", "ip-kamery", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/umnie-rozetki/c4638455/", "rozumni-rozetky", 2),  # головний домен
         ("https://rozetka.com.ua/ua/cleaners/c155534/", "myyky", 2),  # головний домен
         ("https://rozetka.com.ua/ua/niveliri/c4672248/", "vymiryuvalni", 2),  # головний домен (рівні)
         ("https://rozetka.com.ua/ua/dalnomeri/c4672183/", "vymiryuvalni", 2),  # головний домен (далекоміри)
@@ -927,6 +932,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/skanery/", "skanery", 2),
         ("https://epicentrk.ua/ua/shop/raskhodnye-materialy-dlya-printerov-i-mfu/", "kartridzhi", 2),
         ("https://epicentrk.ua/ua/shop/laminatory/", "laminatory", 2),
+        ("https://epicentrk.ua/ua/shop/ip-kamery/", "ip-kamery", 2),   # MPN 21/60 (Tapo-тайл)
         ("https://epicentrk.ua/ua/shop/portativnye-elektrostantsii/", "zaryadni-stantsiyi", 2),  # MPN 8/60; НЕ EV-чарджери!
         ("https://epicentrk.ua/ua/shop/solnechnye-paneli/", "sonyachni-paneli", 2),  # MPN 20/60
         ("https://epicentrk.ua/ua/shop/tonometry/", "tonometry", 2),   # weak: MPN 21/60
