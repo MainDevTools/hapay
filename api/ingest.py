@@ -33,6 +33,7 @@ from adapters.ktc import KtcAdapter
 from adapters.moyo import MoyoAdapter
 from adapters.podorozhnyk import PodorozhnykAdapter
 from adapters.rozetka import RozetkaAdapter
+from adapters.storgom import StorgomAdapter
 from adapters.telemart import TelemartAdapter
 from adapters.vencon import VenconAdapter
 from db.store import load_categories, persist_items, upsert_source
@@ -71,6 +72,8 @@ INGEST_SOURCES: dict[str, dict] = {
     # Аптека 911 — третя аптека. Фото на власному CDN; у hosts НЕ додаємо (перевірка
     # стереже URL ТОВАРУ, а він на apteka911.ua).
     "Apteka911": {"base_url": "https://apteka911.ua",      "hosts": ("apteka911.ua",)},
+    # Storgom — спеціаліст інструмент/сад (розвідка 2026-07-23). SSR, plain-GET.
+    "Storgom":   {"base_url": "https://storgom.ua",        "hosts": ("storgom.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -1036,6 +1039,36 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://ktc.ua/cpu_cooling/", "kulery", 2),                            # MPN 25/48
         ("https://ktc.ua/tv/", "tv"),                                            # 48 товарів
         ("https://ktc.ua/headphones/", "audio", 3),                              # 48 товарів
+    )},
+    # Storgom (розвідка 2026-07-23) — спеціаліст інструмент/сад, найвищий профільний
+    # перетин із розділами «Інструменти»+«Садова техніка»: 19 наших категорій одразу
+    # (зварювальних і мийок ВТ не знайдено; pnevmogaykoverty пропущено свідомо —
+    # пневматика ≠ акумуляторні гайковерти решти крамниць, підтип-мismatch).
+    # SSR plain-GET, burst 200×3. URL — ГОЛА форма слага (без .html і хвостового «/»):
+    # канонічні форми в крамниці різняться, а гола працює всюди й дає єдиний page_tpl
+    # (перевірено фактом: болгарки/дискові/мотокоси page-2 → перетин 0).
+    # Матчер слабкий (MPN 158/741 = 21%; артикул у дужках — продавця, не виробника) →
+    # цінність per-store Omnibus. Назви — з JSON-LD ItemList, ціни — CSS (див. адаптер).
+    "Storgom": {"adapter": StorgomAdapter(), "page_tpl": "{base}/page-{n}", "pages": 2, "urls": (
+        ("https://storgom.ua/ua/perforators", "perforatory"),                    # MPN 7/40
+        ("https://storgom.ua/ua/dreli", "shurupoverty"),                         # дрилі+шуруповерти змішані
+        ("https://storgom.ua/ua/uglovye-shlifmashinki-bolgarki", "bolharky"),    # MPN 14/40
+        ("https://storgom.ua/ua/lobziki", "lobzyky"),
+        ("https://storgom.ua/ua/diskovye-pily", "pyly-dyskovi"),                 # MPN 14/40
+        ("https://storgom.ua/ua/shlifmashiny", "shlifmashyny"),                  # MPN 14/40
+        ("https://storgom.ua/ua/kompressory", "kompresory"),                     # MPN 14/40
+        ("https://storgom.ua/ua/benzinovye-generatory", "generatory"),           # бензинові (основний тип)
+        ("https://storgom.ua/ua/niveliry", "vymiryuvalni"),                      # нівеліри/лазерні рівні
+        ("https://storgom.ua/ua/nabory-instrumentov", "nabory-instrumentu"),     # MPN 23/40 — найкращий
+        ("https://storgom.ua/ua/motokosy-i-trimmery", "motokosy"),
+        ("https://storgom.ua/ua/gazonokosilki", "gazonokosarky"),
+        ("https://storgom.ua/ua/benzopily", "pyly-lancjugovi"),                  # бензопили (основний тип)
+        ("https://storgom.ua/ua/sadovye-pylesosy", "povitroduvky"),              # садові пилососи/повітродувки
+        ("https://storgom.ua/ua/kultivatory", "kultyvatory"),
+        ("https://storgom.ua/ua/kustorezy", "kushchorizy"),
+        ("https://storgom.ua/ua/opryskivateli", "obpryskuvachi"),
+        ("https://storgom.ua/ua/nasosy", "nasosy"),
+        ("https://storgom.ua/ua/snegouborshchiki", "snihoprybyrachi", 1),        # всього 21 позиція — стор.2 порожня
     )},
 }
 # режим збору per-source: 'fetch' (plain GET) | 'render' (WebView — SPA-крамниці).
