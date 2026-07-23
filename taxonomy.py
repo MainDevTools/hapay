@@ -185,6 +185,7 @@ CATEGORY_UI = {
     # TOORX/MERACH), коди напівчисті → 4 спільні ключі. Per-store історія повна.
     "begovi-dorizhky": ("Спорт", "🏃"),
     "velotrenazhery":  ("Спорт", "🚲"),
+    "elektrosamokaty": ("Спорт", "🛴"),
     "videokarty":      ("Електроніка", "🎇"),
     "ssd":             ("Електроніка", "💾"),
     "procesory":       ("Електроніка", "🧠"),
