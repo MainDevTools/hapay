@@ -177,6 +177,7 @@ CATEGORY_UI = {
     "obigrivachi":     ("Клімат", "♨️"),
     "zvolozhuvachi":   ("Клімат", "🌫️"),
     "ochyshchuvachi":  ("Клімат", "🍃"),
+    "osushuvachi":     ("Клімат", "🏜️"),
     "videokarty":      ("Електроніка", "🎇"),
     "ssd":             ("Електроніка", "💾"),
     "procesory":       ("Електроніка", "🧠"),
