@@ -1,0 +1,89 @@
+<!-- ОБРІЗАНА касета Dnipro-M (§8.8): реальні <product-card> Vue-компоненти, знято
+     2026-07-23, ЗАГОРНУТІ в незакритий <template> ЯК НА ПРОДІ — пастка 1: за HTML5
+     вміст template живе поза деревом, css() бачить нуль без перейменування тегів.
+     Пастка 2: price_old заповнена завжди — для безакційних дорівнює price_new
+     (тут друга картка) і мусить стати None, не фальш-знижкою 0%. -->
+<html><body><div id="app"><template data-v-x>
+<ul class="category-products-wrap__item">
+<li class="category-products__card"><product-card :position="1"
+                  :id="12321"
+                  code="78740000-1"
+                  title="Акумуляторний дриль-шуруповерт Dnipro-M CD-200BC KIT"
+                  title-ru="Аккумуляторная дрель-шуруповерт Dnipro-M CD-200BC KIT"
+                  :category-id="332"
+                  :category-parent-id="322"
+                  link="/tovar/akumulyatornij-dril-shurupovert-cd-200bc-kit/"
+                  :photos="[{&quot;thumb&quot;:&quot;https:\/\/static.dnipro-m.ua\/cache\/products\/12280\/thumb_702734.jpg&quot;,&quot;mobile&quot;:&quot;https:\/\/static.dnipro-m.ua\/cache\/products\/12280\/thumb_mobile_702734.jpg&quot;},{&quot;thumb&quot;:&quot;https:\/\/static.dnipro-m.ua\/cache\/products\/12280\/thumb_702735.jpg&quot;,&quot;mobile&quot;:&quot;https:\/\/static.dnipro-m.ua\/cache\/products\/12280\/thumb_mobile_702735.jpg&quot;},{&quot;thumb&quot;:&quot;https:\/\/static.dnipro-m.ua\/cache\/products\/12280\/thumb_702736.jpg&quot;,&quot;mobile&quot;:&quot;https:\/\/static.dnipro-m.ua\/cache\/products\/12280\/thumb_mobile_702736.jpg&quot;},{&quot;thumb&quot;:&quot;https:\/\/static.dnipro-m.ua\/cache\/products\/12280\/thumb_702737.jpg&quot;,&quot;mobile&quot;:&quot;https:\/\/static.dnipro-m.ua\/cache\/products\/12280\/thumb_mobile_702737.jpg&quot;},{&quot;thumb&quot;:&quot;https:\/\/static.dnipro-m.ua\/cache\/products\/12280\/thumb_702738.jpg&quot;,&quot;mobile&quot;:&quot;https:\/\/static.dnipro-m.ua\/cache\/products\/12280\/thumb_mobile_702738.jpg&quot;}]"
+                  rating="4.11"
+                  :reviews-count="139"
+                  price="{&quot;price_new&quot;:&quot;2997&quot;,&quot;price_old&quot;:&quot;4200&quot;}"
+                  :is-available="true"
+                  :is-novelty="false"
+                  :is-in-wait-list="false"
+                  :is-in-wish-list="false"
+                  :is-secret-discount="false"
+                  :is-only-in-app="false"
+                  :is-preorder="false"
+                  :is-mono-set="true"
+                  :has-360="false"
+                  badges="[{&quot;id&quot;:1,&quot;type&quot;:&quot;auto&quot;,&quot;template&quot;:&quot;price&quot;,&quot;text&quot;:&quot;-29%&quot;,&quot;show_text&quot;:true,&quot;description&quot;:&quot;&quot;,&quot;show_description&quot;:false,&quot;style&quot;:{&quot;text_color&quot;:&quot;#ffffff&quot;,&quot;background_color&quot;:&quot;#ff2f00&quot;,&quot;border_color&quot;:&quot;&quot;},&quot;image&quot;:{&quot;desktop&quot;:&quot;&quot;,&quot;mobile&quot;:&quot;&quot;},&quot;button&quot;:{&quot;text&quot;:&quot;&quot;,&quot;link&quot;:&quot;&quot;},&quot;show_button&quot;:false,&quot;start_date&quot;:&quot;&quot;,&quot;end_date&quot;:&quot;&quot;,&quot;sort&quot;:0}]"
+                  :options="[]"
+                  :characteristics="[{&quot;name&quot;:&quot;\u0414\u0436\u0435\u0440\u0435\u043b\u043e \u0436\u0438\u0432\u043b\u0435\u043d\u043d\u044f&quot;,&quot;value&quot;:&quot;\u0430\u043a\u0443\u043c\u0443\u043b\u044f\u0442\u043e\u0440&quot;,&quot;sort&quot;:0},{&quot;name&quot;:&quot;\u041d\u0430\u043f\u0440\u0443\u0433\u0430 \u0430\u043a\u0443\u043c\u0443\u043b\u044f\u0442\u043e\u0440\u0430&quot;,&quot;value&quot;:&quot;20 \u0412&quot;,&quot;sort&quot;:0},{&quot;name&quot;:&quot;\u041c\u0430\u043a\u0441\u0438\u043c\u0430\u043b\u044c\u043d\u0438\u0439 \u043a\u0440\u0443\u0442\u043d\u0438\u0439 \u043c\u043e\u043c\u0435\u043d\u0442&quot;,&quot;value&quot;:&quot;50 \u041d\u043c&quot;,&quot;sort&quot;:1},{&quot;name&quot;:&quot;\u041a\u0456\u043b\u044c\u043a\u0456\u0441\u0442\u044c \u043e\u0431\u0435\u0440\u0442\u0456\u0432 \u0445\u043e\u043b\u043e\u0441\u0442\u043e\u0433\u043e \u0445\u043e\u0434\u0443&quot;,&quot;value&quot;:&quot;0-450\/0-1850 \u041e\u0431\/\u0445\u0432&quot;,&quot;sort&quot;:2}]"
+                  :show-more-characteristics="true"
+                  :arrival-date="false"
+                  :arrival-date-employee="false"
+                  :analytics-data='[{"category":"322/332","categories":[{"id":322,"name":"Электроинструмент","name_uk":"Електроінструмент"},{"id":332,"name":"Шуруповерты","name_uk":"Шуруповерти"}],"id":"78740000","name":"Аккумуляторная дрель-шуруповерт Dnipro-M CD-200BC KIT","name_uk":"Акумуляторний дриль-шуруповерт Dnipro-M CD-200BC KIT","price":4200,"discount":0,"quantity":1,"url":"https://dnipro-m.ua/ru/tovar/akumulyatornij-dril-shurupovert-cd-200bc-kit/","image_url":"https://static.dnipro-m.ua/cache/products/12280/cart_list_702734.jpg","option":null}]'
+                  :available-only-in-store-data="false"
+                  :progressbar-total="0"
+                  :progressbar-current="0"
+                  category-block-title="Шуруповерти"
+                  category-block-id="332"
+                  :payment-parts="{&quot;card&quot;:{&quot;max_amount&quot;:0,&quot;min_amount&quot;:0,&quot;parts&quot;:[]},&quot;cash&quot;:{&quot;max_amount&quot;:0,&quot;min_amount&quot;:0,&quot;parts&quot;:[]},&quot;fuib_parts&quot;:{&quot;max_amount&quot;:300000,&quot;min_amount&quot;:500,&quot;parts&quot;:[3,4,5,6,8,12]},&quot;payment-part&quot;:{&quot;max_amount&quot;:0,&quot;min_amount&quot;:300,&quot;parts&quot;:[2,3,4,5,6,7,8]},&quot;monobank_parts&quot;:{&quot;max_amount&quot;:149999,&quot;min_amount&quot;:500,&quot;parts&quot;:[3,4,5,6]},&quot;sense_bank_parts&quot;:{&quot;max_amount&quot;:300000,&quot;min_amount&quot;:500,&quot;parts&quot;:[3,4,5,6,7,8]},&quot;oschadbank_parts&quot;:{&quot;max_amount&quot;:300000,&quot;min_amount&quot;:500,&quot;parts&quot;:[3,4,5,6,7,8]},&quot;cashless&quot;:{&quot;max_amount&quot;:0,&quot;min_amount&quot;:0,&quot;parts&quot;:[]}}"
+                  not-adaptive
+                  adaptive-main-page
+    ></product-card>
+</li>
+<li class="category-products__card">
+    </li>
+<li class="category-products__card"><product-card :position="4"
+                  :id="5226"
+                  code="15372000"
+                  title="Акумуляторний дриль-шуруповерт Dnipro-M CD-218Q (без АКБ та ЗП)"
+                  title-ru="Аккумуляторная дрель-шуруповерт Dnipro-M CD-218Q"
+                  :category-id="332"
+                  :category-parent-id="322"
+                  link="/tovar/akkumulyatornaya-drel-shurupovert-cd-218q/"
+                  :photos="[{&quot;thumb&quot;:&quot;https:\/\/static.dnipro-m.ua\/cache\/products\/5226\/thumb_503880.jpg&quot;,&quot;mobile&quot;:&quot;https:\/\/static.dnipro-m.ua\/cache\/products\/5226\/thumb_mobile_503880.jpg&quot;},{&quot;thumb&quot;:&quot;https:\/\/static.dnipro-m.ua\/cache\/products\/5226\/thumb_503888.jpg&quot;,&quot;mobile&quot;:&quot;https:\/\/static.dnipro-m.ua\/cache\/products\/5226\/thumb_mobile_503888.jpg&quot;},{&quot;thumb&quot;:&quot;https:\/\/static.dnipro-m.ua\/cache\/products\/5226\/thumb_503901.jpg&quot;,&quot;mobile&quot;:&quot;https:\/\/static.dnipro-m.ua\/cache\/products\/5226\/thumb_mobile_503901.jpg&quot;},{&quot;thumb&quot;:&quot;https:\/\/static.dnipro-m.ua\/cache\/products\/5226\/thumb_503913.jpg&quot;,&quot;mobile&quot;:&quot;https:\/\/static.dnipro-m.ua\/cache\/products\/5226\/thumb_mobile_503913.jpg&quot;},{&quot;thumb&quot;:&quot;https:\/\/static.dnipro-m.ua\/cache\/products\/5226\/thumb_503922.jpg&quot;,&quot;mobile&quot;:&quot;https:\/\/static.dnipro-m.ua\/cache\/products\/5226\/thumb_mobile_503922.jpg&quot;}]"
+                  rating="4.53"
+                  :reviews-count="189"
+                  price="{&quot;price_new&quot;:&quot;1590&quot;,&quot;price_old&quot;:&quot;1590&quot;}"
+                  :is-available="true"
+                  :is-novelty="false"
+                  :is-in-wait-list="false"
+                  :is-in-wish-list="false"
+                  :is-secret-discount="false"
+                  :is-only-in-app="false"
+                  :is-preorder="false"
+                  :is-mono-set="false"
+                  :has-360="true"
+                  badges="[{&quot;id&quot;:6,&quot;type&quot;:&quot;auto&quot;,&quot;template&quot;:&quot;stripe&quot;,&quot;text&quot;:&quot;360\u00b0&quot;,&quot;show_text&quot;:false,&quot;description&quot;:&quot;&quot;,&quot;show_description&quot;:false,&quot;style&quot;:{&quot;text_color&quot;:&quot;#808080&quot;,&quot;background_color&quot;:&quot;#ffffff&quot;,&quot;border_color&quot;:&quot;&quot;},&quot;image&quot;:{&quot;desktop&quot;:&quot;https:\/\/static.dnipro-m.ua\/badges\/image_desktop_6_uk.svg&quot;,&quot;mobile&quot;:&quot;https:\/\/static.dnipro-m.ua\/badges\/image_mobile_6_uk.svg&quot;},&quot;button&quot;:{&quot;text&quot;:&quot;&quot;,&quot;link&quot;:&quot;&quot;},&quot;show_button&quot;:false,&quot;start_date&quot;:&quot;&quot;,&quot;end_date&quot;:&quot;&quot;,&quot;sort&quot;:1}]"
+                  :options="[]"
+                  :characteristics="[{&quot;name&quot;:&quot;\u041d\u0430\u043f\u0440\u0443\u0433\u0430 \u0430\u043a\u0443\u043c\u0443\u043b\u044f\u0442\u043e\u0440\u0430&quot;,&quot;value&quot;:&quot;20 \u0412&quot;,&quot;sort&quot;:1},{&quot;name&quot;:&quot;\u041c&#039;\u044f\u043a\u0438\u0439\/\u0436\u043e\u0440\u0441\u0442\u043a\u0438\u0439\/\u043c\u0430\u043a\u0441\u0438\u043c\u0430\u043b\u044c\u043d\u0438\u0439 \u043a\u0440\u0443\u0442\u043d\u0438\u0439 \u043c\u043e\u043c\u0435\u043d\u0442&quot;,&quot;value&quot;:&quot;10\/19\/24 \u041d\u043c&quot;,&quot;sort&quot;:2},{&quot;name&quot;:&quot;\u0414\u0456\u0430\u043c\u0435\u0442\u0440 \u0441\u0432\u0435\u0440\u0434\u043b\u0456\u043d\u043d\u044f: \u0441\u0442\u0430\u043b\u044c&quot;,&quot;value&quot;:&quot;8 \u043c\u043c&quot;,&quot;sort&quot;:3},{&quot;name&quot;:&quot;\u0414\u0456\u0430\u043c\u0435\u0442\u0440 \u0441\u0432\u0435\u0440\u0434\u043b\u0456\u043d\u043d\u044f: \u0434\u0435\u0440\u0435\u0432\u043e&quot;,&quot;value&quot;:&quot;22 \u043c\u043c&quot;,&quot;sort&quot;:4}]"
+                  :show-more-characteristics="true"
+                  :arrival-date="false"
+                  :arrival-date-employee="false"
+                  :analytics-data='[{"category":"322/332","categories":[{"id":322,"name":"Электроинструмент","name_uk":"Електроінструмент"},{"id":332,"name":"Шуруповерты","name_uk":"Шуруповерти"}],"id":"15372000","name":"Аккумуляторная дрель-шуруповерт Dnipro-M CD-218Q","name_uk":"Акумуляторний дриль-шуруповерт Dnipro-M CD-218Q (без АКБ та ЗП)","price":"1590","discount":0,"quantity":1,"url":"https://dnipro-m.ua/ru/tovar/akkumulyatornaya-drel-shurupovert-cd-218q/","image_url":"https://static.dnipro-m.ua/cache/products/5226/cart_list_503880.jpg","option":null}]'
+                  :available-only-in-store-data="false"
+                  :progressbar-total="0"
+                  :progressbar-current="0"
+                  category-block-title="Шуруповерти"
+                  category-block-id="332"
+                  :payment-parts="{&quot;card&quot;:{&quot;max_amount&quot;:0,&quot;min_amount&quot;:0,&quot;parts&quot;:[]},&quot;cash&quot;:{&quot;max_amount&quot;:0,&quot;min_amount&quot;:0,&quot;parts&quot;:[]},&quot;fuib_parts&quot;:{&quot;max_amount&quot;:300000,&quot;min_amount&quot;:500,&quot;parts&quot;:[3,4,5,6,8,12]},&quot;payment-part&quot;:{&quot;max_amount&quot;:0,&quot;min_amount&quot;:300,&quot;parts&quot;:[2,3,4,5,6,7,8]},&quot;monobank_parts&quot;:{&quot;max_amount&quot;:149999,&quot;min_amount&quot;:500,&quot;parts&quot;:[3,4,5,6]},&quot;sense_bank_parts&quot;:{&quot;max_amount&quot;:300000,&quot;min_amount&quot;:500,&quot;parts&quot;:[3,4,5,6,7,8]},&quot;oschadbank_parts&quot;:{&quot;max_amount&quot;:300000,&quot;min_amount&quot;:500,&quot;parts&quot;:[3,4,5,6,7,8]},&quot;cashless&quot;:{&quot;max_amount&quot;:0,&quot;min_amount&quot;:0,&quot;parts&quot;:[]}}"
+                  not-adaptive
+                  adaptive-main-page
+    ></product-card>
+</li>
+<li class="category-products__card">
+    </li>
+</ul>
+</body></html>

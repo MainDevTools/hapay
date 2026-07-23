@@ -28,6 +28,7 @@ from adapters.base import RawItem, canon_ref
 from adapters.brain import BrainAdapter
 from adapters.citrus import CitrusAdapter
 from adapters.comfy import ComfyAdapter
+from adapters.dniprom import DniproMAdapter
 from adapters.eldorado import EldoradoAdapter
 from adapters.epicentr import EpicentrAdapter
 from adapters.fotosale import FotosaleAdapter
@@ -104,6 +105,9 @@ INGEST_SOURCES: dict[str, dict] = {
     "MasterZoo": {"base_url": "https://masterzoo.ua",      "hosts": ("masterzoo.ua",)},
     # Antoshka — дитяча мережа (розвідка 2026-07-23). Magento, SSR.
     "Antoshka":  {"base_url": "https://antoshka.ua",       "hosts": ("antoshka.ua",)},
+    # Dnipro-M — виробник+рітейл інструменту (розвідка 2026-07-23). Vue SSR-атрибути.
+    # Фото на static.dnipro-m.ua; у hosts не додаємо (перевірка стереже URL товару).
+    "DniproM":   {"base_url": "https://dnipro-m.ua",       "hosts": ("dnipro-m.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -1200,6 +1204,27 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://antoshka.ua/uk/kimnata/pobutova-tehnika/radionjani/", "radionyani", 1),
         ("https://antoshka.ua/uk/kimnata/pobutova-tehnika/vagi-dlja-novonarodzhenih/", "dytyachi-vagy", 1),
         ("https://antoshka.ua/uk/goduvannja/stil-ci-dlja-goduvannja/", "stilchyky"),
+    )},
+    # Dnipro-M (розвідка 2026-07-23) — виробник+рітейл інструменту, 10 слагів
+    # «Інструментів» (11 лістингів: зварювальні = інвертори + напівавтомати).
+    # Цінність: бренд продається і в Epicentr/Rozetka — коди моделей (CD-200BC)
+    # дають крос-крамничний матч (MPN 12/23 шуруповерти, 10/21 генератори).
+    # Пагінації нема (категорії по 5-25 товарів) → top-N. Дві пастки в адаптері
+    # (незакритий <template> ховає сітку; price_old==price_new у безакційних) —
+    # обидві покриті касетним тестом. Гайковерти лише пневмо — НЕ реєструємо
+    # (subtype-mismatch); болгарки лише акумуляторні — реєструємо з приміткою.
+    "DniproM": {"adapter": DniproMAdapter(), "urls": (
+        ("https://dnipro-m.ua/elektroinstrument/surupoverty/", "shurupoverty"),
+        ("https://dnipro-m.ua/elektroinstrument/perforatory/", "perforatory"),
+        ("https://dnipro-m.ua/elektroinstrument/elektrolobziki/", "lobzyky"),
+        ("https://dnipro-m.ua/elektroinstrument/cirkularnye-pily/", "pyly-dyskovi"),
+        ("https://dnipro-m.ua/elektroinstrument/slifovalnyj-electroinstrument/", "shlifmashyny"),
+        ("https://dnipro-m.ua/akkumulyatornyj-instrument/akkumulyatornye-bolgarki/", "bolharky"),  # лише акум.
+        ("https://dnipro-m.ua/svarochnoe-oborudovanie/apparat-invertor-sab/", "zvaryuvalni"),
+        ("https://dnipro-m.ua/svarochnoe-oborudovanie/invertor-poluavtomat/", "zvaryuvalni"),
+        ("https://dnipro-m.ua/kompressory-i-aksessuary/vozdusnye-kompressory/", "kompresory"),
+        ("https://dnipro-m.ua/tovary-enerhonezalezhnosti/elektrogeneratori/", "generatory"),
+        ("https://dnipro-m.ua/sadovo-parkovaya-tehnika/mijki-visokogo-tisku/", "myyky"),
     )},
     # Zootovary (розвідка 2026-07-23) — зоо-спеціаліст, 5 категорій «Зоотоварів».
     # Пагінація справжня (?page=2 → 34/34 нових, перевірено фактом) → pages=2,
