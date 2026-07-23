@@ -46,6 +46,7 @@ from adapters.storgom import StorgomAdapter
 from adapters.stylus import StylusAdapter
 from adapters.telemart import TelemartAdapter
 from adapters.vencon import VenconAdapter
+from adapters.yabko import YabkoAdapter
 from adapters.zootovary import ZootovaryAdapter
 from db.store import load_categories, persist_items, upsert_source
 from matching import normalize_gtin
@@ -115,6 +116,8 @@ INGEST_SOURCES: dict[str, dict] = {
     "MAUDAU":    {"base_url": "https://maudau.com.ua",     "hosts": ("maudau.com.ua",)},
     # MakeUp — дрогерія з поличкою техніки (розвідка 2026-07-23). AWS WAF → render.
     "MakeUp":    {"base_url": "https://makeup.com.ua",     "hosts": ("makeup.com.ua",)},
+    # Yabko — Apple-мережа (розвідка 2026-07-23). OpenCart-рід, SSR.
+    "Yabko":     {"base_url": "https://jabko.ua",          "hosts": ("jabko.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -1263,6 +1266,19 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://maudau.com.ua/category/radioniani", "radionyani"),             # 48 поз.
         ("https://maudau.com.ua/category/dytiachi-vahy", "dytyachi-vagy"),
         ("https://maudau.com.ua/category/stilchyky-dlia-hoduvannia-i-bustery", "stilchyky"),  # MPN 23/48
+    )},
+    # Yabko (розвідка 2026-07-23) — Apple-мережа, 6 сильних крос-категорій
+    # (iPad MPN 24/24, GoPro 18/24, Watch 10/24). Головна пастка — span.old
+    # у картках містить ціну В ДОЛАРАХ (двовалютний показ, 24/24 з «$»), НЕ стару
+    # ціну → old=None завжди (покрито касетним тестом). Пагінація клієнтська
+    # (?page=2 → нових 0) → top-24/категорію.
+    "Yabko": {"adapter": YabkoAdapter(), "urls": (
+        ("https://jabko.ua/iphone/", "smartfony"),
+        ("https://jabko.ua/mac/", "noutbuky"),
+        ("https://jabko.ua/ipad/", "planshety"),                                 # MPN 24/24
+        ("https://jabko.ua/apple-watch/", "smart-hodynnyky"),
+        ("https://jabko.ua/gadzheti-i-drugoe/naushniki/", "audio"),
+        ("https://jabko.ua/gadzheti-i-drugoe/gopro/kameri-gopro/", "ekshn-kamery"),  # MPN 18/24
     )},
     # Zootovary (розвідка 2026-07-23) — зоо-спеціаліст, 5 категорій «Зоотоварів».
     # Пагінація справжня (?page=2 → 34/34 нових, перевірено фактом) → pages=2,
