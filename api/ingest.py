@@ -160,6 +160,8 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/vneshnie-hdd/", "zovnishni-hdd", 2),
                  ("https://allo.ua/ua/radionjani/", "radionyani", 2),
                  ("https://allo.ua/ua/stul-chiki-dlja-kormlenija/", "stilchyky", 2),
+                 ("https://allo.ua/ua/proektory/", "proektory", 2),
+                 ("https://allo.ua/ua/roboty-pylesosy/", "roboty-pylososy", 2),
                  ("https://allo.ua/ua/tostery/", "tostery", 2),   # MPN 36/60
                  ("https://allo.ua/ua/products/utugi/", "prasky", 2),
                  ("https://allo.ua/ua/products/masorubki/", "myasorubky", 2),
@@ -277,6 +279,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/karty_pamyati.html", "karty-pamyati", 2),
         ("https://www.foxtrot.com.ua/uk/shop/fleshki.html", "usb-fleshky", 2),
         ("https://www.foxtrot.com.ua/uk/shop/gestkie_diski.html", "zovnishni-hdd", 2),
+        ("https://www.foxtrot.com.ua/uk/shop/projecors.html", "proektory", 2),
+        ("https://www.foxtrot.com.ua/uk/shop/roboti_pilesosi.html", "roboty-pylososy", 2),
         ("https://www.foxtrot.com.ua/uk/shop/tostery.html", "tostery", 2),  # MPN 30/42
         ("https://www.foxtrot.com.ua/uk/shop/utugi.html", "prasky", 2),  # MPN 40/42 (+ відпарювачі)
         ("https://www.foxtrot.com.ua/uk/shop/myasorybki.html", "myasorubky", 2),  # MPN 33/42
@@ -355,6 +359,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.moyo.ua/ua/gadgets/elektro_transport/elektrosamokaty/", "elektrosamokaty", 2),
         ("https://www.moyo.ua/ua/comp-and-periphery/inform_carrier/flash_card/", "karty-pamyati", 2),
         ("https://www.moyo.ua/ua/comp-and-periphery/inform_carrier/usb_drive/", "usb-fleshky", 2),
+        ("https://www.moyo.ua/ua/bt/mbt/robot_pyle_i_chist/", "roboty-pylososy", 2),
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/tosteri/", "tostery", 2),  # MPN 16/24
         ("https://www.moyo.ua/ua/bt/mbt/utugi/", "prasky", 2),  # MPN 22/24
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/myasorubki/", "myasorubky", 2),  # MPN 22/24
@@ -442,6 +447,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://comfy.ua/ua/memory-cards/", "karty-pamyati", 2),   # render
         ("https://comfy.ua/ua/flesh-and-usb/", "usb-fleshky", 2),   # render
         ("https://comfy.ua/ua/portable-hard-disk/", "zovnishni-hdd", 2),   # render
+        ("https://comfy.ua/ua/vacuum-cleaning-robots/", "roboty-pylososy", 2),   # render
         ("https://comfy.ua/ua/toaster/", "tostery", 2),   # render
         ("https://comfy.ua/ua/iron/", "prasky", 2),   # render
         ("https://comfy.ua/ua/meat-grinder/", "myasorubky", 2),   # render
@@ -529,6 +535,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/babymonitors/c146154/", "radionyani", 2),  # головний домен
         ("https://rozetka.com.ua/ua/detskie-vesy/c268764/", "dytyachi-vagy", 2),  # головний домен
         ("https://rozetka.com.ua/ua/stulchiki-dlya-kormleniya/c100077/", "stilchyky", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/projector/c80012/", "proektory", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/clean_robots/c237815/", "roboty-pylososy", 2),  # головний домен
         ("https://bt.rozetka.com.ua/ua/toasters/c80145/", "tostery", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/irons/c80161/", "prasky", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/meat_choppers/c80176/", "myasorubky", 2),  # bt-піддомен
@@ -789,6 +797,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/radionyani-i-videonyani/", "radionyani", 2),
         ("https://epicentrk.ua/ua/shop/vesy-napolnye/fs/tip-vesov-dlya-novorozhdennykh/", "dytyachi-vagy", 2),
         ("https://epicentrk.ua/ua/shop/stulchiki-dlya-kormleniya/", "stilchyky", 2),
+        ("https://epicentrk.ua/ua/shop/proektory/", "proektory", 2),
+        ("https://epicentrk.ua/ua/shop/roboty-pylesosy/", "roboty-pylososy", 2),
         ("https://epicentrk.ua/ua/shop/tostery/", "tostery", 2),   # MPN 41/60
         ("https://epicentrk.ua/ua/shop/utyugi/", "prasky", 2),
         ("https://epicentrk.ua/ua/shop/myasorubki/", "myasorubky", 2),
