@@ -71,6 +71,20 @@ def main():
                                   "WHERE store_product_id=%s AND ended_at IS NULL", (spid,)).fetchone()[0]
         checks.append(("свіжий товар лишився відкритим", fresh_open == 1, fresh_open))
 
+        # серіалізація (2026-07-23): паралельні detect_pass билися за лок discount_event
+        # (LockNotAvailable → 500 на ingest). Тепер другий одночасний прохід пропускає
+        # (None), а після відпускання лока все працює як раніше. Session- і xact-advisory
+        # локи живуть в одному просторі — тримаємо session-лок з другого конекшена.
+        with psycopg.connect(URL, autocommit=True) as rival:
+            rival.execute("SELECT pg_advisory_lock(hashtext('detect_pass'))")
+            skipped = detect_pass(conn)
+            checks.append(("зайнятий advisory-лок → прохід пропущено (None)",
+                           skipped is None, skipped))
+            rival.execute("SELECT pg_advisory_unlock(hashtext('detect_pass'))")
+        again = detect_pass(conn)
+        checks.append(("після відпускання лока прохід знову рахує (int)",
+                       isinstance(again, int), again))
+
     for name, ok, val in checks:
         print(f"{'PASS' if ok else 'FAIL'}  {name}" + ("" if ok else f"  -> {val!r}"))
         failed += 0 if ok else 1

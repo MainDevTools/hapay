@@ -315,14 +315,25 @@ def ingest_html(body: dict, collector=Depends(require_collector), conn=Depends(g
         result["enqueued"] = qtasks.enqueue_pages(conn, source, result["discovered"],
                                                   repeat_min=rep)
     if result.get("kind") == "page" and result.get("accepted"):
+        # None = конкурентний прохід уже біжить (advisory-лок) — свіжі снапшоти
+        # добере наступний інгест; це не помилка (fix 2026-07-23, LockNotAvailable).
         result["events"] = detect_pass(conn)    # бейджі лише коли справді щось прийняли (§8.4)
+    # «Тихий нуль» (2026-07-23): page-задача, з якої адаптер не видобув ЖОДНОЇ позиції —
+    # збій збору (челендж-сторінка, staging-шелл, зламана розмітка), а не успіх. Раніше
+    # закривалась ok і добу виглядала здоровою (клас Eldorado-провалу, впіймано на
+    # першому render-зборі MasterZoo). Тепер — fail із бекофом і видимим статусом.
+    # hub/sitemap не чіпаємо: там accepted=0 штатно (повертають discovered).
+    zero = result.get("kind") == "page" and not result.get("accepted")
+    note = "0 позицій (тихий нуль)" if zero else None
     task_id = body.get("task_id")
     if isinstance(task_id, int):
-        result["task_closed"] = qtasks.complete_task(conn, task_id, collector, ok=True)
+        result["task_closed"] = qtasks.complete_task(conn, task_id, collector,
+                                                     ok=not zero, note=note)
     else:
         # Без task_id — це ручний прохід «зібрати все» (ходить за планом, не за чергою).
         # Сторінку таки зібрано, тож закриваємо задачу за (source, url): інакше черга
         # перезбирала б її вдруге, а last_done_at показував би «ще не брали».
-        result["task_closed"] = qtasks.complete_by_url(conn, source, url)
+        result["task_closed"] = qtasks.complete_by_url(conn, source, url,
+                                                       ok=not zero, note=note)
     result["collector"] = collector
     return result

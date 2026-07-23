@@ -577,6 +577,28 @@ def main():
     checks.append(("задачу, орендовану іншим колектором, не чіпаємо",
                    nr2.json().get("task_closed") is False, nr2.json()))
 
+    # «Тихий нуль» (2026-07-23): page-сторінка, з якої адаптер не видобув ЖОДНОЇ
+    # позиції (челендж/staging-шелл/зламана розмітка) — це збій, не успіх. Раніше
+    # закривалась ok і добу вдавала здорову (впіймано на першому render-зборі
+    # MasterZoo). Мусить: fail-статус із причиною + бекоф (fail_count росте).
+    with psycopg.connect(URL, autocommit=True) as c:
+        zero_url = c.execute(
+            "SELECT url FROM collect_task WHERE source='Moyo' AND leased_by IS NULL "
+            "AND url <> %s ORDER BY task_id DESC LIMIT 1", (moyo_url,)).fetchone()[0]
+        c.execute("UPDATE collect_task SET last_done_at = NULL, last_status = NULL, "
+                  "fail_count = 0 WHERE source='Moyo' AND url = %s", (zero_url,))
+    zr = client.post("/api/ingest/html", headers=chdr, json={
+        "source": "Moyo", "url": zero_url, "html": "<html><body>жодної картки</body></html>"})
+    checks.append(("тихий нуль: ingest 200, задача закрита (не висить)",
+                   zr.status_code == 200 and zr.json().get("task_closed") is True
+                   and zr.json().get("accepted") in (0, None), zr.json()))
+    with psycopg.connect(URL, autocommit=True) as c:
+        z = c.execute("SELECT last_status, fail_count, not_before > now() FROM collect_task "
+                      "WHERE source='Moyo' AND url=%s", (zero_url,)).fetchone()
+    checks.append(("тихий нуль → fail-статус із причиною + бекоф",
+                   z is not None and str(z[0]).startswith("fail:0 позицій")
+                   and z[1] == 1 and z[2] is True, z))
+
     allo_task = next((t for t in ltasks if t["source"] == "Allo"), None)
     if allo_task and allo_task["kind"] == "hub":
         hr = client.post("/api/ingest/html", headers=chdr, json={

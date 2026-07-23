@@ -32,8 +32,21 @@ def _history(conn, store_product_id: int) -> list[Point]:
     return [Point(d, int(p), bool(s)) for d, p, s in rows]
 
 
-def detect_pass(conn, now_day: date | None = None) -> int:
-    """Прохід по всіх товарах зі снапшотами. Повертає к-сть upsert-нутих discount_event."""
+def detect_pass(conn, now_day: date | None = None) -> int | None:
+    """Прохід по всіх товарах зі снапшотами. Повертає к-сть upsert-нутих discount_event,
+    або None — прохід ПРОПУЩЕНО, бо конкурентний detect_pass уже біжить.
+
+    Серіалізація (2026-07-23): прохід викликається після КОЖНОГО page-інгесту; коли
+    колектор надолужує чергу після простою, паралельні проходи билися за лок
+    discount_event і падали LockNotAvailable (lock timeout) → 500 на ingest → здорова
+    задача йшла у хибний fail-бекоф. try-лок на транзакцію: другий одночасний прохід
+    не чекає (черга запитів не пухне), а пропускає — свіжі снапшоти добере наступний
+    інгест (колектор шле сторінки щохвилини). Формулу/пороги НЕ чіпає — лише черговість.
+    """
+    got = conn.execute(
+        "SELECT pg_try_advisory_xact_lock(hashtext('detect_pass'))").fetchone()[0]
+    if not got:
+        return None
     cfg = load_config(conn)
     spids = [r[0] for r in conn.execute(
         "SELECT DISTINCT store_product_id FROM price_snapshot").fetchall()]

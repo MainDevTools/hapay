@@ -174,7 +174,8 @@ def complete_task(conn, task_id: int, worker: str, ok: bool, note: str | None = 
     return row is not None
 
 
-def complete_by_url(conn, source: str, url: str) -> bool:
+def complete_by_url(conn, source: str, url: str, ok: bool = True,
+                    note: str | None = None) -> bool:
     """Закрити задачу за (source, url) — коли колектор зібрав сторінку БЕЗ task_id.
 
     Навіщо: у застосунку два шляхи збору. Черговий (`RunQueuePassAsync`) шле task_id,
@@ -190,15 +191,22 @@ def complete_by_url(conn, source: str, url: str) -> bool:
     колектор автентифікований токеном. Але задачу, яку ЗАРАЗ орендує ХТОСЬ ІНШИЙ, не
     чіпаємо — інакше два колектори збивали б одне одному розклад.
     """
+    # ok=False (2026-07-23, «тихий нуль»): той самий бекоф, що в complete_task —
+    # нульова сторінка не має вдавати здорову й довбати крамницю щодня без сенсу.
     row = conn.execute(
         """UPDATE collect_task
-           SET last_done_at = now(), last_status = 'ok', fail_count = 0,
+           SET last_done_at = now(),
+               last_status = %s,
+               fail_count = CASE WHEN %s THEN 0 ELSE fail_count + 1 END,
                leased_by = NULL, leased_until = NULL,
-               not_before = now() + make_interval(mins => repeat_min)
+               not_before = now() + CASE WHEN %s
+                   THEN make_interval(mins => repeat_min)
+                   ELSE make_interval(mins => repeat_min * least(fail_count + 1, 8))
+               END
            WHERE source = %s AND url = %s
              AND (leased_until IS NULL OR leased_until < now())
            RETURNING task_id""",
-        (source, url)).fetchone()
+        ("ok" if ok else f"fail:{(note or '?')[:200]}", ok, ok, source, url)).fetchone()
     return row is not None
 
 
