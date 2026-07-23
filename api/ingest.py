@@ -154,6 +154,8 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/detskie-avtokresla/", "avtokrisla", 2),
                  ("https://allo.ua/ua/molokootsosy/", "molokovidsmoktuvachi", 2),
                  ("https://allo.ua/ua/sterilizatory/", "sterylizatory", 2),
+                 ("https://allo.ua/ua/jekshn-kamery/", "ekshn-kamery", 2),
+                 ("https://allo.ua/ua/kvadrokoptery/", "drony", 2),
                  ("https://allo.ua/ua/tostery/", "tostery", 2),   # MPN 36/60
                  ("https://allo.ua/ua/products/utugi/", "prasky", 2),
                  ("https://allo.ua/ua/products/masorubki/", "myasorubky", 2),
@@ -266,6 +268,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/detskie_koliaski.html", "kolyasky", 2),
         ("https://www.foxtrot.com.ua/uk/shop/detskie_kresla.html", "avtokrisla", 2),
         ("https://www.foxtrot.com.ua/uk/shop/tehnika_dlia_kormlenia_podogrevateli-butylochek.html", "sterylizatory", 2),
+        ("https://www.foxtrot.com.ua/uk/shop/action_cam.html", "ekshn-kamery", 2),
+        ("https://www.foxtrot.com.ua/uk/shop/kvadrokopteri_droni.html", "drony", 2),
         ("https://www.foxtrot.com.ua/uk/shop/tostery.html", "tostery", 2),  # MPN 30/42
         ("https://www.foxtrot.com.ua/uk/shop/utugi.html", "prasky", 2),  # MPN 40/42 (+ відпарювачі)
         ("https://www.foxtrot.com.ua/uk/shop/myasorybki.html", "myasorubky", 2),  # MPN 33/42
@@ -424,6 +428,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://comfy.ua/ua/jelektrosamokaty/", "elektrosamokaty", 2),   # render
         ("https://comfy.ua/ua/baby-strollers/", "kolyasky", 2),   # render
         ("https://comfy.ua/ua/baby-bottle-warmers/", "sterylizatory", 2),   # render (підігрівачі)
+        ("https://comfy.ua/ua/jekshen-kamery/", "ekshn-kamery", 2),   # render
+        ("https://comfy.ua/ua/drony/", "drony", 2),   # render
         ("https://comfy.ua/ua/toaster/", "tostery", 2),   # render
         ("https://comfy.ua/ua/iron/", "prasky", 2),   # render
         ("https://comfy.ua/ua/meat-grinder/", "myasorubky", 2),   # render
@@ -503,6 +509,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/detskie-avtokresla/c83687/", "avtokrisla", 2),  # головний домен
         ("https://rozetka.com.ua/ua/breast_pumps/c267223/", "molokovidsmoktuvachi", 2),  # головний домен
         ("https://rozetka.com.ua/ua/sterilizatori-i-podogrevateli/c4630405/", "sterylizatory", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/ekshn-kameri-i-aksessuari/c4630489/", "ekshn-kamery", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/quadrocopters/c1124685/", "drony", 2),  # головний домен
         ("https://bt.rozetka.com.ua/ua/toasters/c80145/", "tostery", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/irons/c80161/", "prasky", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/meat_choppers/c80176/", "myasorubky", 2),  # bt-піддомен
@@ -640,6 +648,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://eldorado.ua/uk/air_dryers/c1284961/", "osushuvachi"),   # render
         ("https://eldorado.ua/uk/fans/c1039067/", "ventylatory"),   # render
         ("https://eldorado.ua/uk/weather-stations/c1039015/", "meteostantsii"),   # render
+        ("https://eldorado.ua/uk/1179528/c1179528/", "ekshn-kamery"),   # render
+        ("https://eldorado.ua/uk/node/c1225224/", "drony"),   # render
         ("https://eldorado.ua/uk/toasters/c1042091/", "tostery"),   # render (+ сендвічниці/вафельниці)
         ("https://eldorado.ua/uk/irons/c1039036/", "prasky"),   # render
         ("https://eldorado.ua/uk/meat-grinder/c1039054/", "myasorubky"),   # render
@@ -750,6 +760,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/avtokresla/", "avtokrisla", 2),
         ("https://epicentrk.ua/ua/shop/molokootsosy/", "molokovidsmoktuvachi", 2),
         ("https://epicentrk.ua/ua/shop/podogrevateli-i-sterilizatory/", "sterylizatory", 2),
+        ("https://epicentrk.ua/ua/shop/videokamery-i-ekshn-kamery/", "ekshn-kamery", 2),
+        ("https://epicentrk.ua/ua/shop/kvadrokoptery/", "drony", 2),
         ("https://epicentrk.ua/ua/shop/tostery/", "tostery", 2),   # MPN 41/60
         ("https://epicentrk.ua/ua/shop/utyugi/", "prasky", 2),
         ("https://epicentrk.ua/ua/shop/myasorubki/", "myasorubky", 2),
