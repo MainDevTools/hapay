@@ -69,6 +69,16 @@ def test_refine_keeps_other_appliances_in_pobut():
     assert refine_category("pobut-tehnika", "Праска Philips DST8050/80") == "pobut-tehnika"
 
 
+def test_refine_splits_harnitury_from_audio():
+    """Гарнітури (навушники з мікрофоном) — окремо від навушників, за назвою крамниці."""
+    assert refine_category("audio", "Гарнітура SONY WH-CH720N Blue (WHCH720NL.CE7)") == "harnitury"
+    assert refine_category("audio", "Ігрова гарнітура ESPERANZA Crow EGH330") == "harnitury"
+    assert refine_category("audio", "Навушники JBL Wave Beam 2 Black") == "audio"      # не гарнітура
+    # з пристроєвого лістинга: гарнітура → harnitury, навушники → audio
+    assert refine_category("smartfony", "Гарнітура Logitech G435") == "harnitury"
+    assert refine_category("smartfony", "Навушники Apple AirPods 4 (MXP63ZE/A)") == "audio"
+
+
 def test_refine_only_device_categories():
     # не-пристроєву базу (зоо) не чіпає, навіть якщо слово збіглось
     assert refine_category("koty-suhyi-korm", "Корм з кабелем у назві (артефакт)") == "koty-suhyi-korm"

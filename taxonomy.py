@@ -56,6 +56,10 @@ _DEVICE_CATS = {"smartfony", "noutbuky", "planshety", "tv"}
 # Сильні сигнали, яких у назві САМОГО пристрою практично не буває (кабель/навушники…).
 # Тримаємо консервативно й у синхроні з бекфілом 0009 (ті самі слова як ILIKE).
 _AUDIO_RE = re.compile(r"навушник|гарнітур|airpods|earbuds", re.I)
+# Гарнітури (навушники з мікрофоном) виділяємо з audio у власну полицю — за назвою, яку
+# дала САМА крамниця («Гарнітура …»), тож межа чиста (довіряємо класифікації крамниці),
+# а не нашому здогаду. У синхроні з бекфілом 0040. Перевіряється ПЕРЕД audio.
+_HEADSET_RE = re.compile(r"гарнітур|headset", re.I)
 _ACC_RE = re.compile(
     r"кабель|power\s*bank|павербанк|повербанк|зарядний пристрій|зовнішній акумулятор|"
     r"чохол|захисне скло|захисна плівк|автотримач|стилус", re.I)
@@ -89,10 +93,12 @@ def refine_category(base_slug: str, title: str) -> str:
     t = title or ""
     if base_slug in _DEVICE_CATS:
         if _AUDIO_RE.search(t):
-            return "audio"
+            return "harnitury" if _HEADSET_RE.search(t) else "audio"  # гарнітура ≠ навушники
         if _ACC_RE.search(t):
             return "aksesuary"
         return base_slug
+    if base_slug == "audio":                       # навушники-лістинг → гарнітури окремо
+        return "harnitury" if _HEADSET_RE.search(t) else "audio"
     if base_slug == "pobut-tehnika":
         for slug, rx in _APPLIANCE_RE:
             if rx.search(t):
@@ -110,6 +116,7 @@ CATEGORY_UI = {
     "planshety":       ("Електроніка", "📲"),
     "tv":              ("Електроніка", "📺"),
     "audio":           ("Електроніка", "🎧"),
+    "harnitury":       ("Електроніка", "🎙️"),
     "smart-hodynnyky": ("Електроніка", "⌚"),
     "foto":            ("Електроніка", "📷"),
     "knopkovi-telefony": ("Електроніка", "☎️"),
