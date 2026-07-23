@@ -22,6 +22,7 @@ from urllib.parse import urlsplit
 from adapters.addua import AdduaAdapter
 from adapters.allo import HUB as ALLO_HUB, AlloAdapter
 from adapters.apteka911 import Apteka911Adapter
+from adapters.autopresent import AutopresentAdapter
 from adapters.base import RawItem, canon_ref
 from adapters.brain import BrainAdapter
 from adapters.citrus import CitrusAdapter
@@ -30,6 +31,7 @@ from adapters.eldorado import EldoradoAdapter
 from adapters.epicentr import EpicentrAdapter
 from adapters.fotosale import FotosaleAdapter
 from adapters.foxtrot import FoxtrotAdapter
+from adapters.interatletika import InteratletikaAdapter
 from adapters.ktc import KtcAdapter
 from adapters.medmagazin import MedmagazinAdapter
 from adapters.moyo import MoyoAdapter
@@ -89,6 +91,13 @@ INGEST_SOURCES: dict[str, dict] = {
     "Fotosale":  {"base_url": "https://fotosale.ua",       "hosts": ("fotosale.ua",)},
     # Zootovary — зоо-спеціаліст (розвідка 2026-07-23). Класичний SSR (osCommerce-рід).
     "Zootovary": {"base_url": "https://zootovary.ua",      "hosts": ("zootovary.ua",)},
+    # Interatletika — спеціаліст тренажерів (розвідка 2026-07-23). Bitrix, robots
+    # БЕЗ заборон. Продуктові href — від кореня (без /ua/).
+    "Interatletika": {"base_url": "https://shop.interatletika.com",
+                      "hosts": ("shop.interatletika.com",)},
+    # Autopresent — спеціаліст авто-електроніки (розвідка 2026-07-23). OpenCart.
+    "Autopresent": {"base_url": "https://autopresent.com.ua",
+                    "hosts": ("autopresent.com.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -1130,6 +1139,25 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://fotosale.ua/ua/digital-cameras", "foto"),
         ("https://fotosale.ua/ua/catalog_rub3860.htm", "ekshn-kamery"),          # GoPro; MPN 19/19
         ("https://fotosale.ua/ua/catalog_rub350.htm", "karty-pamyati"),          # MPN 18/20
+    )},
+    # Interatletika (розвідка 2026-07-23) — спеціаліст тренажерів, 2 категорії
+    # «Спорту». Bitrix PAGEN_1-пагінація справжня (стор.2 → 22/24 нових) → pages=2,
+    # 16 карток/стор. Старих цін крамниця не показує → old=None (лише Omnibus-історія,
+    # declared-бейджа не буде). Матчер: доріжки 6/16, велотренажери 3/16 — слабко-
+    # середній (свої бренди TopTrack + Reebok перетинаються з Rozetka/Epicentr).
+    "Interatletika": {"adapter": InteratletikaAdapter(), "page_tpl": "{base}?PAGEN_1={n}",
+                      "pages": 2, "urls": (
+        ("https://shop.interatletika.com/ua/begovye_dorozhki/", "begovi-dorizhky"),
+        ("https://shop.interatletika.com/ua/velotrenazhery/", "velotrenazhery"),
+    )},
+    # Autopresent (розвідка 2026-07-23) — спеціаліст авто-електроніки, 2/5 наших
+    # авто-слагів (компресорів/пилососів/холодильників не тримає). Пагінації в
+    # лістингу нема → top-12/категорію. Спецпропозиції поза .main-products містять
+    # чужі категорії — скоуп в адаптері, покрито касетним тестом. Матчер слабкий
+    # (Cyclone/Nextone/Gazer — нішеві бренди) → per-store Omnibus.
+    "Autopresent": {"adapter": AutopresentAdapter(), "urls": (
+        ("https://autopresent.com.ua/ua/bezopasnost-i-komfort/videoregistratory/", "videoreyestratory"),
+        ("https://autopresent.com.ua/ua/zvuk/avtomagnitoly/", "avtomagnitoly"),
     )},
     # Zootovary (розвідка 2026-07-23) — зоо-спеціаліст, 5 категорій «Зоотоварів».
     # Пагінація справжня (?page=2 → 34/34 нових, перевірено фактом) → pages=2,
