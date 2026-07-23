@@ -175,6 +175,8 @@ CATEGORY_UI = {
     "avtoholodylnyky": ("Авто", "🧊"),
     # ── Клімат (кліматична техніка) ──
     "obigrivachi":     ("Клімат", "♨️"),
+    "zvolozhuvachi":   ("Клімат", "🌫️"),
+    "ochyshchuvachi":  ("Клімат", "🍃"),
     "videokarty":      ("Електроніка", "🎇"),
     "ssd":             ("Електроніка", "💾"),
     "procesory":       ("Електроніка", "🧠"),

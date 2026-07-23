@@ -143,6 +143,8 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/avtokompressory/", "avtokompresory", 2),
                  ("https://allo.ua/ua/avtopylesosy/", "avtopylososy", 2),
                  ("https://allo.ua/ua/portativnye-holodil-niki/", "avtoholodylnyky", 2),
+                 ("https://allo.ua/ua/uvlazhniteli-vozduha/", "zvolozhuvachi", 2),
+                 ("https://allo.ua/ua/ochistiteli-vozduha/", "ochyshchuvachi", 2),
                  ("https://allo.ua/ua/tostery/", "tostery", 2),   # MPN 36/60
                  ("https://allo.ua/ua/products/utugi/", "prasky", 2),
                  ("https://allo.ua/ua/products/masorubki/", "myasorubky", 2),
@@ -244,6 +246,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/avto_aksessuary_avtomobilnye-kompressory.html", "avtokompresory", 2),
         ("https://www.foxtrot.com.ua/uk/shop/pylesosy_avto.html", "avtopylososy", 2),
         ("https://www.foxtrot.com.ua/uk/shop/avto_xolodilniki_avtoholodilnik.html", "avtoholodylnyky", 2),
+        ("https://www.foxtrot.com.ua/uk/shop/uvlagniteli_vozduha.html", "zvolozhuvachi", 2),
+        ("https://www.foxtrot.com.ua/uk/shop/ionizatory.html", "ochyshchuvachi", 2),
         ("https://www.foxtrot.com.ua/uk/shop/tostery.html", "tostery", 2),  # MPN 30/42
         ("https://www.foxtrot.com.ua/uk/shop/utugi.html", "prasky", 2),  # MPN 40/42 (+ відпарювачі)
         ("https://www.foxtrot.com.ua/uk/shop/myasorybki.html", "myasorubky", 2),  # MPN 33/42
@@ -313,6 +317,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.moyo.ua/ua/instrument/sadovaya_technika/vozduhoduvki/", "povitroduvky", 2),
         ("https://www.moyo.ua/ua/instrument/sadovaya_technika/motokultivatoryi/", "kultyvatory", 2),
         ("https://www.moyo.ua/ua/instrument/sadovaya_technika/opryiskivateli/", "obpryskuvachi", 2),
+        ("https://www.moyo.ua/ua/bt/klimaticheskaya-tekh/uvlajnitely-vozduha/", "zvolozhuvachi", 2),
+        ("https://www.moyo.ua/ua/bt/klimaticheskaya-tekh/ochistiteli_vozduha/", "ochyshchuvachi", 2),
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/tosteri/", "tostery", 2),  # MPN 16/24
         ("https://www.moyo.ua/ua/bt/mbt/utugi/", "prasky", 2),  # MPN 22/24
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/myasorubki/", "myasorubky", 2),  # MPN 22/24
@@ -386,6 +392,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://comfy.ua/ua/hand-vacuum-cleaners/pylesos__avtomobilnyj/", "avtopylososy", 2),   # render (фасет авто)
         ("https://comfy.ua/ua/auto-refrigerator/", "avtoholodylnyky", 2),   # render
         ("https://comfy.ua/ua/heater/", "obigrivachi", 2),   # render
+        ("https://comfy.ua/ua/humidifiers/", "zvolozhuvachi", 2),   # render
+        ("https://comfy.ua/ua/air-purifiers/", "ochyshchuvachi", 2),   # render
         ("https://comfy.ua/ua/toaster/", "tostery", 2),   # render
         ("https://comfy.ua/ua/iron/", "prasky", 2),   # render
         ("https://comfy.ua/ua/meat-grinder/", "myasorubky", 2),   # render
@@ -453,6 +461,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://auto.rozetka.com.ua/ua/ruchnie-avtomobilnie/c4631263/", "avtopylososy", 2),  # auto-піддомен
         ("https://auto.rozetka.com.ua/ua/avtoholodilniki/c4674624/", "avtoholodylnyky", 2),  # auto-піддомен
         ("https://bt.rozetka.com.ua/ua/heaters/c80192/", "obigrivachi", 2),  # bt-піддомен
+        ("https://bt.rozetka.com.ua/ua/humidifiers/c80130/", "zvolozhuvachi", 2),  # bt-піддомен
+        ("https://bt.rozetka.com.ua/ua/air_cleaners/c80128/", "ochyshchuvachi", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/toasters/c80145/", "tostery", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/irons/c80161/", "prasky", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/meat_choppers/c80176/", "myasorubky", 2),  # bt-піддомен
@@ -585,6 +595,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://eldorado.ua/uk/kompressor_avtomobilnyj/c1285523/", "avtokompresory"),   # render
         ("https://eldorado.ua/uk/1061580/c1061580/", "avtoholodylnyky"),   # render (переносні)
         ("https://eldorado.ua/uk/node/c1039065/", "obigrivachi"),   # render (широка обігрівачі)
+        ("https://eldorado.ua/uk/humidifiers/c1039069/", "zvolozhuvachi"),   # render
+        ("https://eldorado.ua/uk/1061573/c1061573/", "ochyshchuvachi"),   # render
         ("https://eldorado.ua/uk/toasters/c1042091/", "tostery"),   # render (+ сендвічниці/вафельниці)
         ("https://eldorado.ua/uk/irons/c1039036/", "prasky"),   # render
         ("https://eldorado.ua/uk/meat-grinder/c1039054/", "myasorubky"),   # render
@@ -683,6 +695,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/avtopylesosy/", "avtopylososy", 2),
         ("https://epicentrk.ua/ua/shop/avtokholodilniki/", "avtoholodylnyky", 2),
         ("https://epicentrk.ua/ua/shop/obogrevateli/", "obigrivachi", 2),
+        ("https://epicentrk.ua/ua/shop/uvlazhniteli-vozdukha/", "zvolozhuvachi", 2),
+        ("https://epicentrk.ua/ua/shop/ochistiteli-i-moyki-vozdukha/", "ochyshchuvachi", 2),
         ("https://epicentrk.ua/ua/shop/tostery/", "tostery", 2),   # MPN 41/60
         ("https://epicentrk.ua/ua/shop/utyugi/", "prasky", 2),
         ("https://epicentrk.ua/ua/shop/myasorubki/", "myasorubky", 2),
