@@ -34,6 +34,7 @@ from adapters.foxtrot import FoxtrotAdapter
 from adapters.interatletika import InteratletikaAdapter
 from adapters.ktc import KtcAdapter
 from adapters.medmagazin import MedmagazinAdapter
+from adapters.masterzoo import MasterzooAdapter
 from adapters.moyo import MoyoAdapter
 from adapters.podorozhnyk import PodorozhnykAdapter
 from adapters.rozetka import RozetkaAdapter
@@ -98,6 +99,8 @@ INGEST_SOURCES: dict[str, dict] = {
     # Autopresent — спеціаліст авто-електроніки (розвідка 2026-07-23). OpenCart.
     "Autopresent": {"base_url": "https://autopresent.com.ua",
                     "hosts": ("autopresent.com.ua",)},
+    # MasterZoo — зоо-мережа №2 (розвідка 2026-07-23). Анти-бот-челендж → render.
+    "MasterZoo": {"base_url": "https://masterzoo.ua",      "hosts": ("masterzoo.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -214,9 +217,12 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/otdel-no-stojaschie-posudomoechnye-mashiny/", "pobut-tehnika", 1),
                  ("https://allo.ua/ua/vytjazhki/", "vytyazhky", 2),   # Allo пише «vytjazhki» через j
                  ("https://allo.ua/ua/igrovye-pristavki/", "konsoli", 2),
-                 ("https://allo.ua/ua/universalnye-mobilnye-batarei/", "aksesuary", 1),
+                 # universalnye-mobilnye-batarei: був дублем в 'aksesuary' — тепер ЛИШЕ
+                 # в окремій категорії powerbank нижче (той самий патерн, що roboty-pylesosy)
                  ("https://allo.ua/ua/products/pylesosy/", "pylososy", 3),
-                 ("https://allo.ua/ua/roboty-pylesosy/", "pylososy", 1),
+                 # roboty-pylesosy: був тут дублем у 'pylososy' — тепер ЛИШЕ в окремій
+                 # категорії roboty-pylososy нижче (той самий URL двічі = розсинхрон
+                 # URL_CATEGORY, ловив test_paginated_urls_are_registered_for_category)
                  ("https://allo.ua/ua/sushil-nye-mashiny/", "pobut-tehnika", 1),
                  ("https://allo.ua/ua/monitory/", "monitory", 3),
                  ("https://allo.ua/ua/products/kondicionery/", "kondycionery", 3),
@@ -344,7 +350,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/pylesosy.html", "pylososy", 3),
         ("https://www.foxtrot.com.ua/uk/shop/cofevarki.html", "kavomashyny", 3),
         ("https://www.foxtrot.com.ua/uk/shop/mobilnye_telefony_telefon.html", "knopkovi-telefony", 3),
-        ("https://www.foxtrot.com.ua/uk/shop/roboti_pilesosi.html", "pylososy", 1),
+        # roboti_pilesosi: дубль прибрано — URL живе в roboty-pylososy вище (див. Allo)
         ("https://www.foxtrot.com.ua/uk/shop/drymachine.html", "pobut-tehnika", 1),
         ("https://www.foxtrot.com.ua/uk/shop/vytyagki.html", "vytyazhky", 2),        # Foxtrot: слаг «vytyagki» через g
         ("https://www.foxtrot.com.ua/uk/shop/gk-monitory.html", "monitory", 3),
@@ -426,7 +432,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.moyo.ua/ua/bt/mbt/pylesosy/", "pylososy", 3),
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/kofevarki/", "kavomashyny", 3),
         ("https://www.moyo.ua/ua/telecommunication/cell_phones/", "knopkovi-telefony", 3),
-        ("https://www.moyo.ua/ua/bt/mbt/robot_pyle_i_chist/", "pylososy", 1),
+        # robot_pyle_i_chist: дубль прибрано — URL живе в roboty-pylososy вище (див. Allo)
         ("https://www.moyo.ua/ua/bt/kbt/sushilnie-mashini/", "pobut-tehnika", 1),
         ("https://www.moyo.ua/ua/comp-and-periphery/noutebook_pc/monitors/", "monitory", 3),
         ("https://www.moyo.ua/ua/bt/klimaticheskaya-tekh/kondicionery/", "kondycionery", 3),
@@ -830,7 +836,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/konditsionery/", "kondycionery"),
         ("https://epicentrk.ua/ua/shop/marshrutizatory-i-wi-fi-routery/", "routery"),
         ("https://epicentrk.ua/ua/shop/pylesosy/", "pylososy"),
-        ("https://epicentrk.ua/ua/shop/roboty-pylesosy/", "pylososy", 1),
+        # roboty-pylesosy: дубль прибрано — URL живе в roboty-pylososy нижче (див. Allo)
         ("https://epicentrk.ua/ua/shop/mikrovolnovye-pechi/", "mikrohvylovky"),
         ("https://epicentrk.ua/ua/shop/elektrochayniki/", "elektrochaynyky", 2),   # MPN 31/60
         ("https://epicentrk.ua/ua/shop/feny/", "feny", 2),   # MPN 42/60
@@ -1158,6 +1164,23 @@ HTML_SOURCES: dict[str, dict] = {
     "Autopresent": {"adapter": AutopresentAdapter(), "urls": (
         ("https://autopresent.com.ua/ua/bezopasnost-i-komfort/videoregistratory/", "videoreyestratory"),
         ("https://autopresent.com.ua/ua/zvuk/avtomagnitoly/", "avtomagnitoly"),
+    )},
+    # MasterZoo (розвідка 2026-07-23, два заходи) — зоо-мережа №2, 5 категорій.
+    # mode="render": анти-бот-челендж — без куки challenge_passed сервер віддає
+    # порожняк (3/4 запитів) або staging Next.js-шелл БЕЗ цін; WebView проходить
+    # челендж природно. Класичний шаблон (catalogCard) — SSR з цінами, 60/стор.
+    # Пагінація справжня (?page=2 → інші SKU, звірено в браузері) → pages=2.
+    # Верифікація: коти-сухий/коти-вологий/амуніція — парсингом (60/60/60);
+    # пси-сухий/пси-вологий — URL з живої навігації + лічильники (601/351),
+    # парсинг-проба впала на fetch-флейку анти-бота [не на живих даних].
+    # Шампуні окремої категорії нема (мішаний догляд) — не реєструємо.
+    "MasterZoo": {"adapter": MasterzooAdapter(), "mode": "render",
+                  "page_tpl": "{base}?page={n}", "pages": 2, "urls": (
+        ("https://masterzoo.ua/ua/catalog/koti/korm-dlya-kotv/sukhiy-korm-dlya-kishok/", "koty-suhyi-korm"),
+        ("https://masterzoo.ua/ua/catalog/koti/korm-dlya-kotv/vologiy-korm-dlya-kishok/", "koty-konservy"),
+        ("https://masterzoo.ua/ua/catalog/sobaki/korm-dlya-sobak/sukhiy-korm-dlya-sobak/", "psy-suhyi-korm"),
+        ("https://masterzoo.ua/ua/catalog/sobaki/korm-dlya-sobak/vologiy-korm-dlya-sobak/", "psy-konservy"),
+        ("https://masterzoo.ua/ua/catalog/sobaki/amunczya-dlya-sobak/", "amunitsiya"),
     )},
     # Zootovary (розвідка 2026-07-23) — зоо-спеціаліст, 5 категорій «Зоотоварів».
     # Пагінація справжня (?page=2 → 34/34 нових, перевірено фактом) → pages=2,
