@@ -222,6 +222,8 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/shredery/", "shredery", 2),
                  ("https://allo.ua/ua/laminatory/", "laminatory", 2),
                  ("https://allo.ua/ua/ip-kamery/", "ip-kamery", 2),                   # MPN 37/60
+                 ("https://allo.ua/ua/datchiki-dlja-signalizacij/", "datchyky-syhnalizatsiyi", 2),  # Ajax 29/60
+                 ("https://allo.ua/ua/komplekty-signalizacij/", "komplekty-syhnalizatsiy", 2),      # MPN 28/60
                  ("https://allo.ua/ua/umnye-rozetki/", "rozumni-rozetky", 2),         # weak: MPN 10/60
                  ("https://allo.ua/ua/zarjadnye-stancii/", "zaryadni-stantsiyi", 2),  # MPN 11/60
                  ("https://allo.ua/ua/solnechnye-paneli/", "sonyachni-paneli", 2),    # MPN 26/60
@@ -598,6 +600,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/fotoelektricheskie-paneli/c4629920/", "sonyachni-paneli", 2),  # головний домен
         ("https://rozetka.com.ua/ua/ip_cam/c156790/", "ip-kamery", 2),  # головний домен
         ("https://rozetka.com.ua/ua/umnie-rozetki/c4638455/", "rozumni-rozetky", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/detectors/c235372/", "datchyky-syhnalizatsiyi", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/komplekty-signalizatsiy/c236220/", "komplekty-syhnalizatsiy", 2),  # головний домен
         ("https://rozetka.com.ua/ua/cleaners/c155534/", "myyky", 2),  # головний домен
         ("https://rozetka.com.ua/ua/niveliri/c4672248/", "vymiryuvalni", 2),  # головний домен (рівні)
         ("https://rozetka.com.ua/ua/dalnomeri/c4672183/", "vymiryuvalni", 2),  # головний домен (далекоміри)
@@ -933,6 +937,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/raskhodnye-materialy-dlya-printerov-i-mfu/", "kartridzhi", 2),
         ("https://epicentrk.ua/ua/shop/laminatory/", "laminatory", 2),
         ("https://epicentrk.ua/ua/shop/ip-kamery/", "ip-kamery", 2),   # MPN 21/60 (Tapo-тайл)
+        ("https://epicentrk.ua/ua/shop/datchiki-signalizatsii/", "datchyky-syhnalizatsiyi", 2),  # Emos-тайл
         ("https://epicentrk.ua/ua/shop/portativnye-elektrostantsii/", "zaryadni-stantsiyi", 2),  # MPN 8/60; НЕ EV-чарджери!
         ("https://epicentrk.ua/ua/shop/solnechnye-paneli/", "sonyachni-paneli", 2),  # MPN 20/60
         ("https://epicentrk.ua/ua/shop/tonometry/", "tonometry", 2),   # weak: MPN 21/60

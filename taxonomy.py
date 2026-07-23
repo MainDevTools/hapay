@@ -236,6 +236,8 @@ CATEGORY_UI = {
     # ── Розумний дім / безпека: вертикаль 2026-07-24 ──
     "ip-kamery":          ("Розумний дім", "📹"),
     "rozumni-rozetky":    ("Розумний дім", "🔘"),
+    "datchyky-syhnalizatsiyi":  ("Розумний дім", "📡"),
+    "komplekty-syhnalizatsiy":  ("Розумний дім", "🚨"),
     "nebulayzery":     ("Медтехніка", "💨"),
     "pulsoksimetry":   ("Медтехніка", "🫁"),
     "termometry":      ("Медтехніка", "🌡️"),
