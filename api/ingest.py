@@ -124,6 +124,7 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/shurupoverty/", "shurupoverty", 2),
                  ("https://allo.ua/ua/perforatory/", "perforatory", 2),
                  ("https://allo.ua/ua/bolgarki/", "bolharky", 2),
+                 ("https://allo.ua/ua/jelektrolobziki/", "lobzyky", 2),
                  ("https://allo.ua/ua/tostery/", "tostery", 2),   # MPN 36/60
                  ("https://allo.ua/ua/products/utugi/", "prasky", 2),
                  ("https://allo.ua/ua/products/masorubki/", "myasorubky", 2),
@@ -202,6 +203,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/shurupoverti.html", "shurupoverty", 2),
         ("https://www.foxtrot.com.ua/uk/shop/puncher.html", "perforatory", 2),
         ("https://www.foxtrot.com.ua/uk/shop/grinders_uglovye-bolgarki.html", "bolharky", 2),
+        ("https://www.foxtrot.com.ua/uk/shop/electro_lobz.html", "lobzyky", 2),
         ("https://www.foxtrot.com.ua/uk/shop/tostery.html", "tostery", 2),  # MPN 30/42
         ("https://www.foxtrot.com.ua/uk/shop/utugi.html", "prasky", 2),  # MPN 40/42 (+ відпарювачі)
         ("https://www.foxtrot.com.ua/uk/shop/myasorybki.html", "myasorubky", 2),  # MPN 33/42
@@ -258,6 +260,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.moyo.ua/ua/instrument/electroinstrument/shurupovertyi/", "shurupoverty", 2),
         ("https://www.moyo.ua/ua/instrument/electroinstrument/perforatoryi/", "perforatory", 2),
         ("https://www.moyo.ua/ua/instrument/electroinstrument/bolgarky/", "bolharky", 2),
+        ("https://www.moyo.ua/ua/instrument/electroinstrument/elektrolobziki/", "lobzyky", 2),
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/tosteri/", "tostery", 2),  # MPN 16/24
         ("https://www.moyo.ua/ua/bt/mbt/utugi/", "prasky", 2),  # MPN 22/24
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/myasorubki/", "myasorubky", 2),  # MPN 22/24
@@ -311,6 +314,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://comfy.ua/ua/screwdrivers/", "shurupoverty", 2),   # render
         ("https://comfy.ua/ua/perforators/", "perforatory", 2),   # render
         ("https://comfy.ua/ua/angle-grinders/", "bolharky", 2),   # render
+        ("https://comfy.ua/ua/jigsaws/", "lobzyky", 2),   # render
         ("https://comfy.ua/ua/toaster/", "tostery", 2),   # render
         ("https://comfy.ua/ua/iron/", "prasky", 2),   # render
         ("https://comfy.ua/ua/meat-grinder/", "myasorubky", 2),   # render
@@ -353,6 +357,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/shurupoverty-i-elektrootvertki/c152499/", "shurupoverty", 2),  # головний домен
         ("https://rozetka.com.ua/ua/rock_drills/c153621/", "perforatory", 2),  # головний домен
         ("https://rozetka.com.ua/ua/sanders/c152503/", "bolharky", 2),  # головний домен (шліфмашини/болгарки)
+        ("https://rozetka.com.ua/ua/jigsaws/c152505/", "lobzyky", 2),  # головний домен
         ("https://bt.rozetka.com.ua/ua/toasters/c80145/", "tostery", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/irons/c80161/", "prasky", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/meat_choppers/c80176/", "myasorubky", 2),  # bt-піддомен
@@ -475,6 +480,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://eldorado.ua/uk/1284672/c1284672/", "shurupoverty"),   # render
         ("https://eldorado.ua/uk/1284694/c1284694/", "perforatory"),   # render
         ("https://eldorado.ua/uk/1284670/c1284670/", "bolharky"),   # render (шліфмашини/болгарки)
+        ("https://eldorado.ua/uk/1284674/c1284674/", "lobzyky"),   # render
         ("https://eldorado.ua/uk/toasters/c1042091/", "tostery"),   # render (+ сендвічниці/вафельниці)
         ("https://eldorado.ua/uk/irons/c1039036/", "prasky"),   # render
         ("https://eldorado.ua/uk/meat-grinder/c1039054/", "myasorubky"),   # render
@@ -547,6 +553,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/shurupoverty/", "shurupoverty", 2),
         ("https://epicentrk.ua/ua/shop/perforatory/", "perforatory", 2),
         ("https://epicentrk.ua/ua/shop/bolgarki/", "bolharky", 2),
+        ("https://epicentrk.ua/ua/shop/elektrolobziki/", "lobzyky", 2),
         ("https://epicentrk.ua/ua/shop/tostery/", "tostery", 2),   # MPN 41/60
         ("https://epicentrk.ua/ua/shop/utyugi/", "prasky", 2),
         ("https://epicentrk.ua/ua/shop/myasorubki/", "myasorubky", 2),
