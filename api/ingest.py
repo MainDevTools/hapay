@@ -34,6 +34,7 @@ from adapters.moyo import MoyoAdapter
 from adapters.podorozhnyk import PodorozhnykAdapter
 from adapters.rozetka import RozetkaAdapter
 from adapters.storgom import StorgomAdapter
+from adapters.stylus import StylusAdapter
 from adapters.telemart import TelemartAdapter
 from adapters.vencon import VenconAdapter
 from db.store import load_categories, persist_items, upsert_source
@@ -74,6 +75,10 @@ INGEST_SOURCES: dict[str, dict] = {
     "Apteka911": {"base_url": "https://apteka911.ua",      "hosts": ("apteka911.ua",)},
     # Storgom — спеціаліст інструмент/сад (розвідка 2026-07-23). SSR, plain-GET.
     "Storgom":   {"base_url": "https://storgom.ua",        "hosts": ("storgom.ua",)},
+    # Stylus — електроніка (розвідка 2026-07-23). stls.store — їхній альт-домен: у LD
+    # offers URL ведуть туди. Адаптер віддає stylus.ua-URL (з DOM), тож у hosts альт
+    # НЕ додаємо, поки не потрібен: менша поверхня — суворіша перевірка.
+    "Stylus":    {"base_url": "https://stylus.ua",         "hosts": ("stylus.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -1069,6 +1074,25 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://storgom.ua/ua/opryskivateli", "obpryskuvachi"),
         ("https://storgom.ua/ua/nasosy", "nasosy"),
         ("https://storgom.ua/ua/snegouborshchiki", "snihoprybyrachi", 1),        # всього 21 позиція — стор.2 порожня
+    )},
+    # Stylus (розвідка 2026-07-23) — електроніка, СИЛЬНИЙ матчер (ноутбуки 26/30,
+    # SSD 29/30). Next.js: SSR рендерить ЛИШЕ 1-шу сторінку (page-2 → ті самі картки,
+    # перетин 30/30) → page_tpl НЕМАЄ, кожна категорія = top-30. Це свідомо: топ-моделі
+    # й порівнюються крос-крамнично. 100% карток із «старою» ціною — суцільний
+    # знижковий маркетинг, першочерговий кандидат Omnibus-перевірки.
+    # Три пастки цін (nbsp-сутності, приклеєний лічильник відгуків, хешовані
+    # styled-components класи) — див. docstring адаптера. 10/10 URL верифіковано фактом.
+    "Stylus": {"adapter": StylusAdapter(), "urls": (
+        ("https://stylus.ua/uk/smartfony/", "smartfony"),
+        ("https://stylus.ua/uk/noutbuki/", "noutbuky"),                          # MPN 26/30
+        ("https://stylus.ua/uk/televizory/", "tv"),
+        ("https://stylus.ua/uk/planshety/", "planshety"),
+        ("https://stylus.ua/uk/monitory/", "monitory"),
+        ("https://stylus.ua/uk/videokarty/", "videokarty"),
+        ("https://stylus.ua/uk/ssd-nakopiteli/", "ssd"),                         # MPN 29/30
+        ("https://stylus.ua/uk/igrovye-pristavki/", "konsoli"),
+        ("https://stylus.ua/uk/umnye-chasy-smart-watch/", "smart-hodynnyky"),    # MPN 6/30
+        ("https://stylus.ua/uk/naushniki-i-garnitury/", "audio"),                # MPN 15/30
     )},
 }
 # режим збору per-source: 'fetch' (plain GET) | 'render' (WebView — SPA-крамниці).
