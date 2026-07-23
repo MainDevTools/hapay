@@ -522,7 +522,9 @@ def main():
     # ── черга-оренда (T16 крок 1): lease → ingest(task_id) → закриття ─────────────
     checks.append(("lease простому юзеру → 401",
                    client.post("/api/collect/lease", headers=ahdr, json={}).status_code == 401, None))
-    lr = client.post("/api/collect/lease", json={"limit": 20}, headers=chdr).json()
+    # limit — динамічно від числа джерел (хардкод 20 зламався, щойно джерел стало 28)
+    lr = client.post("/api/collect/lease",
+                     json={"limit": len(qingest.HTML_SOURCES)}, headers=chdr).json()
     ltasks = lr.get("tasks", [])
     lsrc = [t["source"] for t in ltasks]
     checks.append(("lease колектору → по 1 задачі на крамницю (усі джерела HTML_SOURCES)",
