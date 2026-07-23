@@ -221,6 +221,8 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/products/kartridzhy/", "kartridzhi", 2),
                  ("https://allo.ua/ua/shredery/", "shredery", 2),
                  ("https://allo.ua/ua/laminatory/", "laminatory", 2),
+                 ("https://allo.ua/ua/zarjadnye-stancii/", "zaryadni-stantsiyi", 2),  # MPN 11/60
+                 ("https://allo.ua/ua/solnechnye-paneli/", "sonyachni-paneli", 2),    # MPN 26/60
                  ("https://allo.ua/ua/tonometry/", "tonometry", 2),       # weak: MPN 9/60
                  ("https://allo.ua/ua/gljukometry/", "glyukometry", 2),   # weak: MPN 0/60
                  ("https://allo.ua/ua/pul-soksimetry/", "pulsoksimetry", 2),  # weak; мішає Garmin HRM
@@ -313,6 +315,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/grinders_lentochnye.html", "shlifmashyny", 2),
         ("https://www.foxtrot.com.ua/uk/shop/compressors.html", "kompresory", 2),
         ("https://www.foxtrot.com.ua/uk/shop/generators.html", "generatory", 2),
+        ("https://www.foxtrot.com.ua/uk/shop/portativnye-zaryadnye-stancii.html", "zaryadni-stantsiyi", 2),  # MPN 17/42
         ("https://www.foxtrot.com.ua/uk/shop/carwasher.html", "myyky", 2),
         ("https://www.foxtrot.com.ua/uk/shop/metric_lazernii-nivelir.html", "vymiryuvalni", 2),
         ("https://www.foxtrot.com.ua/uk/shop/solyariy.html", "nabory-instrumentu", 2),  # legacy-слаг наборів
@@ -422,6 +425,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.moyo.ua/ua/instrument/electroinstrument/shlifmashinyi/", "shlifmashyny", 2),
         ("https://www.moyo.ua/ua/instrument/stacionarnoe_oborudo/kompressoryi/", "kompresory", 2),
         ("https://www.moyo.ua/ua/instrument/stacionarnoe_oborudo/generatoryi/", "generatory", 2),
+        ("https://www.moyo.ua/ua/tovary_dlya_doma/alternativnaya_energ/port_elektstan/", "zaryadni-stantsiyi", 2),  # MPN 17/24
         ("https://www.moyo.ua/ua/instrument/ruchnoy_instrument/naboryi_ruchnyih_ins/", "nabory-instrumentu", 2),
         ("https://www.moyo.ua/ua/instrument/sadovaya_technika/sadovyie_trimmeryi/", "motokosy", 2),
         ("https://www.moyo.ua/ua/instrument/sadovaya_technika/gazonokosilki/", "gazonokosarky", 2),
@@ -498,6 +502,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://comfy.ua/ua/power-saws-circular/", "pyly-dyskovi", 2),   # render
         ("https://comfy.ua/ua/grinders/", "shlifmashyny", 2),   # render (шліфмашини, не болгарки)
         ("https://comfy.ua/ua/generators/", "generatory", 2),   # render
+        ("https://comfy.ua/ua/charging-stations/", "zaryadni-stantsiyi", 2),   # render
         ("https://comfy.ua/ua/mini-washing/", "myyky", 2),   # render
         ("https://comfy.ua/ua/measuring-devices/", "vymiryuvalni", 2),   # render (широкі вимірювальні)
         ("https://comfy.ua/ua/tool-sets/", "nabory-instrumentu", 2),   # render
@@ -586,6 +591,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/gaykoverti/c4669237/", "haikoverty", 2),  # головний домен
         ("https://rozetka.com.ua/ua/compressors/c162118/", "kompresory", 2),  # головний домен
         ("https://rozetka.com.ua/ua/generators/c152564/", "generatory", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/zaryadnie-stantsii-4674585/c4674585/", "zaryadni-stantsiyi", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/fotoelektricheskie-paneli/c4629920/", "sonyachni-paneli", 2),  # головний домен
         ("https://rozetka.com.ua/ua/cleaners/c155534/", "myyky", 2),  # головний домен
         ("https://rozetka.com.ua/ua/niveliri/c4672248/", "vymiryuvalni", 2),  # головний домен (рівні)
         ("https://rozetka.com.ua/ua/dalnomeri/c4672183/", "vymiryuvalni", 2),  # головний домен (далекоміри)
@@ -920,6 +927,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/skanery/", "skanery", 2),
         ("https://epicentrk.ua/ua/shop/raskhodnye-materialy-dlya-printerov-i-mfu/", "kartridzhi", 2),
         ("https://epicentrk.ua/ua/shop/laminatory/", "laminatory", 2),
+        ("https://epicentrk.ua/ua/shop/portativnye-elektrostantsii/", "zaryadni-stantsiyi", 2),  # MPN 8/60; НЕ EV-чарджери!
+        ("https://epicentrk.ua/ua/shop/solnechnye-paneli/", "sonyachni-paneli", 2),  # MPN 20/60
         ("https://epicentrk.ua/ua/shop/tonometry/", "tonometry", 2),   # weak: MPN 21/60
         ("https://epicentrk.ua/ua/shop/ingalyatory/", "nebulayzery", 2),   # weak: MPN 8/60
         ("https://epicentrk.ua/ua/shop/pulsoksimetry/", "pulsoksimetry", 2),   # weak: MPN 8/60
@@ -1271,6 +1280,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://dnipro-m.ua/svarochnoe-oborudovanie/invertor-poluavtomat/", "zvaryuvalni"),
         ("https://dnipro-m.ua/kompressory-i-aksessuary/vozdusnye-kompressory/", "kompresory"),
         ("https://dnipro-m.ua/tovary-enerhonezalezhnosti/elektrogeneratori/", "generatory"),
+        ("https://dnipro-m.ua/tovary-enerhonezalezhnosti/zaryadni-stanciyi/", "zaryadni-stantsiyi"),  # n=11, descriptive
+
         ("https://dnipro-m.ua/sadovo-parkovaya-tehnika/mijki-visokogo-tisku/", "myyky"),
     )},
     # MAUDAU (розвідка 2026-07-23, другий захід) — маркетплейс; вхід — 7/7 дитячих
