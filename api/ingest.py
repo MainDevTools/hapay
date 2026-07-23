@@ -28,6 +28,7 @@ from adapters.citrus import CitrusAdapter
 from adapters.comfy import ComfyAdapter
 from adapters.eldorado import EldoradoAdapter
 from adapters.epicentr import EpicentrAdapter
+from adapters.fotosale import FotosaleAdapter
 from adapters.foxtrot import FoxtrotAdapter
 from adapters.ktc import KtcAdapter
 from adapters.medmagazin import MedmagazinAdapter
@@ -83,6 +84,8 @@ INGEST_SOURCES: dict[str, dict] = {
     # Med-magazin — спеціаліст медтехніки (розвідка 2026-07-23). Фото на
     # cdn.med-magazin.ua; у hosts НЕ додаємо (перевірка стереже URL товару).
     "MedMagazin": {"base_url": "https://med-magazin.ua",   "hosts": ("med-magazin.ua",)},
+    # Fotosale — фотоспеціаліст (розвідка 2026-07-23). Класичний SSR без фреймворка.
+    "Fotosale":  {"base_url": "https://fotosale.ua",       "hosts": ("fotosale.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -1114,6 +1117,16 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://med-magazin.ua/ua/cat_190.htm", "nebulayzery"),                # МЕШ/ультразвукові
         ("https://med-magazin.ua/ua/cat_327.htm", "pulsoksimetry"),
         ("https://med-magazin.ua/ua/cat_631.htm", "termometry"),                 # медичні
+    )},
+    # Fotosale (розвідка 2026-07-23) — фотоспеціаліст. Пагінація: ?page=2 і /page2 →
+    # ті самі товари (нових 0, перевірено фактом) → top-20/лістинг. Матчер: екшн GoPro
+    # 19/19, карти пам'яті 18/20 — СИЛЬНІ; фотоапарати 1/20 (Canon-коди «(5137C041)»
+    # у дужках матчер не бере) → там per-store Omnibus. Дрони: обидві рубрики порожні —
+    # категорію НЕ реєструємо. 3/3 URL верифіковано фактом.
+    "Fotosale": {"adapter": FotosaleAdapter(), "urls": (
+        ("https://fotosale.ua/ua/digital-cameras", "foto"),
+        ("https://fotosale.ua/ua/catalog_rub3860.htm", "ekshn-kamery"),          # GoPro; MPN 19/19
+        ("https://fotosale.ua/ua/catalog_rub350.htm", "karty-pamyati"),          # MPN 18/20
     )},
 }
 # режим збору per-source: 'fetch' (plain GET) | 'render' (WebView — SPA-крамниці).
