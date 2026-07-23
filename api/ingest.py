@@ -115,6 +115,7 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/smart-chasy/", "smart-hodynnyky", 3),
                  ("https://allo.ua/ua/holodilniki/", "pobut-tehnika", 3),
                  ("https://allo.ua/ua/elektrochajniki/", "elektrochaynyky", 2),   # MPN 40/60
+                 ("https://allo.ua/ua/feny/", "feny", 2),
                  ("https://allo.ua/ua/tostery/", "tostery", 2),   # MPN 36/60
                  ("https://allo.ua/ua/products/utugi/", "prasky", 2),
                  ("https://allo.ua/ua/products/masorubki/", "myasorubky", 2),
@@ -184,6 +185,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/igrovye_pristavki.html", "konsoli", 2),# 9
         ("https://www.foxtrot.com.ua/uk/shop/mikrovolnovki.html", "mikrohvylovky", 3),
         ("https://www.foxtrot.com.ua/uk/shop/elektrochayniki.html", "elektrochaynyky", 2),  # MPN 33/42
+        ("https://www.foxtrot.com.ua/uk/shop/feny.html", "feny", 2),  # MPN 36/42
         ("https://www.foxtrot.com.ua/uk/shop/tostery.html", "tostery", 2),  # MPN 30/42
         ("https://www.foxtrot.com.ua/uk/shop/utugi.html", "prasky", 2),  # MPN 40/42 (+ відпарювачі)
         ("https://www.foxtrot.com.ua/uk/shop/myasorybki.html", "myasorubky", 2),  # MPN 33/42
@@ -231,6 +233,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.moyo.ua/ua/acsessor/acum/accu_univers/", "aksesuary", 1),      # 24
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/microvolnovie-pechi/", "mikrohvylovky", 3),
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/electrochayniki/", "elektrochaynyky", 2),  # MPN 17/24
+        ("https://www.moyo.ua/ua/bt/tekhnika-lichnogo-po/feni/", "feny", 2),  # MPN 18/24
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/tosteri/", "tostery", 2),  # MPN 16/24
         ("https://www.moyo.ua/ua/bt/mbt/utugi/", "prasky", 2),  # MPN 22/24
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/myasorubki/", "myasorubky", 2),  # MPN 22/24
@@ -275,6 +278,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://comfy.ua/smart-watches/", "smart-hodynnyky", 3),               # 50 карток
         ("https://comfy.ua/refrigerator/", "pobut-tehnika", 3),                  # 50 карток
         ("https://comfy.ua/ua/electric-tea-pot/", "elektrochaynyky", 2),   # render
+        ("https://comfy.ua/ua/hair-dryer/", "feny", 2),   # render
         ("https://comfy.ua/ua/toaster/", "tostery", 2),   # render
         ("https://comfy.ua/ua/iron/", "prasky", 2),   # render
         ("https://comfy.ua/ua/meat-grinder/", "myasorubky", 2),   # render
@@ -308,6 +312,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/smartwatch/c651392/", "smart-hodynnyky", 3),  # 60 товарів
         ("https://rozetka.com.ua/ua/holodilniki/c80125/", "pobut-tehnika", 3),    # 60 товарів
         ("https://bt.rozetka.com.ua/ua/electric_kettles/c80160/", "elektrochaynyky", 2),  # bt-піддомен
+        ("https://bt.rozetka.com.ua/ua/hairdryers/c81227/", "feny", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/toasters/c80145/", "tostery", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/irons/c80161/", "prasky", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/meat_choppers/c80176/", "myasorubky", 2),  # bt-піддомен
@@ -421,6 +426,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://eldorado.ua/uk/smart_chasi/c1197093/", "smart-hodynnyky"),     # 13 карток
         ("https://eldorado.ua/uk/holodilniki/c1061560/", "pobut-tehnika"),       # 40 карток
         ("https://eldorado.ua/uk/kettles/c1039051/", "elektrochaynyky"),   # render
+        ("https://eldorado.ua/uk/hair-dryers/c1039072/", "feny"),   # render
         ("https://eldorado.ua/uk/toasters/c1042091/", "tostery"),   # render (+ сендвічниці/вафельниці)
         ("https://eldorado.ua/uk/irons/c1039036/", "prasky"),   # render
         ("https://eldorado.ua/uk/meat-grinder/c1039054/", "myasorubky"),   # render
@@ -484,6 +490,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/roboty-pylesosy/", "pylososy", 1),
         ("https://epicentrk.ua/ua/shop/mikrovolnovye-pechi/", "mikrohvylovky"),
         ("https://epicentrk.ua/ua/shop/elektrochayniki/", "elektrochaynyky", 2),   # MPN 31/60
+        ("https://epicentrk.ua/ua/shop/feny/", "feny", 2),   # MPN 42/60
         ("https://epicentrk.ua/ua/shop/tostery/", "tostery", 2),   # MPN 41/60
         ("https://epicentrk.ua/ua/shop/utyugi/", "prasky", 2),
         ("https://epicentrk.ua/ua/shop/myasorubki/", "myasorubky", 2),
