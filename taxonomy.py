@@ -227,6 +227,9 @@ CATEGORY_UI = {
     # Longevita, XPRO) + короткі/descriptive коди. Per-store детекція повна.
     "tonometry":       ("Медтехніка", "🩺"),
     "glyukometry":     ("Медтехніка", "🩸"),
+    # ── Фото-відео: розгортання Fotosale 2026-07-23 ──
+    "obyektyvy":       ("Фото-відео", "🔭"),
+    "mikrofony":       ("Фото-відео", "🎙️"),
     "nebulayzery":     ("Медтехніка", "💨"),
     "pulsoksimetry":   ("Медтехніка", "🫁"),
     "termometry":      ("Медтехніка", "🌡️"),

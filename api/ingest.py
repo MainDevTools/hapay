@@ -1181,6 +1181,10 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://fotosale.ua/ua/digital-cameras", "foto"),
         ("https://fotosale.ua/ua/catalog_rub3860.htm", "ekshn-kamery"),          # GoPro; MPN 19/19
         ("https://fotosale.ua/ua/catalog_rub350.htm", "karty-pamyati"),          # MPN 18/20
+        # ── розширення 2026-07-23: дві НОВІ категорії каталогу (0117/0118).
+        # Відеокамери rub3015 НЕ взято — мішають фотокамери (EOS R5C гібрид).
+        ("https://fotosale.ua/ua/lenses", "obyektyvy"),                          # преміум; MPN 0/20 (Canon-дужки)
+        ("https://fotosale.ua/ua/catalog_rub3020.htm", "mikrofony"),             # MPN 7/20
     )},
     # Interatletika (розвідка 2026-07-23) — спеціаліст тренажерів, 2 категорії
     # «Спорту». Bitrix PAGEN_1-пагінація справжня (стор.2 → 22/24 нових) → pages=2,
