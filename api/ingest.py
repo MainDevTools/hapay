@@ -147,6 +147,8 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/ochistiteli-vozduha/", "ochyshchuvachi", 2),
                  ("https://allo.ua/ua/osushiteli-vozduha/", "osushuvachi", 2),
                  ("https://allo.ua/ua/meteostancii/", "meteostantsii", 2),
+                 ("https://allo.ua/ua/begovye-dorozhki/", "begovi-dorizhky", 2),
+                 ("https://allo.ua/ua/velotrenazhery/", "velotrenazhery", 2),
                  ("https://allo.ua/ua/tostery/", "tostery", 2),   # MPN 36/60
                  ("https://allo.ua/ua/products/utugi/", "prasky", 2),
                  ("https://allo.ua/ua/products/masorubki/", "myasorubky", 2),
@@ -253,6 +255,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/osushiteli_vozduha.html", "osushuvachi", 2),
         ("https://www.foxtrot.com.ua/uk/shop/ventilyatory.html", "ventylatory", 2),
         ("https://www.foxtrot.com.ua/uk/shop/meteostanchii.html", "meteostantsii", 2),
+        ("https://www.foxtrot.com.ua/uk/shop/trenazheriy_i_sportivnoe_oborudovanie_begovaya-dorozhka.html", "begovi-dorizhky", 2),
+        ("https://www.foxtrot.com.ua/uk/shop/trenazheriy_i_sportivnoe_oborudovanie_velotrenazher.html", "velotrenazhery", 2),
         ("https://www.foxtrot.com.ua/uk/shop/tostery.html", "tostery", 2),  # MPN 30/42
         ("https://www.foxtrot.com.ua/uk/shop/utugi.html", "prasky", 2),  # MPN 40/42 (+ відпарювачі)
         ("https://www.foxtrot.com.ua/uk/shop/myasorybki.html", "myasorubky", 2),  # MPN 33/42
@@ -326,6 +330,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.moyo.ua/ua/bt/klimaticheskaya-tekh/ochistiteli_vozduha/", "ochyshchuvachi", 2),
         ("https://www.moyo.ua/ua/bt/klimaticheskaya-tekh/ventylatory/", "ventylatory", 2),
         ("https://www.moyo.ua/ua/bt/klimaticheskaya-tekh/meteostancyi/", "meteostantsii", 2),
+        ("https://www.moyo.ua/ua/sport_otdih_turizm/sportivnye-tovary/trenazher/begovye-dorozhki/", "begovi-dorizhky", 2),
+        ("https://www.moyo.ua/ua/sport_otdih_turizm/sportivnye-tovary/trenazher/velotrenazhery/", "velotrenazhery", 2),
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/tosteri/", "tostery", 2),  # MPN 16/24
         ("https://www.moyo.ua/ua/bt/mbt/utugi/", "prasky", 2),  # MPN 22/24
         ("https://www.moyo.ua/ua/bt/tekhnika-dlya-kuhni/myasorubki/", "myasorubky", 2),  # MPN 22/24
@@ -404,6 +410,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://comfy.ua/ua/dehumidifiers/", "osushuvachi", 2),   # render
         ("https://comfy.ua/ua/fan/", "ventylatory", 2),   # render
         ("https://comfy.ua/ua/weather-station-digital-thermometer/", "meteostantsii", 2),   # render
+        ("https://comfy.ua/ua/sports-and-recreation/tip_dorozhki__begovaja-dorozhka/", "begovi-dorizhky", 2),   # render (facet)
         ("https://comfy.ua/ua/toaster/", "tostery", 2),   # render
         ("https://comfy.ua/ua/iron/", "prasky", 2),   # render
         ("https://comfy.ua/ua/meat-grinder/", "myasorubky", 2),   # render
@@ -476,6 +483,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://bt.rozetka.com.ua/ua/osushiteli-vozduha/c388104/", "osushuvachi", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/fans/c80186/", "ventylatory", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/miniweather_stations/c80183/", "meteostantsii", 2),  # bt-піддомен
+        ("https://rozetka.com.ua/ua/treadmills/c132896/", "begovi-dorizhky", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/exrecise_bikes/c133215/", "velotrenazhery", 2),  # головний домен
         ("https://bt.rozetka.com.ua/ua/toasters/c80145/", "tostery", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/irons/c80161/", "prasky", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/meat_choppers/c80176/", "myasorubky", 2),  # bt-піддомен
@@ -716,6 +725,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/osushiteli-vozdukha/", "osushuvachi", 2),
         ("https://epicentrk.ua/ua/shop/ventilyatory/", "ventylatory", 2),
         ("https://epicentrk.ua/ua/shop/meteostantsii-i-termometry-bytovye/", "meteostantsii", 2),
+        ("https://epicentrk.ua/ua/shop/begovye-dorozhki/", "begovi-dorizhky", 2),
+        ("https://epicentrk.ua/ua/shop/velotrenazhery/", "velotrenazhery", 2),
         ("https://epicentrk.ua/ua/shop/tostery/", "tostery", 2),   # MPN 41/60
         ("https://epicentrk.ua/ua/shop/utyugi/", "prasky", 2),
         ("https://epicentrk.ua/ua/shop/myasorubki/", "myasorubky", 2),
