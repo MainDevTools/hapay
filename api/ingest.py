@@ -222,6 +222,7 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/shredery/", "shredery", 2),
                  ("https://allo.ua/ua/laminatory/", "laminatory", 2),
                  ("https://allo.ua/ua/ip-kamery/", "ip-kamery", 2),                   # MPN 37/60
+                 ("https://allo.ua/ua/videodomofony/", "videodomofony", 2),           # MPN 18/60, відео 50/60
                  ("https://allo.ua/ua/datchiki-dlja-signalizacij/", "datchyky-syhnalizatsiyi", 2),  # Ajax 29/60
                  ("https://allo.ua/ua/komplekty-signalizacij/", "komplekty-syhnalizatsiy", 2),      # MPN 28/60
                  ("https://allo.ua/ua/umnye-rozetki/", "rozumni-rozetky", 2),         # weak: MPN 10/60
@@ -602,6 +603,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/umnie-rozetki/c4638455/", "rozumni-rozetky", 2),  # головний домен
         ("https://rozetka.com.ua/ua/detectors/c235372/", "datchyky-syhnalizatsiyi", 2),  # головний домен
         ("https://rozetka.com.ua/ua/komplekty-signalizatsiy/c236220/", "komplekty-syhnalizatsiy", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/umnoe-osveshchenie/c4638351/", "rozumne-osvitlennya", 2),  # головний домен; єдине джерело (0125)
+        ("https://rozetka.com.ua/ua/video_intercoms/c259633/", "videodomofony", 2),  # головний домен
         ("https://rozetka.com.ua/ua/cleaners/c155534/", "myyky", 2),  # головний домен
         ("https://rozetka.com.ua/ua/niveliri/c4672248/", "vymiryuvalni", 2),  # головний домен (рівні)
         ("https://rozetka.com.ua/ua/dalnomeri/c4672183/", "vymiryuvalni", 2),  # головний домен (далекоміри)

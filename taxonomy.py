@@ -238,6 +238,8 @@ CATEGORY_UI = {
     "rozumni-rozetky":    ("Розумний дім", "🔘"),
     "datchyky-syhnalizatsiyi":  ("Розумний дім", "📡"),
     "komplekty-syhnalizatsiy":  ("Розумний дім", "🚨"),
+    "rozumne-osvitlennya":      ("Розумний дім", "💡"),
+    "videodomofony":            ("Розумний дім", "🛎️"),
     "nebulayzery":     ("Медтехніка", "💨"),
     "pulsoksimetry":   ("Медтехніка", "🫁"),
     "termometry":      ("Медтехніка", "🌡️"),
