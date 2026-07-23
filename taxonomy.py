@@ -170,6 +170,8 @@ CATEGORY_UI = {
     # 2026-07-23: лише 3 спільні ключі Foxtrot/Epicentr/Allo. Per-store історія повна.
     "videoreyestratory": ("Авто", "🎥"),
     "avtomagnitoly":   ("Авто", "📻"),
+    "avtokompresory":  ("Авто", "🛞"),
+    "avtopylososy":    ("Авто", "🌪️"),
     "videokarty":      ("Електроніка", "🎇"),
     "ssd":             ("Електроніка", "💾"),
     "procesory":       ("Електроніка", "🧠"),
