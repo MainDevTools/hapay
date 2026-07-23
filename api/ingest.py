@@ -171,6 +171,7 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/portativnaja-akustika/", "portatyvni-kolonky", 2),
                  ("https://allo.ua/ua/printery/", "printery-bfp", 2),
                  ("https://allo.ua/ua/skanery/", "skanery", 2),
+                 ("https://allo.ua/ua/products/kartridzhy/", "kartridzhi", 2),
                  ("https://allo.ua/ua/tostery/", "tostery", 2),   # MPN 36/60
                  ("https://allo.ua/ua/products/utugi/", "prasky", 2),
                  ("https://allo.ua/ua/products/masorubki/", "myasorubky", 2),
@@ -300,6 +301,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/printery.html", "printery-bfp", 2),
         ("https://www.foxtrot.com.ua/uk/shop/mfu.html", "printery-bfp", 2),
         ("https://www.foxtrot.com.ua/uk/shop/scaners.html", "skanery", 2),
+        ("https://www.foxtrot.com.ua/uk/shop/copir_materials.html", "kartridzhi", 2),
+        ("https://www.foxtrot.com.ua/uk/shop/katridgy_dlya_struyinuh_printerov.html", "kartridzhi", 2),
         ("https://www.foxtrot.com.ua/uk/shop/tostery.html", "tostery", 2),  # MPN 30/42
         ("https://www.foxtrot.com.ua/uk/shop/utugi.html", "prasky", 2),  # MPN 40/42 (+ відпарювачі)
         ("https://www.foxtrot.com.ua/uk/shop/myasorybki.html", "myasorubky", 2),  # MPN 33/42
@@ -476,6 +479,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://comfy.ua/ua/powerbank/", "powerbank", 2),   # render
         ("https://comfy.ua/ua/printers/", "printery-bfp", 2),   # render
         ("https://comfy.ua/ua/scanners/", "skanery", 2),   # render
+        ("https://comfy.ua/ua/ink-cartridge/", "kartridzhi", 2),   # render
         ("https://comfy.ua/ua/toaster/", "tostery", 2),   # render
         ("https://comfy.ua/ua/iron/", "prasky", 2),   # render
         ("https://comfy.ua/ua/meat-grinder/", "myasorubky", 2),   # render
@@ -574,6 +578,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/portativnie-kolonki/c4671531/", "portatyvni-kolonky", 2),  # головний домен
         ("https://rozetka.com.ua/ua/printers-mfu/c80007/", "printery-bfp", 2),  # головний домен
         ("https://rozetka.com.ua/ua/scanners/c80028/", "skanery", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/kartridgi-lazernie/c4671726/", "kartridzhi", 2),  # головний домен (лазерні)
+        ("https://rozetka.com.ua/ua/kartridgi-struynie/c4671731/", "kartridzhi", 2),  # головний домен (струменеві)
         ("https://bt.rozetka.com.ua/ua/toasters/c80145/", "tostery", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/irons/c80161/", "prasky", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/meat_choppers/c80176/", "myasorubky", 2),  # bt-піддомен
@@ -847,6 +853,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/fitnes-braslety/", "fitnes-braslety", 2),
         ("https://epicentrk.ua/ua/shop/mnogofunktsionalnye-ustroystva-i-printery/", "printery-bfp", 2),
         ("https://epicentrk.ua/ua/shop/skanery/", "skanery", 2),
+        ("https://epicentrk.ua/ua/shop/raskhodnye-materialy-dlya-printerov-i-mfu/", "kartridzhi", 2),
         ("https://epicentrk.ua/ua/shop/tostery/", "tostery", 2),   # MPN 41/60
         ("https://epicentrk.ua/ua/shop/utyugi/", "prasky", 2),
         ("https://epicentrk.ua/ua/shop/myasorubki/", "myasorubky", 2),
