@@ -431,6 +431,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/kustorezy/c155467/", "kushchorizy", 2),  # головний домен
         ("https://rozetka.com.ua/ua/sprayers/c156378/", "obpryskuvachi", 2),  # головний домен
         ("https://rozetka.com.ua/ua/pumps/c155952/", "nasosy", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/snowthrow/c182187/", "snihoprybyrachi", 2),  # головний домен
         ("https://bt.rozetka.com.ua/ua/toasters/c80145/", "tostery", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/irons/c80161/", "prasky", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/meat_choppers/c80176/", "myasorubky", 2),  # bt-піддомен
@@ -649,6 +650,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/kustorezy/", "kushchorizy", 2),
         ("https://epicentrk.ua/ua/shop/opryskivateli/", "obpryskuvachi", 2),
         ("https://epicentrk.ua/ua/shop/nasosy/", "nasosy", 2),
+        ("https://epicentrk.ua/ua/shop/snegouborochnaya-tekhnika-i-inventar/", "snihoprybyrachi", 2),
         ("https://epicentrk.ua/ua/shop/tostery/", "tostery", 2),   # MPN 41/60
         ("https://epicentrk.ua/ua/shop/utyugi/", "prasky", 2),
         ("https://epicentrk.ua/ua/shop/myasorubki/", "myasorubky", 2),
