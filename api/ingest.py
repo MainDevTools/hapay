@@ -30,6 +30,7 @@ from adapters.eldorado import EldoradoAdapter
 from adapters.epicentr import EpicentrAdapter
 from adapters.foxtrot import FoxtrotAdapter
 from adapters.ktc import KtcAdapter
+from adapters.medmagazin import MedmagazinAdapter
 from adapters.moyo import MoyoAdapter
 from adapters.podorozhnyk import PodorozhnykAdapter
 from adapters.rozetka import RozetkaAdapter
@@ -79,6 +80,9 @@ INGEST_SOURCES: dict[str, dict] = {
     # offers URL ведуть туди. Адаптер віддає stylus.ua-URL (з DOM), тож у hosts альт
     # НЕ додаємо, поки не потрібен: менша поверхня — суворіша перевірка.
     "Stylus":    {"base_url": "https://stylus.ua",         "hosts": ("stylus.ua",)},
+    # Med-magazin — спеціаліст медтехніки (розвідка 2026-07-23). Фото на
+    # cdn.med-magazin.ua; у hosts НЕ додаємо (перевірка стереже URL товару).
+    "MedMagazin": {"base_url": "https://med-magazin.ua",   "hosts": ("med-magazin.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -1093,6 +1097,23 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://stylus.ua/uk/igrovye-pristavki/", "konsoli"),
         ("https://stylus.ua/uk/umnye-chasy-smart-watch/", "smart-hodynnyky"),    # MPN 6/30
         ("https://stylus.ua/uk/naushniki-i-garnitury/", "audio"),                # MPN 15/30
+    )},
+    # Med-magazin (розвідка 2026-07-23) — спеціаліст медтехніки, повна синергія з
+    # розділом «Медтехніка» (5/5 категорій). Пагінація Vue/AJAX (?page=2 → ті самі
+    # картки) → page_tpl НЕМАЄ, кожен лістинг = top-20; компенсовано ПІДТИПАМИ
+    # крамниці (тонометри = 3 листинги, небулайзери = 2). Слайдери «рекомендоване»
+    # носять той самий клас карток — фільтрує адаптер (див. docstring, пастка 1).
+    # Матчер слабкий (MPN 0–5/20, дрібні бренди B.Well/Gamma) → per-store Omnibus.
+    # 8/8 URL верифіковано фактом.
+    "MedMagazin": {"adapter": MedmagazinAdapter(), "urls": (
+        ("https://med-magazin.ua/ua/cat_116.htm", "tonometry"),                  # автоматичні
+        ("https://med-magazin.ua/ua/cat_117.htm", "tonometry"),                  # зап'ясткові
+        ("https://med-magazin.ua/ua/cat_115.htm", "tonometry"),                  # напівавтоматичні
+        ("https://med-magazin.ua/ua/cat_135.htm", "glyukometry"),
+        ("https://med-magazin.ua/ua/cat_192.htm", "nebulayzery"),                # компресорні
+        ("https://med-magazin.ua/ua/cat_190.htm", "nebulayzery"),                # МЕШ/ультразвукові
+        ("https://med-magazin.ua/ua/cat_327.htm", "pulsoksimetry"),
+        ("https://med-magazin.ua/ua/cat_631.htm", "termometry"),                 # медичні
     )},
 }
 # режим збору per-source: 'fetch' (plain GET) | 'render' (WebView — SPA-крамниці).
