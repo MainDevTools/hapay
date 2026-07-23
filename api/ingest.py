@@ -172,6 +172,8 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/printery/", "printery-bfp", 2),
                  ("https://allo.ua/ua/skanery/", "skanery", 2),
                  ("https://allo.ua/ua/products/kartridzhy/", "kartridzhi", 2),
+                 ("https://allo.ua/ua/shredery/", "shredery", 2),
+                 ("https://allo.ua/ua/laminatory/", "laminatory", 2),
                  ("https://allo.ua/ua/tostery/", "tostery", 2),   # MPN 36/60
                  ("https://allo.ua/ua/products/utugi/", "prasky", 2),
                  ("https://allo.ua/ua/products/masorubki/", "myasorubky", 2),
@@ -580,6 +582,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/scanners/c80028/", "skanery", 2),  # головний домен
         ("https://rozetka.com.ua/ua/kartridgi-lazernie/c4671726/", "kartridzhi", 2),  # головний домен (лазерні)
         ("https://rozetka.com.ua/ua/kartridgi-struynie/c4671731/", "kartridzhi", 2),  # головний домен (струменеві)
+        ("https://rozetka.com.ua/ua/shredders/c132946/", "shredery", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/laminator/c248894/", "laminatory", 2),  # головний домен
         ("https://bt.rozetka.com.ua/ua/toasters/c80145/", "tostery", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/irons/c80161/", "prasky", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/meat_choppers/c80176/", "myasorubky", 2),  # bt-піддомен
@@ -854,6 +858,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/mnogofunktsionalnye-ustroystva-i-printery/", "printery-bfp", 2),
         ("https://epicentrk.ua/ua/shop/skanery/", "skanery", 2),
         ("https://epicentrk.ua/ua/shop/raskhodnye-materialy-dlya-printerov-i-mfu/", "kartridzhi", 2),
+        ("https://epicentrk.ua/ua/shop/laminatory/", "laminatory", 2),
         ("https://epicentrk.ua/ua/shop/tostery/", "tostery", 2),   # MPN 41/60
         ("https://epicentrk.ua/ua/shop/utyugi/", "prasky", 2),
         ("https://epicentrk.ua/ua/shop/myasorubki/", "myasorubky", 2),
