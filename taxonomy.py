@@ -194,6 +194,9 @@ CATEGORY_UI = {
     "avtokrisla":      ("Дитячі товари", "💺"),
     "molokovidsmoktuvachi": ("Дитячі товари", "🤱"),
     "sterylizatory":   ("Дитячі товари", "🍼"),
+    "radionyani":      ("Дитячі товари", "📡"),
+    "dytyachi-vagy":   ("Дитячі товари", "⚖️"),
+    "stilchyky":       ("Дитячі товари", "🪑"),
     # ── Фото-відео ──
     # ⚠ Weak-medium/слабкий: категорії розмиті дешевими брендами (іграшкові дрони KEHANG/
     # Nomi; SJCAM/Hoco екшн), преміум (GoPro/DJI/Insta360) тоне; part-numbers різняться

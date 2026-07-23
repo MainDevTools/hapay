@@ -158,6 +158,8 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/kvadrokoptery/", "drony", 2),
                  ("https://allo.ua/ua/usb-flash-drive/", "usb-fleshky", 2),
                  ("https://allo.ua/ua/vneshnie-hdd/", "zovnishni-hdd", 2),
+                 ("https://allo.ua/ua/radionjani/", "radionyani", 2),
+                 ("https://allo.ua/ua/stul-chiki-dlja-kormlenija/", "stilchyky", 2),
                  ("https://allo.ua/ua/tostery/", "tostery", 2),   # MPN 36/60
                  ("https://allo.ua/ua/products/utugi/", "prasky", 2),
                  ("https://allo.ua/ua/products/masorubki/", "myasorubky", 2),
@@ -524,6 +526,9 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/memory-cards/c80044/", "karty-pamyati", 2),  # головний домен
         ("https://rozetka.com.ua/ua/usb-flash-memory/c80045/", "usb-fleshky", 2),  # головний домен
         ("https://hard.rozetka.com.ua/ua/hdd/c80084/", "zovnishni-hdd", 2),  # hard-піддомен
+        ("https://rozetka.com.ua/ua/babymonitors/c146154/", "radionyani", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/detskie-vesy/c268764/", "dytyachi-vagy", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/stulchiki-dlya-kormleniya/c100077/", "stilchyky", 2),  # головний домен
         ("https://bt.rozetka.com.ua/ua/toasters/c80145/", "tostery", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/irons/c80161/", "prasky", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/meat_choppers/c80176/", "myasorubky", 2),  # bt-піддомен
@@ -781,6 +786,9 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/karty-pamyati/", "karty-pamyati", 2),
         ("https://epicentrk.ua/ua/shop/flesh-pamyat-usb/", "usb-fleshky", 2),
         ("https://epicentrk.ua/ua/shop/zhestkie-diski/", "zovnishni-hdd", 2),
+        ("https://epicentrk.ua/ua/shop/radionyani-i-videonyani/", "radionyani", 2),
+        ("https://epicentrk.ua/ua/shop/vesy-napolnye/fs/tip-vesov-dlya-novorozhdennykh/", "dytyachi-vagy", 2),
+        ("https://epicentrk.ua/ua/shop/stulchiki-dlya-kormleniya/", "stilchyky", 2),
         ("https://epicentrk.ua/ua/shop/tostery/", "tostery", 2),   # MPN 41/60
         ("https://epicentrk.ua/ua/shop/utyugi/", "prasky", 2),
         ("https://epicentrk.ua/ua/shop/myasorubki/", "myasorubky", 2),
