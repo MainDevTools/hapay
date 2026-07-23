@@ -172,6 +172,7 @@ CATEGORY_UI = {
     "avtomagnitoly":   ("Авто", "📻"),
     "avtokompresory":  ("Авто", "🛞"),
     "avtopylososy":    ("Авто", "🌪️"),
+    "avtoholodylnyky": ("Авто", "🧊"),
     "videokarty":      ("Електроніка", "🎇"),
     "ssd":             ("Електроніка", "💾"),
     "procesory":       ("Електроніка", "🧠"),
