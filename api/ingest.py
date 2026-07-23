@@ -37,6 +37,7 @@ from adapters.interatletika import InteratletikaAdapter
 from adapters.ktc import KtcAdapter
 from adapters.medmagazin import MedmagazinAdapter
 from adapters.masterzoo import MasterzooAdapter
+from adapters.maudau import MaudauAdapter
 from adapters.moyo import MoyoAdapter
 from adapters.podorozhnyk import PodorozhnykAdapter
 from adapters.rozetka import RozetkaAdapter
@@ -108,6 +109,9 @@ INGEST_SOURCES: dict[str, dict] = {
     # Dnipro-M — виробник+рітейл інструменту (розвідка 2026-07-23). Vue SSR-атрибути.
     # Фото на static.dnipro-m.ua; у hosts не додаємо (перевірка стереже URL товару).
     "DniproM":   {"base_url": "https://dnipro-m.ua",       "hosts": ("dnipro-m.ua",)},
+    # MAUDAU — маркетплейс (розвідка 2026-07-23; вердикт «SPA без render» застарів —
+    # SSR віддає ціни plain-GET'ом). Вхід — дитячі категорії (спадок Pampik).
+    "MAUDAU":    {"base_url": "https://maudau.com.ua",     "hosts": ("maudau.com.ua",)},
 }
 
 # ── Серверний парсинг пересланого HTML (S11 етап 3) ───────────────────────────────
@@ -1225,6 +1229,23 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://dnipro-m.ua/kompressory-i-aksessuary/vozdusnye-kompressory/", "kompresory"),
         ("https://dnipro-m.ua/tovary-enerhonezalezhnosti/elektrogeneratori/", "generatory"),
         ("https://dnipro-m.ua/sadovo-parkovaya-tehnika/mijki-visokogo-tisku/", "myyky"),
+    )},
+    # MAUDAU (розвідка 2026-07-23, другий захід) — маркетплейс; вхід — 7/7 дитячих
+    # категорій (Pampik влився в MAUDAU: pampik.com редіректить сюди). Перший вердикт
+    # «SPA без render» ЗАСТАРІВ: Next.js SSR віддає лістинг із цінами plain-GET'ом
+    # стабільно (3×872KB, без анти-бота). Гачки — data-testid (productItem/…Name/
+    # finalPrice/productFullPrice) — Tailwind-класи непридатні. Назви з SKU в дужках.
+    # Пагінація КЛІЄНТСЬКА (?page=2 → ті самі 57 SKU, звірено — урок Eldorado) →
+    # top-~50/категорію, pages=1. Радіоняні тут 48 позицій (Antoshka — 2) —
+    # розділи доповнюють одне одного. Другий дитячий спеціаліст поруч з Antoshka.
+    "MAUDAU": {"adapter": MaudauAdapter(), "urls": (
+        ("https://maudau.com.ua/category/koliasky", "kolyasky"),
+        ("https://maudau.com.ua/category/avtokrisla", "avtokrisla"),
+        ("https://maudau.com.ua/category/molokovidsmoktuvachi", "molokovidsmoktuvachi"),
+        ("https://maudau.com.ua/category/pidihrivachi", "sterylizatory"),        # підігрівачі+стерилізатори
+        ("https://maudau.com.ua/category/radioniani", "radionyani"),             # 48 поз.
+        ("https://maudau.com.ua/category/dytiachi-vahy", "dytyachi-vagy"),
+        ("https://maudau.com.ua/category/stilchyky-dlia-hoduvannia-i-bustery", "stilchyky"),  # MPN 23/48
     )},
     # Zootovary (розвідка 2026-07-23) — зоо-спеціаліст, 5 категорій «Зоотоварів».
     # Пагінація справжня (?page=2 → 34/34 нових, перевірено фактом) → pages=2,
