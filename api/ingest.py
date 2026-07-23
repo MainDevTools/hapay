@@ -164,6 +164,7 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/roboty-pylesosy/", "roboty-pylososy", 2),
                  ("https://allo.ua/ua/elektronnye-knigi/", "e-knygy", 2),
                  ("https://allo.ua/ua/kommutatory/", "komutatory", 2),
+                 ("https://allo.ua/ua/besprovodnye-tochki-dostupa/", "tochky-dostupu", 2),
                  ("https://allo.ua/ua/tostery/", "tostery", 2),   # MPN 36/60
                  ("https://allo.ua/ua/products/utugi/", "prasky", 2),
                  ("https://allo.ua/ua/products/masorubki/", "myasorubky", 2),
@@ -285,6 +286,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://www.foxtrot.com.ua/uk/shop/roboti_pilesosi.html", "roboty-pylososy", 2),
         ("https://www.foxtrot.com.ua/uk/shop/electronnye_knigi.html", "e-knygy", 2),
         ("https://www.foxtrot.com.ua/uk/shop/kommutatory.html", "komutatory", 2),
+        ("https://www.foxtrot.com.ua/uk/shop/marshrutizatory_tochki-dostupa.html", "tochky-dostupu", 2),
         ("https://www.foxtrot.com.ua/uk/shop/tostery.html", "tostery", 2),  # MPN 30/42
         ("https://www.foxtrot.com.ua/uk/shop/utugi.html", "prasky", 2),  # MPN 40/42 (+ відпарювачі)
         ("https://www.foxtrot.com.ua/uk/shop/myasorybki.html", "myasorubky", 2),  # MPN 33/42
@@ -546,6 +548,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/clean_robots/c237815/", "roboty-pylososy", 2),  # головний домен
         ("https://rozetka.com.ua/ua/e-books/c80023/", "e-knygy", 2),  # головний домен
         ("https://rozetka.com.ua/ua/switches/c80194/", "komutatory", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/wireless-access-points/c80195/", "tochky-dostupu", 2),  # головний домен
         ("https://bt.rozetka.com.ua/ua/toasters/c80145/", "tostery", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/irons/c80161/", "prasky", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/meat_choppers/c80176/", "myasorubky", 2),  # bt-піддомен
@@ -690,6 +693,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://eldorado.ua/uk/1039116/c1039116/", "zovnishni-hdd"),   # render
         ("https://eldorado.ua/uk/e-books/c1039007/", "e-knygy"),   # render
         ("https://eldorado.ua/uk/1222573/c1222573/", "komutatory"),   # render
+        ("https://eldorado.ua/uk/access-points/c1285159/", "tochky-dostupu"),   # render
         ("https://eldorado.ua/uk/toasters/c1042091/", "tostery"),   # render (+ сендвічниці/вафельниці)
         ("https://eldorado.ua/uk/irons/c1039036/", "prasky"),   # render
         ("https://eldorado.ua/uk/meat-grinder/c1039054/", "myasorubky"),   # render
@@ -811,6 +815,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/proektory/", "proektory", 2),
         ("https://epicentrk.ua/ua/shop/roboty-pylesosy/", "roboty-pylososy", 2),
         ("https://epicentrk.ua/ua/shop/elektronnye-knigi/", "e-knygy", 2),
+        ("https://epicentrk.ua/ua/shop/tochki-dostupa-wi-fi/", "tochky-dostupu", 2),
         ("https://epicentrk.ua/ua/shop/tostery/", "tostery", 2),   # MPN 41/60
         ("https://epicentrk.ua/ua/shop/utyugi/", "prasky", 2),
         ("https://epicentrk.ua/ua/shop/myasorubki/", "myasorubky", 2),
