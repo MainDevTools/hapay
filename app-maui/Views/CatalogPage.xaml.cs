@@ -16,6 +16,7 @@ public partial class CatalogPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        _vm.RefreshLocal();            // нещодавні/історія запитів — свіжі щоразу
         if (_initialized) return;
         _initialized = true;
         await _vm.InitializeAsync();   // категорії зі знижками → вітрина

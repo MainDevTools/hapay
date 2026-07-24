@@ -17,9 +17,8 @@
     <!-- Дії тулбара — іконками (Material: у top app bar дії саме значки, текст там
          нестандартний). Text лишаємо: Android бере його для overflow-меню й для
          підказки на довгий тап, тож доступність не втрачається. -->
+    <!-- «Стеження» пішло в таб-бар (UX-пакет 2026-07-24) — тулбар без дублів -->
     <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Стеження" Command="{Binding WatchlistCommand}"
-                     IconImageSource="{AppThemeBinding Light=ic_watch_light.png, Dark=ic_watch_dark.png}" />
         <ToolbarItem Text="Акаунт" Command="{Binding AccountCommand}"
                      IconImageSource="{AppThemeBinding Light=ic_account_light.png, Dark=ic_account_dark.png}" />
     </ContentPage.ToolbarItems>
@@ -55,6 +54,23 @@
                                     </FormattedString>
                                 </Label.FormattedText>
                             </Label>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </FlexLayout>
+            <!-- історія запитів: чіпи, коли поле порожнє (тап → одразу пошук) -->
+            <FlexLayout Wrap="Wrap" JustifyContent="Start" IsVisible="{Binding ShowQueryHistory}"
+                        BindableLayout.ItemsSource="{Binding RecentQueries}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                        <Border Style="{StaticResource Card}" Padding="10,4"
+                                Margin="0,0,6,6" StrokeShape="RoundRectangle 14">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding Source={x:Reference Page}, Path=BindingContext.SearchFromHistoryCommand}"
+                                    CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+                            <Label Text="{Binding .}" FontSize="12" Style="{StaticResource Caption}" />
                         </Border>
                     </DataTemplate>
                 </BindableLayout.ItemTemplate>
@@ -113,6 +129,37 @@
                         <IndicatorView x:Name="BannerDots" HorizontalOptions="Center"
                                        IndicatorSize="7" IndicatorColor="#66888888"
                                        SelectedIndicatorColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
+                    </VerticalStackLayout>
+
+                    <!-- «Нещодавно переглянуті» — локальна історія, повернення до порівняння -->
+                    <VerticalStackLayout Spacing="8" IsVisible="{Binding HasRecent}">
+                        <Label Text="Нещодавно переглянуті" Style="{StaticResource H2}"
+                               Padding="16,8,16,0" />
+                        <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                            <HorizontalStackLayout Padding="16,0" Spacing="10"
+                                                   BindableLayout.ItemsSource="{Binding Recent}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="models:Discount">
+                                        <Border WidthRequest="128" Style="{StaticResource Card}" Padding="8">
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer
+                                                    Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenProductCommand}"
+                                                    CommandParameter="{Binding .}" />
+                                            </Border.GestureRecognizers>
+                                            <VerticalStackLayout Spacing="6">
+                                                <Border HeightRequest="72" Padding="6"
+                                                        Style="{StaticResource Thumb}">
+                                                    <Image Source="{Binding ImageUrl}" Aspect="AspectFit" />
+                                                </Border>
+                                                <Label Text="{Binding Title}" Style="{StaticResource Caption}"
+                                                       FontSize="11" MaxLines="2" LineBreakMode="TailTruncation" />
+                                                <Label Text="{Binding CurrentGrn}" FontAttributes="Bold" FontSize="12" />
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </HorizontalStackLayout>
+                        </ScrollView>
                     </VerticalStackLayout>
 
                     <!-- «Популярні моделі»: товар у найбільшій к-сті крамниць → «від X ₴» -->

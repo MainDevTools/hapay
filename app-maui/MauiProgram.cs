@@ -21,6 +21,9 @@ public static class MauiProgram
         // DI: сервіси — по одному на застосунок (Auth тримає стан токена); VM/сторінки — нові.
         builder.Services.AddSingleton<ApiService>();
         builder.Services.AddSingleton<AuthService>();
+        builder.Services.AddSingleton<RecentProducts>();
+        builder.Services.AddSingleton<SearchHistory>();
+        builder.Services.AddSingleton<FeedCache>();
         builder.Services.AddSingleton<CollectorService>();
         builder.Services.AddSingleton<PriceWatchService>();
 #if ANDROID

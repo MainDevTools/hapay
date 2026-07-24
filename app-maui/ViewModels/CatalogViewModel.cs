@@ -37,6 +37,13 @@ public partial class CatalogViewModel : ObservableObject
     /// не лише товари — при 171 категорії згадати точну назву нереально).
     public ObservableCollection<Category> Suggestions { get; } = new();
 
+    /// «Нещодавно переглянуті» — локальна історія відкритих карток (повернутись до
+    /// порівняння без повторного пошуку).
+    public ObservableCollection<Discount> Recent { get; } = new();
+
+    /// Історія пошукових запитів — чіпи під порожнім полем пошуку.
+    public ObservableCollection<string> RecentQueries { get; } = new();
+
     /// Банерна карусель (E-Katalog): сторінки 2×2 з топ-категорій із фото.
     public ObservableCollection<BannerPage> BannerPages { get; } = new();
 
@@ -50,16 +57,45 @@ public partial class CatalogViewModel : ObservableObject
     [ObservableProperty] private bool _hasSuggestions;
     [ObservableProperty] private bool _hasBanners;
     [ObservableProperty] private bool _hasPopularSections;
+    [ObservableProperty] private bool _hasRecent;
+    [ObservableProperty] private bool _showQueryHistory;
     [ObservableProperty] private string _searchText = "";
 
     private readonly List<Category> _allCats = new();
+    private readonly RecentProducts _recent;
+    private readonly SearchHistory _searchHistory;
     private bool _ready;
 
-    public CatalogViewModel(ApiService api, AuthService auth, IPriceWatchScheduler watchScheduler)
+    public CatalogViewModel(ApiService api, AuthService auth, IPriceWatchScheduler watchScheduler,
+                            RecentProducts recent, SearchHistory searchHistory)
     {
         _api = api;
         _auth = auth;
         _watchScheduler = watchScheduler;
+        _recent = recent;
+        _searchHistory = searchHistory;
+    }
+
+    /// Локальні секції (нещодавні/історія запитів) — оновлюються при КОЖНОМУ
+    /// поверненні на головну (без guard: щойно переглянуте має з'явитись одразу).
+    public void RefreshLocal()
+    {
+        Recent.Clear();
+        foreach (var d in _recent.Load()) Recent.Add(d);
+        HasRecent = Recent.Count > 0;
+
+        RecentQueries.Clear();
+        foreach (var q in _searchHistory.Load()) RecentQueries.Add(q);
+        ShowQueryHistory = RecentQueries.Count > 0 && string.IsNullOrWhiteSpace(SearchText);
+    }
+
+    /// Чіп історії пошуку → одразу виконати запит.
+    [RelayCommand]
+    private async Task SearchFromHistory(string? q)
+    {
+        if (string.IsNullOrWhiteSpace(q)) return;
+        await Shell.Current.GoToAsync(nameof(HomePage),
+            new Dictionary<string, object> { ["Query"] = q, ["Title"] = $"Пошук: {q}" });
     }
 
     public async Task InitializeAsync()
@@ -191,6 +227,7 @@ public partial class CatalogViewModel : ObservableObject
     {
         var q = SearchText?.Trim();
         if (string.IsNullOrEmpty(q)) return;
+        _searchHistory.Push(q);
         await Shell.Current.GoToAsync(nameof(HomePage),
             new Dictionary<string, object> { ["Query"] = q, ["Title"] = $"Пошук: {q}" });
     }
@@ -205,13 +242,8 @@ public partial class CatalogViewModel : ObservableObject
                          c.Name.Contains(q, StringComparison.CurrentCultureIgnoreCase)).Take(8))
                 Suggestions.Add(c);
         HasSuggestions = Suggestions.Count > 0;
+        ShowQueryHistory = RecentQueries.Count > 0 && string.IsNullOrWhiteSpace(value);
     }
-
-    /// Відстеження — з тулбара, а не трьома тапами через профіль.
-    /// Не залогінений → спершу вхід: список належить акаунту.
-    [RelayCommand]
-    private async Task Watchlist() => await Shell.Current.GoToAsync(
-        _auth.IsLoggedIn ? nameof(WatchlistPage) : nameof(LoginPage));
 
     [RelayCommand]
     private async Task Account()

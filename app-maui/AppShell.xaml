@@ -25,6 +25,14 @@
             Icon="{AppThemeBinding Light=ic_discount_light.png, Dark=ic_discount_dark.png}"
             ContentTemplate="{DataTemplate views:HomePage}"
             Route="znizhky" />
+        <!-- Стеження — постійний таб (UX-пакет 2026-07-24): головна retention-фіча
+             була захована за тулбар-іконкою. Push-маршрут nameof(WatchlistPage)
+             лишається окремо (профіль) — ідентифікатори різні, як у HomePage. -->
+        <ShellContent
+            Title="Стеження"
+            Icon="{AppThemeBinding Light=ic_watch_light.png, Dark=ic_watch_dark.png}"
+            ContentTemplate="{DataTemplate views:WatchlistPage}"
+            Route="stezhennia" />
     </TabBar>
 
 </Shell>

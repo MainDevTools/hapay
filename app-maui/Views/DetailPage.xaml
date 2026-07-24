@@ -54,6 +54,14 @@
                        TextColor="{AppThemeBinding Light={StaticResource WarnFgLight}, Dark={StaticResource WarnFgDark}}" />
             </Border>
 
+            <!-- «Зараз найнижча ціна за 30 днів/з dd.MM» — Omnibus-відповідь на питання
+                 «купувати зараз чи чекати»; зелена пігулка лише коли це ФАКТ з історії -->
+            <Border IsVisible="{Binding IsAtMin30}" HorizontalOptions="Start"
+                    Style="{StaticResource PillSave}" Padding="10,6">
+                <Label Text="{Binding Min30Badge}" FontSize="13" FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light={StaticResource SaveFgLight}, Dark={StaticResource SaveFgDark}}" />
+            </Border>
+
             <!-- скелетон на місці 🏆/«Де купити», поки офери в дорозі: блоки
                  «вистрибували» зі зсувом усього лейауту -->
             <Border IsVisible="{Binding LoadingOffers}" Style="{StaticResource Card}"
@@ -126,6 +134,16 @@
             <Label Text="{Binding HistoryNote}" Style="{StaticResource Caption}"
                    IsVisible="{Binding HistoryNote, Converter={StaticResource NotEmpty}}" />
             <GraphicsView x:Name="Chart" HeightRequest="180" IsVisible="{Binding HasChart}" />
+            <!-- статутний мінімум (Omnibus) людською мовою; чесний до глибини історії -->
+            <Label Text="{Binding Min30Text}" FontSize="13" FontAttributes="Bold"
+                   IsVisible="{Binding Min30Text, Converter={StaticResource NotEmpty}}" />
+            <!-- прозорість детекції: що означають наші позначки -->
+            <Label Text="ⓘ Як ми перевіряємо знижки" FontSize="12"
+                   TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}">
+                <Label.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding ExplainBadgesCommand}" />
+                </Label.GestureRecognizers>
+            </Label>
 
             <!-- «Де купити» (T15/§17.5): той самий товар (mpn) у крамницях, від найдешевшої.
                  Видно лише коли є ≥2 крамниці — інакше блок не додає нічого. -->
@@ -225,6 +243,12 @@
                     IsEnabled="{Binding WatchBusy, Converter={StaticResource Invert}}"
                     IsVisible="{Binding CanWatch}" HeightRequest="48"
                     BackgroundColor="Transparent"
+                    TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
+                    BorderColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
+                    BorderWidth="1" />
+            <!-- «Поділитись» — системний share sheet (назва + ціна + лінк) -->
+            <Button Text="Поділитись" Command="{Binding ShareProductCommand}"
+                    HeightRequest="44" BackgroundColor="Transparent"
                     TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
                     BorderColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
                     BorderWidth="1" />

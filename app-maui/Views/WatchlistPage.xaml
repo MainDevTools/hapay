@@ -19,6 +19,18 @@
         <Label Grid.Row="0" Text="{Binding ErrorMessage}" TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}" Padding="14,10"
                IsVisible="{Binding ErrorMessage, Converter={StaticResource NotEmpty}}" />
 
+        <!-- анонім у табі: запрошення, не помилка (список належить акаунту) -->
+        <VerticalStackLayout Grid.Row="1" Padding="32" Spacing="12" VerticalOptions="Center"
+                             IsVisible="{Binding ShowLogin}">
+            <Label Text="Стеження за цінами" FontAttributes="Bold" FontSize="17"
+                   HorizontalOptions="Center" />
+            <Label Text="Увійди, щоб зберігати товари і отримувати сповіщення, коли ціна падає."
+                   TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}"
+                   HorizontalTextAlignment="Center" />
+            <Button Text="Увійти" Command="{Binding GoLoginCommand}" HorizontalOptions="Center"
+                    WidthRequest="160" />
+        </VerticalStackLayout>
+
         <RefreshView Grid.Row="1" IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefreshCommand}">
             <CollectionView ItemsSource="{Binding Items}">
 

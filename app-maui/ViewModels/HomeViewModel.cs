@@ -11,6 +11,15 @@ namespace Hapay.ViewModels;
 public record SortOption(string Label, string Key);
 public record PriceOption(string Label, int? MinKop, int? MaxKop);   // межі — копійки (інв. A), null = без межі
 
+/// Чіп сортування (сегменти замість пікера): INPC потрібен для підсвітки обраного.
+public partial class SortChip : ObservableObject
+{
+    public string Label { get; }
+    public string Key { get; }
+    [ObservableProperty] private bool _isSelected;
+    public SortChip(string label, string key) { Label = label; Key = key; }
+}
+
 // IQueryAttributable — HomePage тепер пушиться з каталогу з категорією/пошуком (§17).
 public partial class HomeViewModel : ObservableObject, IQueryAttributable
 {
@@ -25,13 +34,15 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
 
     public IReadOnlyList<SortOption> SortOptions { get; } = new List<SortOption>
     {
-        // підписи короткі: пікери тепер по третині ширини (компактна панель фільтрів)
         new("За знижкою", "discount"),
         new("Де дешевше", "cheaper"),   // той самий товар дешевший в іншій крамниці
         new("Дешевші", "cheap"),
         new("Дорожчі", "expensive"),
         new("Найновіші", "new"),
     };
+
+    /// Сорт — сегмент-чіпами (видно всі опції одразу, один тап замість двох у пікері).
+    public ObservableCollection<SortChip> SortChips { get; } = new();
 
     // глобальний фолбек — коли категорія не обрана або без цінових меж (замало даних)
     private static readonly IReadOnlyList<PriceOption> _globalPrices = new List<PriceOption>
@@ -58,8 +69,14 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
     [ObservableProperty] private bool _showSkeleton;
     public IReadOnlyList<int> SkeletonRows { get; } = new[] { 0, 1, 2, 3, 4, 5 };
 
+    // розумні порожні стани: кнопки-дії замість глухого «нічого не знайдено»
+    [ObservableProperty] private bool _hasPriceFilter;      // «Прибрати фільтр ціни»
+    [ObservableProperty] private bool _isCategoryNarrowed;  // «Шукати в усіх категоріях»
+
     // refId → watchlist_id: серденька на картках знають свій стан і чим видалятись
     private readonly Dictionary<int, int> _watchIds = new();
+
+    private bool _pendingCacheSwap;   // кеш на екрані → перший свіжий батч його замінює
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private bool _isRefreshing;
     [ObservableProperty] private string? _errorMessage;
@@ -83,13 +100,26 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
     private CancellationTokenSource? _searchCts;
 
     private readonly ICollectScheduler _scheduler;
+    private readonly FeedCache _feedCache;
+    private readonly SearchHistory _searchHistory;
 
-    public HomeViewModel(ApiService api, AuthService auth, ICollectScheduler scheduler)
+    public HomeViewModel(ApiService api, AuthService auth, ICollectScheduler scheduler,
+                         FeedCache feedCache, SearchHistory searchHistory)
     {
         _api = api;
         _auth = auth;
         _scheduler = scheduler;
+        _feedCache = feedCache;
+        _searchHistory = searchHistory;
+        foreach (var s in SortOptions)
+            SortChips.Add(new SortChip(s.Label, s.Key));
     }
+
+    /// Ключ кешу стрічки: лише «чисті» види (без пошуку/цінового фільтра).
+    private string CacheKey => $"{SelectedCategory?.Slug}|{SelectedSort?.Key}";
+
+    private bool IsCleanView => !IsSearching
+        && SelectedPrice?.MinKop is null && SelectedPrice?.MaxKop is null;
 
     // прийшли з каталогу (§17) АБО повернулись із «Каталогу товарів» (вибір через ".."):
     // категорія / пошук / заголовок. Після ініціалізації застосовуємо ОДРАЗУ.
@@ -125,22 +155,43 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
         }
         catch { /* категорії необовʼязкові — «Усі» вже є */ }
 
-        // пуш із каталогу → обрати ту категорію; інакше «Усі»
-        _selectedCategory = string.IsNullOrEmpty(_pendingCategory)
+        // пуш із каталогу → обрати ту категорію; без пушу — ОСТАННЯ вжита (людина
+        // живе у 2-3 категоріях, щоразу відкривати «Усі» — зайвий тап)
+        var wanted = _pendingCategory ?? Preferences.Default.Get("last_category", "");
+        _selectedCategory = string.IsNullOrEmpty(wanted)
             ? Categories[0]
-            : Categories.FirstOrDefault(c => c.Slug == _pendingCategory) ?? Categories[0];
+            : Categories.FirstOrDefault(c => c.Slug == wanted) ?? Categories[0];
+        if (_pendingCategory is null && !string.IsNullOrEmpty(_selectedCategory.Slug))
+            PageTitle = _selectedCategory.Name;
         if (!string.IsNullOrEmpty(_pendingQuery))
             _searchText = _pendingQuery;         // backing-поле: не тригерити debounce-reload тут
-        _selectedSort = SortOptions[0];
+        var lastSort = Preferences.Default.Get("last_sort", "");
+        _selectedSort = SortOptions.FirstOrDefault(s => s.Key == lastSort) ?? SortOptions[0];
         // backing-поля не проходять partial-хуки → залежне будуємо руками
         ApplyCategorySideEffects(_selectedCategory);
+        SyncSortChips();
         _selectedPrice = PriceOptions[0];    // «Будь-яка ціна»
         OnPropertyChanged(nameof(SelectedCategory));
         OnPropertyChanged(nameof(SelectedSort));
         OnPropertyChanged(nameof(SelectedPrice));
         OnPropertyChanged(nameof(SearchText));
 
-        await ReloadAsync();
+        // кеш-перший старт: остання перша сторінка цього виду — на екран МИТТЄВО,
+        // свіже тихо замінить (ReloadAsync нижче)
+        if (string.IsNullOrEmpty(_searchText))
+        {
+            var cached = _feedCache.TryLoad(CacheKey);
+            if (cached is not null)
+            {
+                foreach (var d in cached)
+                {
+                    d.IsWatched = _watchIds.ContainsKey(d.StoreProductId);
+                    Items.Add(d);
+                }
+            }
+        }
+
+        await ReloadAsync(keepCache: true);
         _ready = true;
     }
 
@@ -148,11 +199,41 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
     partial void OnSelectedCategoryChanged(Category? value)
     {
         ApplyCategorySideEffects(value);
+        Preferences.Default.Set("last_category", value?.Slug ?? "");   // пам'ять між запусками
         if (_ready) _ = ReloadAsync();
     }
-    partial void OnSelectedSortChanged(SortOption? value) { if (_ready) _ = ReloadAsync(); }
+    partial void OnSelectedSortChanged(SortOption? value)
+    {
+        SyncSortChips();
+        Preferences.Default.Set("last_sort", value?.Key ?? "");
+        if (_ready) _ = ReloadAsync();
+    }
     partial void OnSelectedPriceChanged(PriceOption? value)
-    { if (_ready && !_rebuildingPrices) _ = ReloadAsync(); }
+    {
+        HasPriceFilter = value?.MinKop is not null || value?.MaxKop is not null;
+        if (_ready && !_rebuildingPrices) _ = ReloadAsync();
+    }
+
+    private void SyncSortChips()
+    {
+        foreach (var ch in SortChips) ch.IsSelected = ch.Key == SelectedSort?.Key;
+    }
+
+    /// Тап по чіпу сортування.
+    [RelayCommand]
+    private void PickSort(SortChip? ch)
+    {
+        if (ch is null || ch.Key == SelectedSort?.Key) return;
+        SelectedSort = SortOptions.First(s => s.Key == ch.Key);
+    }
+
+    // ── розумні порожні стани: дії замість глухого «нічого не знайдено» ──────────
+    [RelayCommand]
+    private void ClearPriceFilter() { if (PriceOptions.Count > 0) SelectedPrice = PriceOptions[0]; }
+
+    [RelayCommand]
+    private void SearchAllCategories() =>
+        SelectedCategory = Categories.FirstOrDefault(c => string.IsNullOrEmpty(c.Slug));
 
     private bool _rebuildingPrices;   // зміна категорії міняє список цін — без другого reload
 
@@ -161,6 +242,7 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
     {
         var real = c is not null && !string.IsNullOrEmpty(c.Slug);
         SelectedCategoryLabel = real ? c!.Display : "Усі категорії";
+        IsCategoryNarrowed = real;
         if (real) PageTitle = c!.Name;
 
         Neighbors.Clear();
@@ -219,7 +301,7 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
         try { await Task.Delay(400, token); }
         catch (TaskCanceledException) { return; }
         if (!token.IsCancellationRequested)
-            await MainThread.InvokeOnMainThreadAsync(ReloadAsync);
+            await MainThread.InvokeOnMainThreadAsync(() => ReloadAsync());
     }
 
     [RelayCommand]
@@ -254,12 +336,7 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
         await Shell.Current.GoToAsync(route);
     }
 
-    /// Стеження з тулбара (як у каталозі). Не залогінений → спершу вхід: список акаунтний.
-    [RelayCommand]
-    private async Task Watchlist() => await Shell.Current.GoToAsync(
-        _auth.IsLoggedIn ? nameof(WatchlistPage) : nameof(LoginPage));
-
-    private async Task ReloadAsync()
+    private async Task ReloadAsync(bool keepCache = false)
     {
         var gen = ++_gen;              // нове покоління → будь-який in-flight запит застарілий
         _page = 0;
@@ -267,9 +344,17 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
         _searchWidened = false;        // новий запит — знову поважаємо обрану категорію
         SearchNote = null;
         ErrorMessage = null;
-        Items.Clear();
+        if (keepCache && Items.Count > 0)
+        {
+            _pendingCacheSwap = true;  // кеш лишається на екрані; свіже його замінить
+        }
+        else
+        {
+            _pendingCacheSwap = false;
+            Items.Clear();
+            ShowSkeleton = true;       // порожнеча до першої відповіді — скелетон-картки
+        }
         IsLoading = true;
-        ShowSkeleton = true;           // порожнеча до першої відповіді — скелетон-картки
         await FetchAsync(gen);         // НЕ через LoadMore: свіжий reload не блокується IsLoading
     }
 
@@ -369,6 +454,11 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
                     // («Коти · Сухий корм»), тож родове слово бере відмінок на себе
                     : $"У категорії «{SelectedCategory?.Name}» ціни в крамницях однакові — дешевшого поруч нема";
 
+            if (_pendingCacheSwap)
+            {
+                Items.Clear();          // свіже приїхало — кеш-картки поступаються місцем
+                _pendingCacheSwap = false;
+            }
             foreach (var d in batch)
             {
                 d.IsWatched = _watchIds.ContainsKey(d.StoreProductId);   // серденька
@@ -376,6 +466,10 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
             }
             _more = batch.Count >= 50;
             _page++;
+            if (_page == 1 && IsCleanView && batch.Count > 0)
+                _feedCache.Save(CacheKey, batch);        // перша сторінка «чистого» виду → кеш
+            if (_page == 1 && IsSearching && batch.Count > 0)
+                _searchHistory.Push(SearchText);         // успішний запит → історія пошуку
             ErrorMessage = null;
         }
         catch (Exception e)

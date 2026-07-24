@@ -14,9 +14,8 @@
         <conv:StringNotEmptyConverter x:Key="NotEmpty" />
     </ContentPage.Resources>
 
+    <!-- «Стеження» пішло в таб-бар (UX-пакет 2026-07-24) — тулбар без дублів -->
     <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Стеження" Command="{Binding WatchlistCommand}"
-                     IconImageSource="{AppThemeBinding Light=ic_watch_light.png, Dark=ic_watch_dark.png}" />
         <ToolbarItem Text="Акаунт" Command="{Binding AccountCommand}"
                      IconImageSource="{AppThemeBinding Light=ic_account_light.png, Dark=ic_account_dark.png}" />
     </ContentPage.ToolbarItems>
@@ -32,10 +31,7 @@
             <Border Style="{StaticResource FilterBar}">
                 <VerticalStackLayout Spacing="2">
                     <SearchBar Placeholder="Пошук за назвою…" Text="{Binding SearchText}" />
-                    <!-- Ширини нерівні свідомо: назви категорій найдовші («Ноутбуки та
-                         ПК (933)»), підписи ціни найкоротші («Будь-яка»). При рівних
-                         третинах категорію різало просто на лічильнику. -->
-                    <Grid ColumnDefinitions="1.35*,*,0.8*" ColumnSpacing="6">
+                    <Grid ColumnDefinitions="1.5*,*" ColumnSpacing="6">
                         <!-- Категорія: НЕ плоский пікер (171 рядок — колесо непридатне),
                              а кнопка → повноекранний «Каталог товарів» (розділи →
                              категорії, E-Katalog-стиль — рішення оператора 2026-07-24) -->
@@ -48,15 +44,44 @@
                             <Label Grid.Column="1" Text="▾" FontSize="13" VerticalOptions="Center"
                                    TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
                         </Grid>
-                        <Picker Grid.Column="1" Title="Сортування" FontSize="13"
-                                ItemsSource="{Binding SortOptions}"
-                                ItemDisplayBinding="{Binding Label}"
-                                SelectedItem="{Binding SelectedSort}" />
-                        <Picker Grid.Column="2" Title="Ціна" FontSize="13"
+                        <Picker Grid.Column="1" Title="Ціна" FontSize="13"
                                 ItemsSource="{Binding PriceOptions}"
                                 ItemDisplayBinding="{Binding Label}"
                                 SelectedItem="{Binding SelectedPrice}" />
                     </Grid>
+                    <!-- сорт — сегмент-чіпами: всі опції видно одразу, один тап -->
+                    <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                        <HorizontalStackLayout Spacing="6" Padding="2,0,2,4"
+                                               BindableLayout.ItemsSource="{Binding SortChips}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="vm:SortChip">
+                                    <Border Padding="10,4" StrokeShape="RoundRectangle 14"
+                                            StrokeThickness="0.8"
+                                            Stroke="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
+                                            BackgroundColor="Transparent">
+                                        <Border.Triggers>
+                                            <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                                <Setter Property="BackgroundColor"
+                                                        Value="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
+                                            </DataTrigger>
+                                        </Border.Triggers>
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer
+                                                Command="{Binding Source={x:Reference Page}, Path=BindingContext.PickSortCommand}"
+                                                CommandParameter="{Binding .}" />
+                                        </Border.GestureRecognizers>
+                                        <Label Text="{Binding Label}" FontSize="12">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label" Binding="{Binding IsSelected}" Value="True">
+                                                    <Setter Property="TextColor" Value="White" />
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </HorizontalStackLayout>
+                    </ScrollView>
                 </VerticalStackLayout>
             </Border>
             <!-- сусідні категорії розділу: стрибок «Ноутбуки → Процесори» одним тапом -->
@@ -99,9 +124,19 @@
                             RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}">
 
                 <CollectionView.EmptyView>
-                    <VerticalStackLayout Padding="32" Spacing="8" VerticalOptions="Center">
+                    <!-- розумний порожній стан: дії замість глухого «нічого не знайдено»
+                         (внутрішній VSL під ShowEmpty: EmptyView зʼявляється і під час
+                         завантаження/помилки — кнопки там були б оманою) -->
+                    <VerticalStackLayout Padding="32" Spacing="12" VerticalOptions="Center"
+                                         IsVisible="{Binding ShowEmpty}">
                         <Label Text="Нічого не знайдено" HorizontalOptions="Center"
-                               FontAttributes="Bold" IsVisible="{Binding ShowEmpty}" />
+                               FontAttributes="Bold" />
+                        <Button Text="Прибрати фільтр ціни" FontSize="13"
+                                Command="{Binding ClearPriceFilterCommand}"
+                                IsVisible="{Binding HasPriceFilter}" HorizontalOptions="Center" />
+                        <Button Text="Шукати в усіх категоріях" FontSize="13"
+                                Command="{Binding SearchAllCategoriesCommand}"
+                                IsVisible="{Binding IsCategoryNarrowed}" HorizontalOptions="Center" />
                     </VerticalStackLayout>
                 </CollectionView.EmptyView>
 

@@ -128,13 +128,66 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
     }
 
     private readonly IPriceWatchScheduler _watchScheduler;
+    private readonly RecentProducts _recent;
 
-    public DetailViewModel(ApiService api, AuthService auth, IPriceWatchScheduler watchScheduler)
+    public DetailViewModel(ApiService api, AuthService auth, IPriceWatchScheduler watchScheduler,
+                           RecentProducts recent)
     {
         _api = api;
         _auth = auth;
         _watchScheduler = watchScheduler;
+        _recent = recent;
     }
+
+    // ── «Найнижча за 30 днів» (UX-пакет 2026-07-24): пряма Omnibus-цінність ─────────
+    // Рахуємо з /history, ЧЕСНО до глибини даних: поки історії менш як 30 днів,
+    // формулювання каже «з {дата}», не «за 30 днів» — не обіцяємо вікно, якого нема.
+    [ObservableProperty] private string? _min30Text;
+    [ObservableProperty] private bool _isAtMin30;
+    [ObservableProperty] private string? _min30Badge;
+
+    private void ComputeMin30()
+    {
+        Min30Text = null; IsAtMin30 = false; Min30Badge = null;
+        if (Item is null || History.Count == 0) return;
+        var cutoff = DateTime.Today.AddDays(-30);
+        var window = History.Where(p => p.Date >= cutoff).ToList();
+        if (window.Count == 0) return;
+        var min = window.MinBy(p => p.MinKop)!;
+        var full30 = window[0].Date <= cutoff.AddDays(3);   // історія покриває ~все вікно
+        var span = full30 ? "за 30 днів" : $"з {window[0].Date:dd.MM}";
+        Min30Text = $"Найнижча ціна {span}: {Money.Grn(min.MinKop)} ({min.Date:dd.MM})";
+        if (Item.CurrentKop <= min.MinKop)
+        {
+            IsAtMin30 = true;
+            Min30Badge = $"Зараз найнижча ціна {span}";
+        }
+    }
+
+    /// «Поділитись» — системний share sheet: назва + ціна + лінк крамниці.
+    [RelayCommand]
+    private async Task ShareProduct()
+    {
+        if (Item is null) return;
+        var text = $"{Item.Title} — {PriceRangeText}" +
+                   (Item.OffersN > 1 ? $" · порівняно в {Item.OffersN} крамницях (Хапай)" : " (Хапай)") +
+                   $"\n{Item.Url}";
+        await Share.Default.RequestAsync(new ShareTextRequest { Text = text, Title = Item.Title });
+    }
+
+    /// «ⓘ Як ми перевіряємо знижки» — прозорість детекції (юр-плюс: формулювання
+    /// фактологічні, суголосні бейджам §5.4; «чесність крамниці» не оцінюємо).
+    [RelayCommand]
+    private async Task ExplainBadges() => await Shell.Current.DisplayAlert(
+        "Як ми перевіряємо знижки",
+        "Ми щодня зберігаємо ціни крамниць і звіряємо кожну знижку з правилом " +
+        "закону №3153-IX: чесна «стара ціна» — це найнижча ціна за останні 30 днів.\n\n" +
+        "✓ підтверджена — заявлена стара ціна збігається з нашою історією цін\n" +
+        "· заявлена — історії ще замало, щоб перевірити\n" +
+        "⚠ завищена — за 30 днів такої «старої» ціни ми не бачили\n\n" +
+        "🏆 Наш вибір — відкрита формула з ціни, перевірки знижок і самовивозу " +
+        "(складники — в блоці вибору). Крамниці не платять за позиції.",
+        "Зрозуміло");
 
     /// Стежити може лише залогінений — інакше нема кому належати списку.
     public bool CanWatch => _auth.IsLoggedIn;
@@ -208,6 +261,7 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
             _ = LoadHistory(value.StoreProductId);
             _ = LoadOffers(value.StoreProductId);
             _ = LoadWatchStateAsync(value.StoreProductId);
+            _recent.Push(value);   // «Нещодавно переглянуті» на головній (локально)
         }
         // до завантаження оферів — фолбек на ціну самого товару
         OnPropertyChanged(nameof(PriceRangeText));
@@ -334,6 +388,7 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
             foreach (var p in pts) History.Add(p);
             HistoryNote = DescribeHistory();
             HasChart = History.Count >= 2 && !HistoryIsFlat();
+            ComputeMin30();     // «Найнижча за 30 днів» + бейдж «зараз найнижча»
         }
         catch (Exception e)
         {

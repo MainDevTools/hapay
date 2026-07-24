@@ -14,22 +14,45 @@ namespace Hapay.ViewModels;
 public partial class WatchlistViewModel : ObservableObject
 {
     private readonly ApiService _api;
+    private readonly AuthService _auth;
 
     public ObservableCollection<WatchItem> Items { get; } = new();
 
     [ObservableProperty] private bool _isRefreshing;
     [ObservableProperty] private string? _errorMessage;
     [ObservableProperty] private bool _showEmpty;
+    /// Екран тепер ТАБ (2026-07-24) — анонім бачить запрошення увійти, не помилку.
+    [ObservableProperty] private bool _showLogin;
 
-    public WatchlistViewModel(ApiService api) => _api = api;
+    public WatchlistViewModel(ApiService api, AuthService auth)
+    {
+        _api = api;
+        _auth = auth;
+    }
 
-    public async Task InitializeAsync() => await LoadAsync();
+    public async Task InitializeAsync()
+    {
+        await _auth.LoadAsync();       // таб може відкритись першим — токен ще не піднятий
+        if (!_auth.IsLoggedIn)
+        {
+            ShowLogin = true;
+            ShowEmpty = false;
+            ErrorMessage = null;
+            Items.Clear();
+            return;
+        }
+        ShowLogin = false;
+        await LoadAsync();
+    }
+
+    [RelayCommand]
+    private async Task GoLogin() => await Shell.Current.GoToAsync(nameof(LoginPage));
 
     [RelayCommand]
     private async Task Refresh()
     {
         IsRefreshing = true;
-        await LoadAsync();
+        await InitializeAsync();   // через гейт аноніма: pull-to-refresh без логіна ≠ помилка
         IsRefreshing = false;
     }
 
