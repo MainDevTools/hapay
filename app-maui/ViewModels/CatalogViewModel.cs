@@ -180,6 +180,12 @@ public partial class CatalogViewModel : ObservableObject
             new Dictionary<string, object> { ["Category"] = c.Slug, ["Title"] = c.Name });
     }
 
+    /// «Весь каталог →»: повний дворівневий каталог; вибір ПУШИТЬ стрічку категорії
+    /// (Flow=push — бо повертатись нема куди: каталог-таб не приймає категорію).
+    [RelayCommand]
+    private async Task OpenAllCatalog() => await Shell.Current.GoToAsync(
+        nameof(CategoryPickerPage), new Dictionary<string, object> { ["Flow"] = "push" });
+
     [RelayCommand]
     private async Task Search()
     {

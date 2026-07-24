@@ -27,6 +27,9 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
     [ObservableProperty] private bool _loadingHistory;
     [ObservableProperty] private string? _historyNote;
     [ObservableProperty] private bool _hasOffers;   // ≥2 крамниці — тоді блок «Де купити» видно
+    /// Скелетон на місці 🏆/«Де купити», поки офери в дорозі (блоки «вистрибували»
+    /// зі зсувом лейауту — частина скарги на затримки 2026-07-24).
+    [ObservableProperty] private bool _loadingOffers;
 
     /// Точки для графіка — свій IDrawable читає цю колекцію (сходинки+розриви, T12).
     public ObservableCollection<HistoryPoint> History { get; } = new();
@@ -250,6 +253,7 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
         // (накладання бейджів потребує завантаженої колекції, а не відповіді сервера)
         var choiceTask = _api.ChoiceAsync(storeProductId);
         var specsTask = _api.SpecsAsync(storeProductId);
+        LoadingOffers = true;
         try
         {
             var offers = await _api.OffersAsync(storeProductId);
@@ -269,8 +273,24 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
             OnPropertyChanged(nameof(ShowSingleDiscount));
             OnPropertyChanged(nameof(PageTitle));
         }
+        LoadingOffers = false;
+        OnPropertyChanged(nameof(ShowBuyCta));
+        OnPropertyChanged(nameof(BuyCtaText));
         await LoadSpecs(specsTask);         // S12: і для груп, і соло (свій try всередині)
     }
+
+    /// Головна CTA (UX-пакет 2026-07-24): «Купити в {переможець 🏆} — {ціна}» —
+    /// одна велика кнопка замість рівноправного списку. Ціна — ФАКТИЧНА цінникова
+    /// крамниці (не ефективна з доставкою): людина побачить саме її на сайті.
+    private Offer? BuyOffer =>
+        Choice is null ? null : Offers.FirstOrDefault(o => o.Store == Choice.OurChoice);
+
+    public bool ShowBuyCta => BuyOffer is not null;
+    public string BuyCtaText =>
+        BuyOffer is Offer o ? $"Купити в {o.Store} — {o.CurrentGrn}" : "";
+
+    [RelayCommand]
+    private async Task BuyBest() => await OpenOffer(BuyOffer);
 
     [RelayCommand]
     private async Task OpenOffer(Offer? o)

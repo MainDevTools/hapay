@@ -50,6 +50,12 @@ public class Discount
     [JsonPropertyName("same_price_n")] public int? SamePriceN { get; set; }
 
     // --- похідні для XAML-байндингу ---
+    /// Серденько «Стежити» прямо на картці стрічки (UX-пакет 2026-07-24). Виставляє
+    /// VM після звірки з watchlist; оновлення рядка — заміною елемента колекції
+    /// (модель без INPC — той самий патерн, що IsOurChoice в Offer).
+    [JsonIgnore] public bool IsWatched { get; set; }
+    [JsonIgnore] public string HeartGlyph => IsWatched ? "♥" : "♡";
+
     [JsonIgnore] public bool HasMultiStores => OffersN > 1;
     [JsonIgnore] public bool ShowStoreLine => OffersN <= 1;              // одна крамниця → її й показуємо
     [JsonIgnore] public string StoresText => $"Наявно в {OffersN} крамницях";

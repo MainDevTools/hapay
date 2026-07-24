@@ -114,13 +114,23 @@
                                         Command="{Binding Source={x:Reference Page}, Path=BindingContext.GoToDetailCommand}"
                                         CommandParameter="{Binding .}" />
                                 </Border.GestureRecognizers>
-                                <Grid ColumnDefinitions="72,*" ColumnSpacing="10">
+                                <Grid ColumnDefinitions="72,*,Auto" ColumnSpacing="10">
                                     <!-- фото в рамці з фоном: биті/відсутні картинки не виглядають дірою -->
                                     <Border Grid.Column="0" Style="{StaticResource Thumb}"
                                             WidthRequest="72" HeightRequest="72" Padding="4"
                                             VerticalOptions="Start">
                                         <Image Source="{Binding ImageUrl}" Aspect="AspectFit" />
                                     </Border>
+                                    <!-- серденько: стежити одним тапом, не відкриваючи картку -->
+                                    <Label Grid.Column="2" Text="{Binding HeartGlyph}" FontSize="22"
+                                           Padding="6,0,2,0" VerticalOptions="Start"
+                                           TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}">
+                                        <Label.GestureRecognizers>
+                                            <TapGestureRecognizer
+                                                Command="{Binding Source={x:Reference Page}, Path=BindingContext.ToggleWatchCommand}"
+                                                CommandParameter="{Binding .}" />
+                                        </Label.GestureRecognizers>
+                                    </Label>
                                     <VerticalStackLayout Grid.Column="1" Spacing="3">
                                         <Label Text="{Binding Title}" MaxLines="2" LineBreakMode="TailTruncation"
                                                Style="{StaticResource Body}" FontAttributes="Bold" />
@@ -188,6 +198,31 @@
                 </CollectionView.Footer>
             </CollectionView>
         </RefreshView>
+
+        <!-- скелетон до першої відповіді: порожній екран «блимав» на кожній зміні
+             фільтра (сприйнята швидкість — частина скарги на затримки) -->
+        <VerticalStackLayout Grid.Row="1" IsVisible="{Binding ShowSkeleton}" Spacing="0"
+                             BindableLayout.ItemsSource="{Binding SkeletonRows}">
+            <BindableLayout.ItemTemplate>
+                <DataTemplate x:DataType="x:Int32">
+                    <Grid Padding="12,4">
+                        <Border Style="{StaticResource Card}" Padding="10">
+                            <Grid ColumnDefinitions="72,*" ColumnSpacing="10">
+                                <BoxView Grid.Column="0" WidthRequest="72" HeightRequest="72"
+                                         CornerRadius="10" Color="#1E888888" />
+                                <VerticalStackLayout Grid.Column="1" Spacing="9" VerticalOptions="Center">
+                                    <BoxView HeightRequest="13" CornerRadius="4" Color="#1E888888" />
+                                    <BoxView HeightRequest="13" CornerRadius="4" Color="#14888888"
+                                             WidthRequest="170" HorizontalOptions="Start" />
+                                    <BoxView HeightRequest="17" CornerRadius="4" Color="#1E888888"
+                                             WidthRequest="110" HorizontalOptions="Start" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </DataTemplate>
+            </BindableLayout.ItemTemplate>
+        </VerticalStackLayout>
 
     </Grid>
 </ContentPage>

@@ -9,11 +9,16 @@ namespace Hapay.ViewModels;
 
 // «Каталог товарів» (E-Katalog-стиль, рішення оператора 2026-07-24): повноекранний
 // ДВОРІВНЕВИЙ вибір — список розділів рядками → тап → категорії розділу, з пошуком.
-// Відкривається з кнопки категорії у стрічці; вибір повертається назад через ".."
-// (query-атрибути) — БЕЗ нового екземпляра HomePage у стеку.
-public partial class CategoryPickerViewModel : ObservableObject
+// Два режими (Flow): зі стрічки — вибір повертається через ".." (query-атрибути,
+// без нового HomePage у стеку); з каталогу («Весь каталог») — вибір ПУШИТЬ стрічку
+// ("../HomePage"), бо каталог-таб категорію не приймає.
+public partial class CategoryPickerViewModel : ObservableObject, IQueryAttributable
 {
     private readonly ApiService _api;
+    private bool _push;   // Flow=push → пік відкриває стрічку замість повернення
+
+    public void ApplyQueryAttributes(IDictionary<string, object> query) =>
+        _push = query.TryGetValue("Flow", out var f) && f is string s && s == "push";
 
     public ObservableCollection<CategoryGroup> Sections { get; } = new();
     public ObservableCollection<Category> Current { get; } = new();   // категорії відкритого розділу
@@ -97,13 +102,18 @@ public partial class CategoryPickerViewModel : ObservableObject
     private async Task Pick(Category? c)
     {
         if (c is null) return;
-        await Shell.Current.GoToAsync("..", new Dictionary<string, object>
+        var route = _push ? $"../{nameof(Views.HomePage)}" : "..";
+        await Shell.Current.GoToAsync(route, new Dictionary<string, object>
         { ["Category"] = c.Slug, ["Title"] = c.Name });
     }
 
     [RelayCommand]
-    private async Task PickAll() => await Shell.Current.GoToAsync("..",
-        new Dictionary<string, object> { ["Category"] = "", ["Title"] = "Хапай" });
+    private async Task PickAll()
+    {
+        var route = _push ? $"../{nameof(Views.HomePage)}" : "..";
+        await Shell.Current.GoToAsync(route,
+            new Dictionary<string, object> { ["Category"] = "", ["Title"] = "Хапай" });
+    }
 
     [RelayCommand]
     private async Task Close() => await Shell.Current.GoToAsync("..");

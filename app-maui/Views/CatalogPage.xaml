@@ -24,6 +24,9 @@
                      IconImageSource="{AppThemeBinding Light=ic_account_light.png, Dark=ic_account_dark.png}" />
     </ContentPage.ToolbarItems>
 
+    <!-- Головна БЕЗ повної сітки 171 плитки (UX-пакет 2026-07-24): сітка дублювала
+         «Каталог товарів» і робила сторінку кілометровою стіною. Лишається вітрина:
+         пошук → банери → Популярні моделі → Популярні розділи → «Весь каталог». -->
     <Grid RowDefinitions="Auto,*" Padding="0">
 
         <VerticalStackLayout Grid.Row="0" Padding="12,8" Spacing="8">
@@ -56,47 +59,14 @@
                     </DataTemplate>
                 </BindableLayout.ItemTemplate>
             </FlexLayout>
-            <!-- чіпи розділів: тап → стрибок до розділу (31 розділ суцільним скролом —
-                 до «Шин та олив» був кілометр гортання) -->
-            <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
-                <HorizontalStackLayout Spacing="6" BindableLayout.ItemsSource="{Binding Groups}">
-                    <BindableLayout.ItemTemplate>
-                        <DataTemplate x:DataType="models:CategoryGroup">
-                            <Border Style="{StaticResource Card}" Padding="10,4"
-                                    StrokeShape="RoundRectangle 14">
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Tapped="OnSectionTapped" />
-                                </Border.GestureRecognizers>
-                                <Label Text="{Binding Title}" FontSize="12" />
-                            </Border>
-                        </DataTemplate>
-                    </BindableLayout.ItemTemplate>
-                </HorizontalStackLayout>
-            </ScrollView>
             <Label Text="{Binding ErrorMessage}" Margin="4,0"
                    TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}"
                    IsVisible="{Binding ErrorMessage, Converter={StaticResource NotEmpty}}" />
         </VerticalStackLayout>
 
         <RefreshView Grid.Row="1" IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefreshCommand}">
-            <CollectionView x:Name="Cv" ItemsSource="{Binding Groups}" IsGrouped="True">
-
-                <CollectionView.ItemsLayout>
-                    <GridItemsLayout Orientation="Vertical" Span="2"
-                                     HorizontalItemSpacing="10" VerticalItemSpacing="10" />
-                </CollectionView.ItemsLayout>
-
-                <CollectionView.EmptyView>
-                    <VerticalStackLayout Padding="32" Spacing="8" VerticalOptions="Center">
-                        <Label Text="Поки немає знижок" HorizontalOptions="Center"
-                               FontAttributes="Bold" IsVisible="{Binding ShowEmpty}" />
-                    </VerticalStackLayout>
-                </CollectionView.EmptyView>
-
-                <!-- Хедер сітки (E-Katalog-стиль, рішення оператора 2026-07-24):
-                     банерна карусель 2×2 → популярні моделі → популярні розділи. -->
-                <CollectionView.Header>
-                    <VerticalStackLayout Spacing="8" Padding="0,4,0,6">
+            <ScrollView>
+                <VerticalStackLayout Padding="0,4,0,24" Spacing="8">
 
                     <!-- банерна карусель: топ-категорії з фото, сторінки по 4 плитки;
                          PeekAreaInsets показує край наступної сторінки — натяк на свайп -->
@@ -223,51 +193,25 @@
                         </ScrollView>
                     </VerticalStackLayout>
 
-                    </VerticalStackLayout>
-                </CollectionView.Header>
-
-                <!-- заголовок розділу (Електроніка / Зоотовари) -->
-                <CollectionView.GroupHeaderTemplate>
-                    <DataTemplate x:DataType="models:CategoryGroup">
-                        <Label Text="{Binding Title}" Style="{StaticResource H2}"
-                               Padding="16,16,16,8" />
-                    </DataTemplate>
-                </CollectionView.GroupHeaderTemplate>
-
-                <!-- плитка категорії: фото товару-представника (емодзі — фолбек) + назва + к-сть -->
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="models:Category">
-                        <Grid Padding="6,0">
-                            <Border Style="{StaticResource Card}" Padding="12">
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer
-                                        Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenCategoryCommand}"
-                                        CommandParameter="{Binding .}" />
-                                </Border.GestureRecognizers>
-                                <!-- Рядки фіксовані (86,Auto,Auto), а не Auto по фото: інакше
-                                     плитки різної висоти й сітка «сходинками». Емодзі-фолбек
-                                     живе в ТОМУ САМОМУ рядку, тож плитка без фото не коротша. -->
-                                <Grid RowDefinitions="86,Auto,Auto" RowSpacing="8">
-                                    <Border Grid.Row="0" Padding="6" Style="{StaticResource Thumb}"
-                                            IsVisible="{Binding HasImage}">
-                                        <Image Source="{Binding ImageUrl}" Aspect="AspectFit" />
-                                    </Border>
-                                    <Label Grid.Row="0" Text="{Binding Icon}" FontSize="40"
-                                           HorizontalOptions="Center" VerticalOptions="Center"
-                                           IsVisible="{Binding NoImage}" />
-                                    <Label Grid.Row="1" Text="{Binding Name}" Style="{StaticResource Body}"
-                                           FontAttributes="Bold" MaxLines="2" LineBreakMode="TailTruncation" />
-                                    <Label Grid.Row="2" Text="{Binding CountText}" Style="{StaticResource Caption}" />
-                                </Grid>
-                            </Border>
+                    <!-- вхід у повний каталог (171 категорія живе там, не на головній) -->
+                    <Border Style="{StaticResource Card}" Margin="16,10" Padding="14,12"
+                            StrokeShape="RoundRectangle 14">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding OpenAllCatalogCommand}" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0" Text="Весь каталог" FontAttributes="Bold" FontSize="15"
+                                   TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
+                            <Label Grid.Column="1" Text="→" FontSize="16"
+                                   TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
                         </Grid>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
+                    </Border>
 
-                <CollectionView.Footer>
-                    <BoxView HeightRequest="16" Color="Transparent" />
-                </CollectionView.Footer>
-            </CollectionView>
+                    <Label Text="Поки немає знижок" HorizontalOptions="Center" Padding="0,24"
+                           FontAttributes="Bold" IsVisible="{Binding ShowEmpty}" />
+
+                </VerticalStackLayout>
+            </ScrollView>
         </RefreshView>
     </Grid>
 </ContentPage>

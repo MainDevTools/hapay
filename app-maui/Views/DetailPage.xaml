@@ -54,6 +54,19 @@
                        TextColor="{AppThemeBinding Light={StaticResource WarnFgLight}, Dark={StaticResource WarnFgDark}}" />
             </Border>
 
+            <!-- скелетон на місці 🏆/«Де купити», поки офери в дорозі: блоки
+                 «вистрибували» зі зсувом усього лейауту -->
+            <Border IsVisible="{Binding LoadingOffers}" Style="{StaticResource Card}"
+                    Padding="14,12" StrokeShape="RoundRectangle 12">
+                <VerticalStackLayout Spacing="10">
+                    <BoxView HeightRequest="16" CornerRadius="4" Color="#1E888888"
+                             WidthRequest="200" HorizontalOptions="Start" />
+                    <BoxView HeightRequest="13" CornerRadius="4" Color="#14888888" />
+                    <BoxView HeightRequest="13" CornerRadius="4" Color="#14888888"
+                             WidthRequest="220" HorizontalOptions="Start" />
+                </VerticalStackLayout>
+            </Border>
+
             <!-- 🏆 «Наш вибір» (S9): найвигідніший спосіб купити — не найдешевша цифра.
                  Tap розкриває кандидатів у ЛЮДСЬКИХ одиницях (редизайн 2026-07-24:
                  сирі частки формули з рядків прибрано — прозорість живе в
@@ -69,6 +82,12 @@
                            TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
                     <Label Text="{Binding ChoiceSavingsText}" FontSize="13"
                            IsVisible="{Binding ShowSavings}" Style="{StaticResource Body}" />
+                    <!-- головна CTA: одна велика кнопка переможця (ціна — цінникова) -->
+                    <Button Text="{Binding BuyCtaText}" Command="{Binding BuyBestCommand}"
+                            IsVisible="{Binding ShowBuyCta}" FontAttributes="Bold" FontSize="15"
+                            CornerRadius="12" Margin="0,4"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
+                            TextColor="White" />
                     <VerticalStackLayout Spacing="5" IsVisible="{Binding IsChoiceExpanded}"
                                          BindableLayout.ItemsSource="{Binding Choice.Candidates}">
                         <BindableLayout.ItemTemplate>

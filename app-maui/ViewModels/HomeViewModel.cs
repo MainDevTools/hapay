@@ -54,6 +54,12 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
     [ObservableProperty] private string _searchText = "";
     [ObservableProperty] private bool _hasNeighbors;
     [ObservableProperty] private string _selectedCategoryLabel = "Усі категорії";
+    /// Скелетон-картки замість порожнечі до першої відповіді (сприйнята швидкість).
+    [ObservableProperty] private bool _showSkeleton;
+    public IReadOnlyList<int> SkeletonRows { get; } = new[] { 0, 1, 2, 3, 4, 5 };
+
+    // refId → watchlist_id: серденька на картках знають свій стан і чим видалятись
+    private readonly Dictionary<int, int> _watchIds = new();
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private bool _isRefreshing;
     [ObservableProperty] private string? _errorMessage;
@@ -109,6 +115,7 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
         if (_ready) return;
         await _auth.LoadAsync();   // підняти збережений токен (SecureStorage) до першого запиту
         _scheduler.EnsureIfEnabled();   // відновити фоновий збір (T16), якщо був увімкнений
+        _ = LoadWatchMapAsync();   // серденька на картках; тихо і паралельно до категорій
         // «Усі категорії» додаємо ДО запиту — щоб пікер не лишився порожнім, якщо мережа впаде
         Categories.Add(new Category { Slug = "", Name = "Усі категорії" });
         try
@@ -262,7 +269,53 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
         ErrorMessage = null;
         Items.Clear();
         IsLoading = true;
+        ShowSkeleton = true;           // порожнеча до першої відповіді — скелетон-картки
         await FetchAsync(gen);         // НЕ через LoadMore: свіжий reload не блокується IsLoading
+    }
+
+    /// Звірка стеження для сердець на картках. Тихо: збій не ламає стрічку.
+    private async Task LoadWatchMapAsync()
+    {
+        _watchIds.Clear();
+        if (!_auth.IsLoggedIn) return;
+        try
+        {
+            foreach (var w in await _api.WatchlistAsync())
+                if (w.Kind == "store_product" && w.RefId is int rid)
+                    _watchIds[rid] = w.WatchlistId;
+        }
+        catch { /* серденька просто лишаться порожніми */ }
+    }
+
+    /// Серденько на картці: додати/зняти стеження одним тапом, без відкриття картки.
+    /// Оновлення рядка — заміною елемента (Discount без INPC, патерн IsOurChoice).
+    [RelayCommand]
+    private async Task ToggleWatch(Discount? d)
+    {
+        if (d is null) return;
+        if (!_auth.IsLoggedIn)
+        {
+            await Shell.Current.GoToAsync(nameof(LoginPage));   // список належить акаунту
+            return;
+        }
+        try
+        {
+            if (_watchIds.TryGetValue(d.StoreProductId, out var wid))
+            {
+                await _api.UnwatchAsync(wid);
+                _watchIds.Remove(d.StoreProductId);
+                d.IsWatched = false;
+            }
+            else
+            {
+                await _api.WatchAsync(d.StoreProductId);
+                await LoadWatchMapAsync();                      // дістати watchlist_id нового
+                d.IsWatched = true;
+            }
+            var i = Items.IndexOf(d);
+            if (i >= 0) Items[i] = d;                           // Replace → рядок перечитується
+        }
+        catch { /* мережевий збій — стан просто не змінився */ }
     }
 
     private async Task FetchAsync(int gen)
@@ -316,7 +369,11 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
                     // («Коти · Сухий корм»), тож родове слово бере відмінок на себе
                     : $"У категорії «{SelectedCategory?.Name}» ціни в крамницях однакові — дешевшого поруч нема";
 
-            foreach (var d in batch) Items.Add(d);
+            foreach (var d in batch)
+            {
+                d.IsWatched = _watchIds.ContainsKey(d.StoreProductId);   // серденька
+                Items.Add(d);
+            }
             _more = batch.Count >= 50;
             _page++;
             ErrorMessage = null;
@@ -331,6 +388,7 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
             if (gen == _gen)
             {
                 IsLoading = false;
+                ShowSkeleton = false;
                 ShowEmpty = Items.Count == 0 && ErrorMessage is null;
             }
         }
