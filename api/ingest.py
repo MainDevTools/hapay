@@ -224,6 +224,7 @@ HTML_SOURCES: dict[str, dict] = {
                  ("https://allo.ua/ua/ip-kamery/", "ip-kamery", 2),                   # MPN 37/60
                  ("https://allo.ua/ua/videodomofony/", "videodomofony", 2),           # MPN 18/60, відео 50/60
                  ("https://allo.ua/ua/ochki-virtual-noj-real-nosti/", "vr-okulyary", 2),  # MPN 14/60
+                 ("https://allo.ua/ua/products/radiostancii/", "ratsii", 2),           # Baofeng-домінанта
                  ("https://allo.ua/ua/fonari/", "likhtari", 2),                        # MPN 25/60
                  ("https://allo.ua/ua/termosy/", "termosy", 2),                        # MPN 24/60 (Xiaomi-тайл)
                  ("https://allo.ua/ua/smesiteli/", "zmishuvachi", 2),                  # MPN 33/60
@@ -626,6 +627,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/nastoljnye-igry-i-golovolomki/c98280/", "nastilni-ihry", 2),  # головний домен
         ("https://bt.rozetka.com.ua/ua/sewing_machines/c80159/", "shveyni-mashyny", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/overloki/c4670141/", "overloky", 2),  # bt-піддомен; єдине джерело (0146)
+        ("https://rozetka.com.ua/ua/walkie-talkie/c84018/", "ratsii", 2),  # головний домен
+        ("https://auto.rozetka.com.ua/ua/gps-navigators/c80047/", "gps-navigatory", 2),  # auto-піддомен
         ("https://rozetka.com.ua/ua/skovorody/c4626754/", "skovorody", 2),  # головний домен
         ("https://rozetka.com.ua/ua/nozhi-kuhonnie/c4626670/", "nozhi-kukhonni", 2),  # головний домен
         ("https://rozetka.com.ua/ua/binoculars/c83917/", "binokli", 2),  # головний домен
@@ -976,6 +979,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/smesiteli/", "zmishuvachi", 2),   # MPN 20/60
         ("https://epicentrk.ua/ua/shop/kotly-gazovye/", "kotly-hazovi", 2),   # MPN 6/60
         ("https://epicentrk.ua/ua/shop/shveynaya-tekhnika/", "shveyni-mashyny", 2),   # мішає ~5/60 оверлоків
+        ("https://epicentrk.ua/ua/shop/ratsii/", "ratsii", 2),   # MPN 10/60
+        ("https://epicentrk.ua/ua/shop/gps-navigatory/", "gps-navigatory", 2),   # 75% чистоти (HUD-домішка)
         ("https://epicentrk.ua/ua/shop/radiatory-otopleniya/", "radiatory-opalennya", 2),   # MPN 4/60
         ("https://epicentrk.ua/ua/shop/skovorodki/", "skovorody", 2),   # MPN 4/60
         ("https://epicentrk.ua/ua/shop/binokli/", "binokli", 2),   # MPN 7/60
