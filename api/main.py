@@ -114,6 +114,14 @@ def choice(store_product_id: int, conn=Depends(get_conn)):
     return {"choice": our_choice(conn, qdb.product_offers(conn, store_product_id))}
 
 
+@app.get("/api/product/{store_product_id}/specs")
+def specs(store_product_id: int, conn=Depends(get_conn)):
+    """Характеристики (S12): пари назва-значення зі спец-таблиці картки крамниці —
+    одна картка на крос-групу, віддається будь-якому члену групи. Завжди з
+    провенансом (крамниця+URL+дата — інваріант B5). null = ще не зібрано."""
+    return {"specs": qdb.product_specs(conn, store_product_id)}
+
+
 @app.get("/api/watchlist")
 def watchlist(user=Depends(require_user), conn=Depends(get_conn)):
     return qdb.list_watchlist(conn, int(user["id"]))
@@ -270,6 +278,7 @@ def collect_lease(body: dict | None = None, collector=Depends(require_collector)
     """Видати ≤limit дозрілих задач (по 1 на крамницю — розліт 15 хв/крамниця).
     Порожньо = все зібрано нещодавно; телефон засинає до наступного опитування."""
     qtasks.seed_tasks(conn)                 # ледачий сів: нове в HTML_SOURCES → у черзі
+    qtasks.seed_card_tasks(conn)            # дозований бекфіл специфікацій (S12); дешевий guard усередині
     limit = (body or {}).get("limit", 3)
     if not isinstance(limit, int):
         raise HTTPException(400, "limit має бути int")
@@ -333,7 +342,9 @@ def ingest_html(body: dict, collector=Depends(require_collector), conn=Depends(g
     # закривалась ok і добу виглядала здоровою (клас Eldorado-провалу, впіймано на
     # першому render-зборі MasterZoo). Тепер — fail із бекофом і видимим статусом.
     # hub/sitemap не чіпаємо: там accepted=0 штатно (повертають discovered).
-    zero = result.get("kind") == "page" and not result.get("accepted")
+    # card (S12) — теж: 0 атрибутів = челендж/зламана розмітка → fail (задача
+    # лишається з бекофом; ok видалив би її назавжди — див. complete_task).
+    zero = result.get("kind") in ("page", "card") and not result.get("accepted")
     note = "0 позицій (тихий нуль)" if zero else None
     task_id = body.get("task_id")
     if isinstance(task_id, int):

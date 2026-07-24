@@ -1687,6 +1687,38 @@ def ingest_batch(conn, source: str, items: list, category_slug: str | None = Non
             "reasons": reasons, "status": status}
 
 
+# ── Характеристики з карток товарів (S12) ─────────────────────────────────────────
+# Порядок = пріоритет вибору картки-джерела в крос-групі (одна картка на групу).
+# Foxtrot свідомо НЕ тут: легкий варіант його картки докачує специфікації через
+# */product/get*, який robots забороняє (розвідка 2026-07-24).
+CARD_SOURCES: tuple[str, ...] = ("Allo", "Rozetka")
+
+
+def persist_spec(conn, source: str, url: str, attrs: list[tuple[str, str]]) -> int:
+    """Пари характеристик картки → product_spec/spec_attr (інваріант B5: лише факти,
+    з провенансом). Товар шукаємо за ТОЧНИМ url — card-задача створювалась зі
+    store_product.url, тож розбіжність = збій, не «створимо новий».
+    Набір перезаписуваний (не історія): повторний збір заміняє атрибути цілком."""
+    row = conn.execute(
+        "SELECT sp.store_product_id FROM store_product sp JOIN source s USING (source_id) "
+        "WHERE s.name = %s AND sp.url = %s "
+        "ORDER BY sp.store_product_id LIMIT 1", (source, url)).fetchone()
+    if row is None:
+        raise ValueError("картка без товару в базі (url ≠ store_product.url)")
+    if not attrs:
+        return 0
+    spec_id, = conn.execute(
+        "INSERT INTO product_spec (store_product_id, source_url) VALUES (%s, %s) "
+        "ON CONFLICT (store_product_id) DO UPDATE "
+        "SET source_url = EXCLUDED.source_url, collected_at = now() "
+        "RETURNING spec_id", (row[0], url)).fetchone()
+    conn.execute("DELETE FROM spec_attr WHERE spec_id = %s", (spec_id,))
+    for i, (name, value) in enumerate(attrs):
+        conn.execute("INSERT INTO spec_attr (spec_id, position, name, value) "
+                     "VALUES (%s,%s,%s,%s)", (spec_id, i, name, value))
+    return len(attrs)
+
+
 # ── html-ingest: застосунок шле сирий HTML, СЕРВЕР парсить (S11 етап 3) ────────────
 def collect_plan() -> list[dict]:
     """Що застосунку-колектору тягнути. Сервер — авторитет (додати крамницю = зміна ТУТ,
@@ -1760,6 +1792,24 @@ def ingest_html(conn, source: str, url: str, html: str) -> dict:
         landings = [u for u in landings if _host_ok(u, hosts)]
         return {"source": source, "kind": "hub", "discovered": landings,
                 "accepted": 0, "rejected": 0, "status": "ok"}
+
+    # фаза 2-card (S12): card-задача → спец-таблиця картки товару, не лістинг.
+    # Розпізнаємо за ЧЕРГОЮ (цей url ставили ми самі як kind='card'), а не за формою
+    # url — жодних здогадок про шаблони адрес. Після hub/sitemap: ті гілки чисті
+    # (працюють і з conn=None у юніт-тестах), а тут БД уже обов'язкова.
+    if conn is not None:
+        krow = conn.execute("SELECT kind FROM collect_task WHERE source = %s AND url = %s",
+                            (source, url)).fetchone()
+        if krow and krow[0] == "card":
+            if not hasattr(adapter, "parse_card"):
+                raise ValueError(f"{source}: адаптер без parse_card")
+            try:
+                attrs = adapter.parse_card(html)
+            except Exception as e:
+                raise ValueError(f"parse_card: {type(e).__name__}: {e}")
+            saved = persist_spec(conn, source, url, attrs)
+            return {"source": source, "kind": "card", "accepted": saved,
+                    "rejected": 0, "status": "ok"}
 
     # фаза 2: сторінка → екстракт → та сама валідація+персист, що й прямий /api/ingest
     try:

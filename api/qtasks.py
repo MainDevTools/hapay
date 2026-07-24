@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from psycopg.rows import dict_row
 
-from api.ingest import COLLECT_MODE, HTML_SOURCES, source_listings
+from api.ingest import CARD_SOURCES, COLLECT_MODE, HTML_SOURCES, source_listings
 
 SOURCE_SPACING_MIN = 15   # розліт запитів по одній крамниці (хв)
 LEASE_TTL_MIN = 10        # протухання оренди (хв)
@@ -49,6 +49,12 @@ SITEMAP_REPEAT_MIN = 2880  # sitemap-відкриття — раз на 2 доб
 # проді 2026-07-22: задача дозріла, збір іде, а її ніхто не бере). Один запит на 2 доби,
 # що відсуває одну картку на 15 хв — ворота до всього іншого мають проходити першими.
 SITEMAP_PRIORITY = 10
+# Картки специфікацій (S12) — ЛИШЕ у вільні слоти: пріоритет нижчий (більший) за
+# лістинги (100), тож у межах крамниці й у фінальному ORDER BY дозріла page-задача
+# завжди обганяє card. Задача ОДНОРАЗОВА: при ok видаляється (специфікації не
+# протухають), при збої лишається з бекофом.
+CARD_PRIORITY = 200
+CARD_PENDING_TARGET = 100   # дозування бекфілу: стільки card-задач тримаємо в черзі
 
 
 # Стеля задач за одну оренду (застосунок просить 3; це лише ceiling проти зловживань).
@@ -113,6 +119,53 @@ def seed_tasks(conn) -> int:
     return n
 
 
+def seed_card_tasks(conn, target: int = CARD_PENDING_TARGET) -> int:
+    """Дозований бекфіл специфікацій (S12): тримає в черзі ≤target одноразових
+    card-задач — по ОДНІЙ картці на крос-групу (2+ джерел, скоуп оператора) без
+    специфікації. Крамниця в групі — перша з CARD_SOURCES (порядок = пріоритет).
+
+    Дозування навмисне: разовий сів усіх 4467 груп роздув би чергу й overdue-метрику
+    сторожа (вона рахує «дозріла давно й не зібрана» — тисячі карток у вільних слотах
+    саме такі). Викликається з lease; дешевий guard спершу — важкий запит по
+    store_product не виконується, поки черга карток не просяде."""
+    pending, = conn.execute(
+        "SELECT count(*) FROM collect_task WHERE kind = 'card'").fetchone()
+    need = target - pending
+    if need <= 0:
+        return 0
+    rows = conn.execute(
+        """WITH grp AS (
+               SELECT match_key FROM store_product WHERE match_key IS NOT NULL
+               GROUP BY match_key HAVING count(DISTINCT source_id) >= 2),
+           has_spec AS (
+               SELECT DISTINCT sp.match_key FROM product_spec
+               JOIN store_product sp USING (store_product_id)
+               WHERE sp.match_key IS NOT NULL),
+           cand AS (
+               SELECT DISTINCT ON (sp.match_key) s.name AS source, sp.url
+               FROM store_product sp
+               JOIN source s USING (source_id)
+               JOIN grp USING (match_key)
+               LEFT JOIN has_spec hs ON hs.match_key = sp.match_key
+               WHERE s.name = ANY(%s) AND hs.match_key IS NULL
+                 AND NOT EXISTS (SELECT 1 FROM collect_task t
+                                 WHERE t.kind = 'card'
+                                   AND t.source = s.name AND t.url = sp.url)
+               ORDER BY sp.match_key, array_position(%s::text[], s.name),
+                        sp.store_product_id)
+           SELECT source, url FROM cand LIMIT %s""",
+        (list(CARD_SOURCES), list(CARD_SOURCES), need)).fetchall()
+    n = 0
+    for source, url in rows:
+        got = conn.execute(
+            "INSERT INTO collect_task (source, url, kind, priority, repeat_min) "
+            "VALUES (%s,%s,'card',%s,%s) ON CONFLICT (source, url) DO NOTHING "
+            "RETURNING task_id",
+            (source, url, CARD_PRIORITY, PAGE_REPEAT_MIN)).fetchone()
+        n += 1 if got else 0
+    return n
+
+
 def lease_tasks(conn, worker: str, limit: int = 3) -> list[dict]:
     """Атомарно видати ≤limit дозрілих задач — ПО ОДНІЙ на крамницю (розліт).
 
@@ -160,7 +213,8 @@ def lease_tasks(conn, worker: str, limit: int = 3) -> list[dict]:
 
 def complete_task(conn, task_id: int, worker: str, ok: bool, note: str | None = None) -> bool:
     """Закрити задачу після ingest. Успіх → наступний прохід через repeat_min;
-    збій → експоненційний бекоф (крамниця, що дає 403/капчу, не довбається)."""
+    збій → експоненційний бекоф (крамниця, що дає 403/капчу, не довбається).
+    kind='card' (S12) — одноразова: успіх видаляє задачу назавжди."""
     row = conn.execute(
         """UPDATE collect_task
            SET leased_by = NULL, leased_until = NULL,
@@ -172,8 +226,10 @@ def complete_task(conn, task_id: int, worker: str, ok: bool, note: str | None = 
                    ELSE make_interval(mins => repeat_min * least(fail_count + 1, 8))
                END
            WHERE task_id = %s AND leased_by = %s
-           RETURNING task_id""",
+           RETURNING task_id, kind""",
         ("ok" if ok else f"fail:{(note or '?')[:200]}", ok, ok, task_id, worker)).fetchone()
+    if row and ok and row[1] == "card":
+        conn.execute("DELETE FROM collect_task WHERE task_id = %s", (row[0],))
     return row is not None
 
 
@@ -208,8 +264,10 @@ def complete_by_url(conn, source: str, url: str, ok: bool = True,
                END
            WHERE source = %s AND url = %s
              AND (leased_until IS NULL OR leased_until < now())
-           RETURNING task_id""",
+           RETURNING task_id, kind""",
         ("ok" if ok else f"fail:{(note or '?')[:200]}", ok, ok, source, url)).fetchone()
+    if row and ok and row[1] == "card":      # card (S12) — одноразова, див. complete_task
+        conn.execute("DELETE FROM collect_task WHERE task_id = %s", (row[0],))
     return row is not None
 
 

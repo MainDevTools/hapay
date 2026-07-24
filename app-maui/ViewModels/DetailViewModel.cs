@@ -56,6 +56,43 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
     [RelayCommand]
     private void ToggleChoice() => IsChoiceExpanded = !IsChoiceExpanded;
 
+    /// ── Характеристики (S12): пари назва-значення з картки крамниці ───────────────
+    [ObservableProperty] private SpecsResult? _specs;
+    [ObservableProperty] private bool _isSpecsExpanded;    // згорнуто → перші 6 рядків
+
+    public bool HasSpecs => Specs is not null && Specs.Attrs.Count > 0;
+    /// Згорнуто — перші 6 пар; розгорнуто — всі. Кнопка лише коли є що розгортати.
+    public List<SpecAttr> VisibleSpecs =>
+        Specs is null ? new() : (IsSpecsExpanded ? Specs.Attrs : Specs.Attrs.Take(6).ToList());
+    public bool ShowSpecsToggle => (Specs?.Attrs.Count ?? 0) > 6;
+    public string SpecsToggleText => IsSpecsExpanded
+        ? "Згорнути" : $"Показати всі ({Specs?.Attrs.Count ?? 0})";
+    public string SpecsProvenance => Specs?.Provenance ?? "";
+
+    partial void OnSpecsChanged(SpecsResult? value)
+    {
+        OnPropertyChanged(nameof(HasSpecs));
+        OnPropertyChanged(nameof(VisibleSpecs));
+        OnPropertyChanged(nameof(ShowSpecsToggle));
+        OnPropertyChanged(nameof(SpecsToggleText));
+        OnPropertyChanged(nameof(SpecsProvenance));
+    }
+
+    partial void OnIsSpecsExpandedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(VisibleSpecs));
+        OnPropertyChanged(nameof(SpecsToggleText));
+    }
+
+    [RelayCommand]
+    private void ToggleSpecs() => IsSpecsExpanded = !IsSpecsExpanded;
+
+    private async Task LoadSpecs(int storeProductId)
+    {
+        try { Specs = await _api.SpecsAsync(storeProductId); }
+        catch { Specs = null; }    // характеристики — бонус; збій не ламає картку
+    }
+
     /// Тягнеться ПІСЛЯ оферів (послідовно): переможцю ставимо 🏆, крамницям — «чесність N%»,
     /// і перебудовуємо колекцію, щоб BindableLayout перечитав обчислювані властивості.
     private async Task LoadChoice(int storeProductId)
@@ -218,6 +255,7 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
             OnPropertyChanged(nameof(ShowSingleDiscount));
             OnPropertyChanged(nameof(PageTitle));
         }
+        await LoadSpecs(storeProductId);    // S12: і для груп, і соло (свій try всередині)
     }
 
     [RelayCommand]

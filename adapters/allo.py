@@ -17,7 +17,7 @@ import re
 
 from selectolax.lexbor import LexborHTMLParser
 
-from .base import RawItem, canon_ref, parse_price_to_kop
+from .base import RawItem, canon_ref, clean_attrs, parse_price_to_kop
 
 HUB = "https://allo.ua/ua/events-and-discounts/"
 _ACTION_RE = re.compile(r'href="(https://allo\.ua/ua/events-and-discounts/[a-z0-9\-]+-action/)"')
@@ -97,3 +97,17 @@ class AlloAdapter:
                 discount_pct=pct,
             ))
         return items
+
+    # ---- картка товару → характеристики (S12) ----
+    def parse_card(self, html: str) -> list[tuple[str, str]]:
+        """Спец-таблиці картки `table.p-specs__group` (розвідка 2026-07-24): thead —
+        назва групи («Основні») — НЕ пара, пропускається через tbody-скоуп; рядок —
+        два `td.p-specs__cell` (назва | значення; значення буває лінком-фільтром)."""
+        tree = LexborHTMLParser(html)
+        pairs: list[tuple[str, str]] = []
+        for row in tree.css("table.p-specs__group tbody tr"):
+            cells = row.css("td.p-specs__cell")
+            if len(cells) == 2:
+                pairs.append((cells[0].text(separator=" ", strip=True),
+                              cells[1].text(separator=" ", strip=True)))
+        return clean_attrs(pairs)

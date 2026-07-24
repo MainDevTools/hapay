@@ -57,3 +57,35 @@ def canon_ref(url: str) -> str:
 def slugify(text: str) -> str:
     """Стабільний ключ варіанта: «400 грамів» → «400-грамів» (кирилиця збережена)."""
     return re.sub(r"[^\w]+", "-", (text or "").strip().lower(), flags=re.UNICODE).strip("-")
+
+
+# ── Характеристики з карток (S12) ─────────────────────────────────────────────────
+_MAX_ATTR_NAME = 120
+_MAX_ATTR_VALUE = 300   # довше — майже напевно опис-текст, а не «пара назва-значення»
+_MAX_ATTRS = 80
+
+
+def clean_attrs(pairs: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """Сирі пари зі спец-таблиці → чисті факти (інваріант B5): нормалізований пробіл,
+    ліміти довжини, дедуп назв (перша перемагає — мобільний дубль блока нижче в DOM).
+
+    ЗАДОВГЕ ЗНАЧЕННЯ ВІДКИДАЄТЬСЯ ЦІЛКОМ, не обрізається: обрізаний опис — це все ще
+    шматок опису, а описи не зберігаємо ані байта (розширення B5, оператор 2026-07-24).
+    """
+    out: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for name, value in pairs:
+        name = re.sub(r"\s+", " ", (name or "").strip())
+        value = re.sub(r"\s+", " ", (value or "").strip())
+        if not (2 <= len(name) <= _MAX_ATTR_NAME):
+            continue
+        if not (1 <= len(value) <= _MAX_ATTR_VALUE):
+            continue
+        key = name.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append((name, value))
+        if len(out) >= _MAX_ATTRS:
+            break
+    return out

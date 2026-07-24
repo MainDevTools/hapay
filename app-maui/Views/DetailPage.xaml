@@ -156,6 +156,39 @@
                 </VerticalStackLayout>
             </VerticalStackLayout>
 
+            <!-- Характеристики (S12): пари назва-значення зі спец-таблиці картки ОДНІЄЇ
+                 крамниці групи. Провенанс видимий завжди (інваріант B5: факти з
+                 джерелом, не наш текст). Згорнуто — перші 6 рядків. -->
+            <VerticalStackLayout Spacing="8" IsVisible="{Binding HasSpecs}" Margin="0,12,0,0">
+                <Label Text="Характеристики" Style="{StaticResource H2}" />
+                <Border Style="{StaticResource Card}" Padding="14,12" StrokeShape="RoundRectangle 12">
+                    <VerticalStackLayout Spacing="6">
+                        <VerticalStackLayout Spacing="5"
+                                             BindableLayout.ItemsSource="{Binding VisibleSpecs}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="models:SpecAttr">
+                                    <Grid ColumnDefinitions="5*,6*" ColumnSpacing="10">
+                                        <Label Grid.Column="0" Text="{Binding Name}"
+                                               Style="{StaticResource Caption}" FontSize="12" />
+                                        <Label Grid.Column="1" Text="{Binding Value}"
+                                               Style="{StaticResource Body}" FontSize="12" />
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                        <Label Text="{Binding SpecsToggleText}" FontSize="13" FontAttributes="Bold"
+                               IsVisible="{Binding ShowSpecsToggle}"
+                               TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ToggleSpecsCommand}" />
+                            </Label.GestureRecognizers>
+                        </Label>
+                        <Label Text="{Binding SpecsProvenance}" Style="{StaticResource Caption}"
+                               FontSize="10" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+
             <Button Text="Відкрити в крамниці" Command="{Binding OpenStoreCommand}"
                     Margin="0,12,0,0" HeightRequest="48" />
 

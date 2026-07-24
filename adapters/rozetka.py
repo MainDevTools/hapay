@@ -19,7 +19,7 @@ from urllib.parse import urlsplit
 
 from selectolax.lexbor import LexborHTMLParser
 
-from .base import RawItem, canon_ref, parse_price_to_kop
+from .base import RawItem, canon_ref, clean_attrs, parse_price_to_kop
 
 # JSON-LD Offer: сама Rozetka декларує кінець дії ціни (schema.org priceValidUntil).
 # Мапимо url товару → дата. url стоїть перед offers у тому ж product-обʼєкті.
@@ -88,3 +88,20 @@ class RozetkaAdapter:
                 promo_until=promo.get(ext),   # дата кінця дії ціни (якщо крамниця дала)
             ))
         return items
+
+    # ---- картка товару → характеристики (S12) ----
+    def parse_card(self, html: str) -> list[tuple[str, str]]:
+        """Блок `rz-product-characteristics-list` на картці (розвідка 2026-07-24):
+        div.item → dt.label (назва) + dd.value (ul li — значення, буває кілька —
+        зʼєднуємо комою). Мобільний дубль блока знімає дедуп у clean_attrs."""
+        tree = LexborHTMLParser(html)
+        pairs: list[tuple[str, str]] = []
+        for item in tree.css("rz-product-characteristics-list .item"):
+            dt, dd = item.css_first("dt"), item.css_first("dd")
+            if dt is None or dd is None:
+                continue
+            name = dt.text(separator=" ", strip=True)
+            lis = [li.text(separator=" ", strip=True) for li in dd.css("li")]
+            value = ", ".join(v for v in lis if v) if lis else dd.text(separator=" ", strip=True)
+            pairs.append((name, value))
+        return clean_attrs(pairs)

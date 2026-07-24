@@ -77,6 +77,12 @@ public class ApiService
         (await _http.GetFromJsonAsync<ChoiceEnvelope>(
             $"{Base}/api/product/{storeProductId}/choice", _json, ct))?.Choice;
 
+    /// Характеристики (S12): пари назва-значення з картки крамниці (одна на групу).
+    /// null = ще не зібрано (бекфіл у вільних слотах) — секція не показується.
+    public async Task<SpecsResult?> SpecsAsync(int storeProductId, CancellationToken ct = default) =>
+        (await _http.GetFromJsonAsync<SpecsEnvelope>(
+            $"{Base}/api/product/{storeProductId}/specs", _json, ct))?.Specs;
+
     // ── auth (S11) ────────────────────────────────────────────────────────────────
     public Task<AuthResult> RegisterAsync(string email, string password, CancellationToken ct = default) =>
         PostAuthAsync("/api/auth/register", email, password, ct);

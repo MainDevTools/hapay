@@ -433,6 +433,53 @@ def main():
                    and allo_off["old_declared_kop"] == a37[0].get("old_declared_kop"),
                    (allo_off.get("old_declared_kop") if allo_off else None, a37[0].get("old_declared_kop"))))
 
+    # ── S12: характеристики з карток — сів → card-ingest → /specs → тихий нуль ────
+    from api import qtasks as qts
+    with psycopg.connect(URL, autocommit=True) as c:
+        a37_url, = c.execute("SELECT url FROM store_product WHERE store_product_id = %s",
+                             (a37_id,)).fetchone()
+        seeded = qts.seed_card_tasks(c)
+        card_row = c.execute("SELECT task_id, priority FROM collect_task "
+                             "WHERE kind='card' AND source='Allo' AND url=%s",
+                             (a37_url,)).fetchone()
+    checks.append(("seed_card_tasks: card-задача для Allo-члена групи A37 (prio 200)",
+                   card_row is not None and card_row[1] == qts.CARD_PRIORITY,
+                   (seeded, card_row)))
+    spr = client.post("/api/ingest/html", headers=chdr, json={
+        "source": "Allo", "url": a37_url, "html": _cas("allo_card.html")})
+    checks.append(("ingest/html картки → kind=card, 29 атрибутів",
+                   spr.status_code == 200 and spr.json().get("kind") == "card"
+                   and spr.json().get("accepted") == 29, spr.json()))
+    with psycopg.connect(URL, autocommit=True) as c:
+        gone = c.execute("SELECT 1 FROM collect_task WHERE kind='card' AND url=%s",
+                         (a37_url,)).fetchone()
+    checks.append(("card-задача одноразова: після ok видалена з черги", gone is None, gone))
+    # специфікація групи віддається ІНШОМУ члену (Foxtrot): одна картка на групу
+    spx = client.get(f"/api/product/{fox_off['store_product_id']}/specs").json().get("specs")
+    checks.append(("/specs для Foxtrot-члена → атрибути Allo-картки з провенансом",
+                   spx is not None and spx["store"] == "Allo"
+                   and spx["source_url"] == a37_url and spx["collected_day"]
+                   and {"name": "Тип витяжки", "value": "Телескопічна"} in spx["attrs"],
+                   spx and {k: spx[k] for k in ("store", "collected_day")}))
+    # «тихий нуль» card: лістинг замість картки → 0 атрибутів → fail з бекофом,
+    # задача ЖИВЕ (ok видалив би її назавжди — найгірший різновид тихого нуля)
+    with psycopg.connect(URL, autocommit=True) as c:
+        c.execute("INSERT INTO collect_task (source, url, kind, priority, repeat_min) "
+                  "VALUES ('Allo', %s, 'card', %s, 1440) ON CONFLICT DO NOTHING",
+                  (a37_url, qts.CARD_PRIORITY))
+    zr = client.post("/api/ingest/html", headers=chdr, json={
+        "source": "Allo", "url": a37_url, "html": _cas("allo_tv_listing.html")})
+    with psycopg.connect(URL, autocommit=True) as c:
+        zrow = c.execute("SELECT last_status FROM collect_task WHERE kind='card' "
+                         "AND url=%s", (a37_url,)).fetchone()
+    checks.append(("тихий нуль card: 0 атрибутів → fail із бекофом, задача лишилась",
+                   zr.status_code == 200 and zr.json().get("kind") == "card"
+                   and zr.json().get("accepted") == 0
+                   and zrow is not None and zrow[0].startswith("fail:0"),
+                   (zr.json(), zrow)))
+    with psycopg.connect(URL, autocommit=True) as c:   # прибрати card-хвіст перед чеками черги
+        c.execute("DELETE FROM collect_task WHERE kind='card'")
+
     # стрічка знає розмір групи: offers_n=2 у картці A37 (для «Наявно в 2 крамницях»)
     a37_after = client.get("/api/discounts?q=SM-A376BDGGEUC").json()
     checks.append(("discounts.offers_n = 2 після 2-ї крамниці",

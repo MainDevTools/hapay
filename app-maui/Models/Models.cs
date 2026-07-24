@@ -384,3 +384,28 @@ public class ChoiceComponents
     [JsonPropertyName("honesty_score")] public double HonestyScore { get; set; }
     [JsonPropertyName("pickup_bonus")] public double PickupBonus { get; set; }
 }
+
+/// ── Характеристики (S12): відповідь /api/product/{id}/specs ────────────────────────
+/// Конверт: {"specs": {...} | null}. Пари назва-значення зі спец-таблиці картки ОДНІЄЇ
+/// крамниці групи, завжди з провенансом (крамниця+дата — інваріант B5).
+public class SpecsEnvelope
+{
+    [JsonPropertyName("specs")] public SpecsResult? Specs { get; set; }
+}
+
+public class SpecsResult
+{
+    [JsonPropertyName("store")] public string Store { get; set; } = "";
+    [JsonPropertyName("source_url")] public string SourceUrl { get; set; } = "";
+    [JsonPropertyName("collected_day")] public string CollectedDay { get; set; } = "";
+    [JsonPropertyName("attrs")] public List<SpecAttr> Attrs { get; set; } = new();
+
+    /// Підпис-провенанс: «за даними Allo, 2026-07-24».
+    [JsonIgnore] public string Provenance => $"за даними {Store}, {CollectedDay}";
+}
+
+public class SpecAttr
+{
+    [JsonPropertyName("name")] public string Name { get; set; } = "";
+    [JsonPropertyName("value")] public string Value { get; set; } = "";
+}

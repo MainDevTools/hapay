@@ -103,6 +103,36 @@ def product_history(conn, store_product_id: int, days: int = 90):
         return cur.execute(sql, (store_product_id, days)).fetchall()
 
 
+def product_specs(conn, store_product_id: int):
+    """Характеристики групи товару (S12): спершу специфікація САМОГО товару, інакше
+    найсвіжіша серед членів його крос-групи (той самий товар — специфікації спільні).
+    Провенанс завжди в відповіді (інваріант B5): крамниця + URL картки + дата збору."""
+    sql = """
+        WITH me AS (SELECT store_product_id, match_key FROM store_product
+                    WHERE store_product_id = %s)
+        SELECT ps.spec_id, s.name AS store, ps.source_url,
+               to_char(ps.collected_at AT TIME ZONE 'Europe/Kyiv', 'YYYY-MM-DD')
+                   AS collected_day
+        FROM product_spec ps
+        JOIN store_product sp USING (store_product_id)
+        JOIN source s USING (source_id)
+        WHERE sp.store_product_id = (SELECT store_product_id FROM me)
+           OR (sp.match_key IS NOT NULL
+               AND sp.match_key = (SELECT match_key FROM me))
+        ORDER BY (sp.store_product_id = (SELECT store_product_id FROM me)) DESC,
+                 ps.collected_at DESC
+        LIMIT 1"""
+    with conn.cursor(row_factory=dict_row) as cur:
+        head = cur.execute(sql, (store_product_id,)).fetchone()
+        if head is None:
+            return None
+        attrs = cur.execute(
+            "SELECT name, value FROM spec_attr WHERE spec_id = %s ORDER BY position",
+            (head["spec_id"],)).fetchall()
+    return {"store": head["store"], "source_url": head["source_url"],
+            "collected_day": head["collected_day"], "attrs": attrs}
+
+
 # сортування для «усіх товарів» (не лише знижок) — колонки з CTE best нижче
 # кваліфікуємо b.* — бо JOIN store_product sp0 (для promo_until) теж має first_seen_at
 _PSORTS = {
