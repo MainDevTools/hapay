@@ -30,7 +30,7 @@
                        IndicatorSize="8" IndicatorColor="#66888888"
                        SelectedIndicatorColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
 
-        <Button x:Name="NextBtn" Grid.Row="2" Text="Далі" Margin="32,8" HeightRequest="48"
+        <Button x:Name="NextBtn" Grid.Row="2" Text="Далі" Margin="32,8" MinimumHeightRequest="48"
                 FontAttributes="Bold" CornerRadius="12" Clicked="OnNextClicked"
                 BackgroundColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
                 TextColor="White" />

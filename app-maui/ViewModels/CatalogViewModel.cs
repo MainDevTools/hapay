@@ -33,16 +33,9 @@ public partial class CatalogViewModel : ObservableObject
     /// «Популярні моделі» (§17): товари, які продають найбільше крамниць — «від X ₴».
     public ObservableCollection<Discount> Popular { get; } = new();
 
-    /// Підказки категорій під пошуком: «овер» → Оверлоки (пошук знаходить і КАТЕГОРІЇ,
-    /// не лише товари — при 171 категорії згадати точну назву нереально).
-    public ObservableCollection<Category> Suggestions { get; } = new();
-
     /// «Нещодавно переглянуті» — локальна історія відкритих карток (повернутись до
     /// порівняння без повторного пошуку).
     public ObservableCollection<Discount> Recent { get; } = new();
-
-    /// Історія пошукових запитів — чіпи під порожнім полем пошуку.
-    public ObservableCollection<string> RecentQueries { get; } = new();
 
     /// Банерна карусель (E-Katalog): сторінки 2×2 з топ-категорій із фото.
     public ObservableCollection<BannerPage> BannerPages { get; } = new();
@@ -54,49 +47,35 @@ public partial class CatalogViewModel : ObservableObject
     [ObservableProperty] private string? _errorMessage;
     [ObservableProperty] private bool _showEmpty;
     [ObservableProperty] private bool _hasPopular;
-    [ObservableProperty] private bool _hasSuggestions;
     [ObservableProperty] private bool _hasBanners;
     [ObservableProperty] private bool _hasPopularSections;
     [ObservableProperty] private bool _hasRecent;
-    [ObservableProperty] private bool _showQueryHistory;
-    [ObservableProperty] private string _searchText = "";
 
     private readonly List<Category> _allCats = new();
     private readonly RecentProducts _recent;
-    private readonly SearchHistory _searchHistory;
     private bool _ready;
 
     public CatalogViewModel(ApiService api, AuthService auth, IPriceWatchScheduler watchScheduler,
-                            RecentProducts recent, SearchHistory searchHistory)
+                            RecentProducts recent)
     {
         _api = api;
         _auth = auth;
         _watchScheduler = watchScheduler;
         _recent = recent;
-        _searchHistory = searchHistory;
     }
 
-    /// Локальні секції (нещодавні/історія запитів) — оновлюються при КОЖНОМУ
-    /// поверненні на головну (без guard: щойно переглянуте має з'явитись одразу).
+    /// «Нещодавно переглянуті» — оновлюються при КОЖНОМУ поверненні на головну
+    /// (без guard: щойно переглянуте має з'явитись одразу).
     public void RefreshLocal()
     {
         Recent.Clear();
         foreach (var d in _recent.Load()) Recent.Add(d);
         HasRecent = Recent.Count > 0;
-
-        RecentQueries.Clear();
-        foreach (var q in _searchHistory.Load()) RecentQueries.Add(q);
-        ShowQueryHistory = RecentQueries.Count > 0 && string.IsNullOrWhiteSpace(SearchText);
     }
 
-    /// Чіп історії пошуку → одразу виконати запит.
+    /// Фейк-поле пошуку → повний екран пошуку.
     [RelayCommand]
-    private async Task SearchFromHistory(string? q)
-    {
-        if (string.IsNullOrWhiteSpace(q)) return;
-        await Shell.Current.GoToAsync(nameof(HomePage),
-            new Dictionary<string, object> { ["Query"] = q, ["Title"] = $"Пошук: {q}" });
-    }
+    private async Task OpenSearch() => await Shell.Current.GoToAsync(nameof(SearchPage));
 
     public async Task InitializeAsync()
     {
@@ -221,29 +200,6 @@ public partial class CatalogViewModel : ObservableObject
     [RelayCommand]
     private async Task OpenAllCatalog() => await Shell.Current.GoToAsync(
         nameof(CategoryPickerPage), new Dictionary<string, object> { ["Flow"] = "push" });
-
-    [RelayCommand]
-    private async Task Search()
-    {
-        var q = SearchText?.Trim();
-        if (string.IsNullOrEmpty(q)) return;
-        _searchHistory.Push(q);
-        await Shell.Current.GoToAsync(nameof(HomePage),
-            new Dictionary<string, object> { ["Query"] = q, ["Title"] = $"Пошук: {q}" });
-    }
-
-    // введення в пошук → підказки категорій за назвою (CurrentCulture: кирилиця)
-    partial void OnSearchTextChanged(string value)
-    {
-        Suggestions.Clear();
-        var q = value?.Trim();
-        if (!string.IsNullOrEmpty(q) && q.Length >= 2)
-            foreach (var c in _allCats.Where(c =>
-                         c.Name.Contains(q, StringComparison.CurrentCultureIgnoreCase)).Take(8))
-                Suggestions.Add(c);
-        HasSuggestions = Suggestions.Count > 0;
-        ShowQueryHistory = RecentQueries.Count > 0 && string.IsNullOrWhiteSpace(value);
-    }
 
     [RelayCommand]
     private async Task Account()

@@ -36,13 +36,15 @@
                         <!-- Категорія: НЕ плоский пікер (171 рядок — колесо непридатне),
                              а кнопка → повноекранний «Каталог товарів» (розділи →
                              категорії, E-Katalog-стиль — рішення оператора 2026-07-24) -->
-                        <Grid Grid.Column="0" ColumnDefinitions="*,Auto" Padding="4,10">
+                        <Grid Grid.Column="0" ColumnDefinitions="*,Auto" Padding="4,10"
+                              SemanticProperties.Hint="Відкриває каталог для вибору категорії">
                             <Grid.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding OpenCategoryPickerCommand}" />
                             </Grid.GestureRecognizers>
                             <Label Grid.Column="0" Text="{Binding SelectedCategoryLabel}"
                                    FontSize="13" LineBreakMode="TailTruncation" VerticalOptions="Center" />
                             <Label Grid.Column="1" Text="▾" FontSize="13" VerticalOptions="Center"
+                                   AutomationProperties.IsInAccessibleTree="False"
                                    TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
                         </Grid>
                         <Picker Grid.Column="1" Title="Ціна" FontSize="13"
@@ -196,11 +198,15 @@
                                     <Border Grid.Column="0" Style="{StaticResource Thumb}"
                                             WidthRequest="72" HeightRequest="72" Padding="4"
                                             VerticalOptions="Start">
-                                        <Image Source="{Binding ImageUrl}" Aspect="AspectFit" />
+                                        <!-- фото декоративне: назву читає сусідній Label -->
+                                        <Image Source="{Binding ImageUrl}" Aspect="AspectFit"
+                                               AutomationProperties.IsInAccessibleTree="False" />
                                     </Border>
                                     <!-- серденько: стежити одним тапом, не відкриваючи картку -->
                                     <Label Grid.Column="2" Text="{Binding HeartGlyph}" FontSize="22"
                                            Padding="6,0,2,0" VerticalOptions="Start"
+                                           SemanticProperties.Description="Стежити за ціною"
+                                           SemanticProperties.Hint="Додає або прибирає товар зі стеження"
                                            TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}">
                                         <Label.GestureRecognizers>
                                             <TapGestureRecognizer

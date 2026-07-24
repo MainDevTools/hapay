@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Hapay.Views.SearchPage"
+    x:Name="Page"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:Hapay.ViewModels"
+    xmlns:models="clr-namespace:Hapay.Models"
+    x:DataType="vm:SearchViewModel"
+    Title="Пошук">
+
+    <Grid RowDefinitions="Auto,*" Padding="0">
+
+        <Border Grid.Row="0" Style="{StaticResource FilterBar}" Margin="12,8">
+            <SearchBar x:Name="Box" Placeholder="Назва товару або категорії…"
+                       Text="{Binding SearchText}"
+                       SearchCommand="{Binding RunFullCommand}"
+                       SemanticProperties.Hint="Пошук по всьому каталогу" />
+        </Border>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="12,0,12,24" Spacing="10">
+
+                <!-- історія запитів (порожнє поле): рядки з видаленням -->
+                <VerticalStackLayout Spacing="2" IsVisible="{Binding ShowHistory}"
+                                     BindableLayout.ItemsSource="{Binding History}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <Grid ColumnDefinitions="Auto,*,Auto" Padding="4,10" ColumnSpacing="10">
+                                <Grid.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding Source={x:Reference Page}, Path=BindingContext.PickHistoryCommand}"
+                                        CommandParameter="{Binding .}" />
+                                </Grid.GestureRecognizers>
+                                <Label Grid.Column="0" Text="🕐" FontSize="14" VerticalOptions="Center"
+                                       AutomationProperties.IsInAccessibleTree="False" />
+                                <Label Grid.Column="1" Text="{Binding .}" FontSize="14"
+                                       VerticalOptions="Center" LineBreakMode="TailTruncation" />
+                                <Label Grid.Column="2" Text="✕" FontSize="15" Padding="10,0"
+                                       Style="{StaticResource Caption}" VerticalOptions="Center"
+                                       SemanticProperties.Description="Видалити запит з історії">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding Source={x:Reference Page}, Path=BindingContext.DeleteHistoryCommand}"
+                                            CommandParameter="{Binding .}" />
+                                    </Label.GestureRecognizers>
+                                </Label>
+                            </Grid>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+
+                <!-- збіги категорій -->
+                <VerticalStackLayout Spacing="6" IsVisible="{Binding HasCategoryMatches}">
+                    <Label Text="Категорії" Style="{StaticResource H2}" FontSize="14" />
+                    <FlexLayout Wrap="Wrap" JustifyContent="Start"
+                                BindableLayout.ItemsSource="{Binding CategoryMatches}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:Category">
+                                <Border Style="{StaticResource Card}" Padding="10,4"
+                                        Margin="0,0,6,6" StrokeShape="RoundRectangle 14">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenCategoryCommand}"
+                                            CommandParameter="{Binding .}" />
+                                    </Border.GestureRecognizers>
+                                    <Label FontSize="12" SemanticProperties.Description="{Binding Name}">
+                                        <Label.FormattedText>
+                                            <FormattedString>
+                                                <Span Text="{Binding Icon}" />
+                                                <Span Text=" " />
+                                                <Span Text="{Binding Name}" />
+                                            </FormattedString>
+                                        </Label.FormattedText>
+                                    </Label>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </FlexLayout>
+                </VerticalStackLayout>
+
+                <ActivityIndicator IsRunning="{Binding IsSearching}" IsVisible="{Binding IsSearching}"
+                                   HorizontalOptions="Center" />
+
+                <!-- живі результати: компактні рядки -->
+                <VerticalStackLayout Spacing="6" IsVisible="{Binding HasResults}">
+                    <Label Text="Товари" Style="{StaticResource H2}" FontSize="14" />
+                    <VerticalStackLayout Spacing="6" BindableLayout.ItemsSource="{Binding Results}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:Discount">
+                                <Border Style="{StaticResource Card}" Padding="8">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenProductCommand}"
+                                            CommandParameter="{Binding .}" />
+                                    </Border.GestureRecognizers>
+                                    <Grid ColumnDefinitions="44,*,Auto" ColumnSpacing="10">
+                                        <Border Grid.Column="0" Style="{StaticResource Thumb}"
+                                                WidthRequest="44" HeightRequest="44" Padding="3">
+                                            <Image Source="{Binding ImageUrl}" Aspect="AspectFit"
+                                                   AutomationProperties.IsInAccessibleTree="False" />
+                                        </Border>
+                                        <Label Grid.Column="1" Text="{Binding Title}" FontSize="13"
+                                               MaxLines="2" LineBreakMode="TailTruncation"
+                                               VerticalOptions="Center" />
+                                        <Label Grid.Column="2" Text="{Binding PriceText}" FontSize="13"
+                                               FontAttributes="Bold" VerticalOptions="Center" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                    <Button Text="Всі результати →" FontSize="13" IsVisible="{Binding HasMore}"
+                            Command="{Binding RunFullCommand}" HorizontalOptions="Center"
+                            MinimumHeightRequest="40" />
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

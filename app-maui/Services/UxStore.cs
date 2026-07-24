@@ -70,6 +70,13 @@ public class SearchHistory
         if (list.Count > Max) list.RemoveRange(Max, list.Count - Max);
         try { Preferences.Default.Set(Key, JsonSerializer.Serialize(list)); } catch { }
     }
+
+    public void Remove(string q)
+    {
+        var list = Load();
+        list.RemoveAll(x => string.Equals(x, q, StringComparison.CurrentCultureIgnoreCase));
+        try { Preferences.Default.Set(Key, JsonSerializer.Serialize(list)); } catch { }
+    }
 }
 
 /// Кеш-перший старт стрічки: перша сторінка останнього перегляду лежить у файлі

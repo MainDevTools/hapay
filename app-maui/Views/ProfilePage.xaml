@@ -59,7 +59,7 @@
                 </VerticalStackLayout>
             </Border>
 
-            <Button Text="Зібрати ціни зараз" Command="{Binding CollectCommand}" HeightRequest="48" />
+            <Button Text="Зібрати ціни зараз" Command="{Binding CollectCommand}" MinimumHeightRequest="48" />
             <ActivityIndicator IsRunning="{Binding IsCollecting}" IsVisible="{Binding IsCollecting}"
                                HorizontalOptions="Center" />
             <Label Text="{Binding CollectStatus}" FontSize="13" TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}"
@@ -72,12 +72,12 @@
                 BackgroundColor="Transparent"
                 TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
                 BorderColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
-                BorderWidth="1" HeightRequest="48" />
+                BorderWidth="1" MinimumHeightRequest="48" />
 
         <!-- та сама перевірка, що й фонова, але зараз — не чекати годину -->
         <Button Text="Перевірити зниження цін" Command="{Binding CheckDropsCommand}"
                 IsEnabled="{Binding CheckingDrops, Converter={StaticResource Invert}}"
-                BackgroundColor="Transparent" TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}" HeightRequest="44" />
+                BackgroundColor="Transparent" TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}" MinimumHeightRequest="44" />
         <Label Text="{Binding DropsStatus}" FontSize="13" TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}"
                HorizontalOptions="Center"
                IsVisible="{Binding DropsStatus, Converter={StaticResource NotEmpty}}" />
@@ -98,7 +98,7 @@
         </VerticalStackLayout>
 
         <Button Text="Вийти" Command="{Binding LogoutCommand}"
-                BackgroundColor="Transparent" TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}" HeightRequest="48" />
+                BackgroundColor="Transparent" TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}" MinimumHeightRequest="48" />
 
         <!-- юр-посилання (обов'язкові для App Store / Google Play) -->
         <HorizontalStackLayout HorizontalOptions="Center" Spacing="14" Margin="0,20,0,0">

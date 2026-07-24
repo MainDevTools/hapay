@@ -22,7 +22,8 @@
 
         <!-- рівень 2: шапка розділу з поверненням (E-Katalog: «< Мобільні та зв'язок») -->
         <Grid Grid.Row="1" ColumnDefinitions="Auto,*" Padding="16,4"
-              IsVisible="{Binding ShowCurrent}">
+              IsVisible="{Binding ShowCurrent}"
+              SemanticProperties.Description="Назад до розділів">
             <Grid.GestureRecognizers>
                 <TapGestureRecognizer Command="{Binding BackToSectionsCommand}" />
             </Grid.GestureRecognizers>
