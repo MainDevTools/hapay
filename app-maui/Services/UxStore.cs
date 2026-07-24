@@ -3,6 +3,17 @@ using Hapay.Models;
 
 namespace Hapay.Services;
 
+/// Коротка вібрація на значущих діях (серденько/CTA/стеження) — «живий» застосунок.
+/// Статичний хелпер: платформа може не підтримувати або заборонити — тихо мовчимо.
+public static class Haptic
+{
+    public static void Tap()
+    {
+        try { HapticFeedback.Default.Perform(HapticFeedbackType.Click); }
+        catch { /* нема вібромотора/дозволу — не привід падати */ }
+    }
+}
+
 /// «Нещодавно переглянуті» — локально (Preferences), без сервера і без телеметрії
 /// (§7.7): список живе лише на пристрої. Останні 10, найновіше першим.
 public class RecentProducts

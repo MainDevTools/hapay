@@ -9,6 +9,32 @@ public class PriceHistoryDrawable : IDrawable
     public IReadOnlyList<HistoryPoint> Points { get; set; } = new List<HistoryPoint>();
     public Color LineColor { get; set; } = Color.FromArgb("#E23B3B");
 
+    /// Обрана тапом/драгом точка (інтерактивний графік, 2026-07-25): вертикальний
+    /// маркер + збільшене коло; підпис дата-ціна малює сторінка над графіком.
+    public int? SelectedIndex { get; set; }
+
+    /// Найближчий вимір до x-координати дотику — ТА САМА формула X, що в Draw
+    /// (розсинхон мапінгів давав би «палець тут — маркер там»).
+    public int? HitIndex(float x, float width)
+    {
+        var pts = Points;
+        if (pts.Count < 2) return null;
+        const float pad = 8f;
+        float w = width - 2 * pad;
+        if (w <= 0) return null;
+        double t0 = pts[0].Date.Ticks;
+        double span = Math.Max(pts[^1].Date.Ticks - t0, TimeSpan.TicksPerDay);
+        int best = 0;
+        float bestDist = float.MaxValue;
+        for (int i = 0; i < pts.Count; i++)
+        {
+            float px = pad + (float)((pts[i].Date.Ticks - t0) / span * w);
+            var d = Math.Abs(px - x);
+            if (d < bestDist) { bestDist = d; best = i; }
+        }
+        return best;
+    }
+
     public void Draw(ICanvas canvas, RectF rect)
     {
         var pts = Points;
@@ -54,5 +80,16 @@ public class PriceHistoryDrawable : IDrawable
         float r = pts.Count <= 20 ? 3f : 1.6f;
         for (int i = 0; i < pts.Count; i++)
             canvas.FillCircle(X(i), Y(i), r);
+
+        // обрана точка: пунктирна вертикаль + більше коло
+        if (SelectedIndex is int si && si >= 0 && si < pts.Count)
+        {
+            canvas.StrokeColor = LineColor.WithAlpha(0.55f);
+            canvas.StrokeSize = 1.2f;
+            canvas.StrokeDashPattern = new float[] { 4, 3 };
+            canvas.DrawLine(X(si), pad, X(si), pad + h);
+            canvas.StrokeDashPattern = null;
+            canvas.FillCircle(X(si), Y(si), 5.5f);
+        }
     }
 }

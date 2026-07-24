@@ -4,9 +4,25 @@ namespace Hapay;
 
 public partial class AppShell : Shell
 {
+    public const string ThemeKey = "app_theme";
+
+    /// Тема з Preferences (системна/світла/темна). Викликається на старті (ctor
+    /// AppShell — App.xaml.cs живе лише у VS-проєкті, поза синком) і з профілю.
+    public static void ApplySavedTheme()
+    {
+        if (Application.Current is null) return;
+        Application.Current.UserAppTheme = Preferences.Default.Get(ThemeKey, "system") switch
+        {
+            "light" => AppTheme.Light,
+            "dark" => AppTheme.Dark,
+            _ => AppTheme.Unspecified,
+        };
+    }
+
     public AppShell()
     {
         InitializeComponent();
+        ApplySavedTheme();
         // маршрути для GoToAsync (CatalogPage — лендинг у ShellContent, тут не реєструємо)
         Routing.RegisterRoute(nameof(HomePage), typeof(HomePage));
         Routing.RegisterRoute(nameof(CategoryPickerPage), typeof(CategoryPickerPage));

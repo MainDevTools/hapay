@@ -407,6 +407,7 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
             await Shell.Current.GoToAsync(nameof(LoginPage));
             return;
         }
+        Haptic.Tap();
         try
         {
             if (_watchCatIds.TryGetValue(slug!, out var wid))
@@ -458,6 +459,7 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
             await Shell.Current.GoToAsync(nameof(LoginPage));   // список належить акаунту
             return;
         }
+        Haptic.Tap();
         try
         {
             if (_watchIds.TryGetValue(d.StoreProductId, out var wid))

@@ -82,6 +82,21 @@
                HorizontalOptions="Center"
                IsVisible="{Binding DropsStatus, Converter={StaticResource NotEmpty}}" />
 
+        <!-- тема застосунку: системна / світла / темна (Preferences, живе між запусками) -->
+        <VerticalStackLayout Spacing="4">
+            <Label Text="Тема" FontSize="13" FontAttributes="Bold" />
+            <Picker x:Name="ThemePicker" FontSize="13"
+                    SelectedIndexChanged="OnThemeChanged">
+                <Picker.ItemsSource>
+                    <x:Array Type="{x:Type x:String}">
+                        <x:String>Системна</x:String>
+                        <x:String>Світла</x:String>
+                        <x:String>Темна</x:String>
+                    </x:Array>
+                </Picker.ItemsSource>
+            </Picker>
+        </VerticalStackLayout>
+
         <Button Text="Вийти" Command="{Binding LogoutCommand}"
                 BackgroundColor="Transparent" TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}" HeightRequest="48" />
 

@@ -210,6 +210,7 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
     private async Task Watch()
     {
         if (Item is null || WatchBusy) return;
+        Haptic.Tap();
         WatchBusy = true;
         WatchNote = null;
         try
@@ -344,7 +345,11 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
         BuyOffer is Offer o ? $"Купити в {o.Store} — {o.CurrentGrn}" : "";
 
     [RelayCommand]
-    private async Task BuyBest() => await OpenOffer(BuyOffer);
+    private async Task BuyBest()
+    {
+        Haptic.Tap();
+        await OpenOffer(BuyOffer);
+    }
 
     [RelayCommand]
     private async Task OpenOffer(Offer? o)

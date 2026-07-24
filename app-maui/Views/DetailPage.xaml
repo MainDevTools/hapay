@@ -133,7 +133,11 @@
                                HorizontalOptions="Start" />
             <Label Text="{Binding HistoryNote}" Style="{StaticResource Caption}"
                    IsVisible="{Binding HistoryNote, Converter={StaticResource NotEmpty}}" />
-            <GraphicsView x:Name="Chart" HeightRequest="180" IsVisible="{Binding HasChart}" />
+            <!-- підпис обраної точки (тап/драг по графіку) -->
+            <Label x:Name="ChartTip" FontSize="13" FontAttributes="Bold" IsVisible="False"
+                   TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
+            <GraphicsView x:Name="Chart" HeightRequest="180" IsVisible="{Binding HasChart}"
+                          StartInteraction="OnChartTouch" DragInteraction="OnChartTouch" />
             <!-- статутний мінімум (Omnibus) людською мовою; чесний до глибини історії -->
             <Label Text="{Binding Min30Text}" FontSize="13" FontAttributes="Bold"
                    IsVisible="{Binding Min30Text, Converter={StaticResource NotEmpty}}" />
