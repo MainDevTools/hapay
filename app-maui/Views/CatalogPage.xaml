@@ -31,13 +31,55 @@
                 <SearchBar Placeholder="Пошук за назвою…" Text="{Binding SearchText}"
                            SearchCommand="{Binding SearchCommand}" />
             </Border>
+            <!-- пошук знаходить і КАТЕГОРІЇ: «овер» → чіп «Оверлоки» (тап відкриває) -->
+            <FlexLayout Wrap="Wrap" JustifyContent="Start" IsVisible="{Binding HasSuggestions}"
+                        BindableLayout.ItemsSource="{Binding Suggestions}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="models:Category">
+                        <Border Style="{StaticResource Card}" Padding="10,4"
+                                Margin="0,0,6,6" StrokeShape="RoundRectangle 14">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenCategoryCommand}"
+                                    CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+                            <Label FontSize="12">
+                                <Label.FormattedText>
+                                    <FormattedString>
+                                        <Span Text="{Binding Icon}" />
+                                        <Span Text=" " />
+                                        <Span Text="{Binding Name}" />
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </FlexLayout>
+            <!-- чіпи розділів: тап → стрибок до розділу (31 розділ суцільним скролом —
+                 до «Шин та олив» був кілометр гортання) -->
+            <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                <HorizontalStackLayout Spacing="6" BindableLayout.ItemsSource="{Binding Groups}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="models:CategoryGroup">
+                            <Border Style="{StaticResource Card}" Padding="10,4"
+                                    StrokeShape="RoundRectangle 14">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnSectionTapped" />
+                                </Border.GestureRecognizers>
+                                <Label Text="{Binding Title}" FontSize="12" />
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </HorizontalStackLayout>
+            </ScrollView>
             <Label Text="{Binding ErrorMessage}" Margin="4,0"
                    TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}"
                    IsVisible="{Binding ErrorMessage, Converter={StaticResource NotEmpty}}" />
         </VerticalStackLayout>
 
         <RefreshView Grid.Row="1" IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefreshCommand}">
-            <CollectionView ItemsSource="{Binding Groups}" IsGrouped="True">
+            <CollectionView x:Name="Cv" ItemsSource="{Binding Groups}" IsGrouped="True">
 
                 <CollectionView.ItemsLayout>
                     <GridItemsLayout Orientation="Vertical" Span="2"

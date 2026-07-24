@@ -136,6 +136,10 @@ public class Category
     [JsonPropertyName("icon")] public string Icon { get; set; } = "";         // емодзі-іконка плитки
     // фото товару-представника (hotlink-вказівник, НЕ байти — §7.4); емодзі — фолбек
     [JsonPropertyName("image_url")] public string? ImageUrl { get; set; }
+    // цінові терцілі категорії (копійки, «гарні» межі з сервера) → діапазони фільтра
+    // ціни САМЕ цієї категорії; null = замало даних, клієнт бере глобальний список
+    [JsonPropertyName("p33_kop")] public int? P33Kop { get; set; }
+    [JsonPropertyName("p66_kop")] public int? P66Kop { get; set; }
 
     // синтетичний запис «Усі категорії» має порожній slug і N=0 → без «(0)»;
     // реальні категорії з /api/categories завжди мають n≥1

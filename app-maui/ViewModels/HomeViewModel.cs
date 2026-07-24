@@ -19,6 +19,13 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
 
     public ObservableCollection<Discount> Items { get; } = new();
     public ObservableCollection<Category> Categories { get; } = new();
+
+    /// Розділи → категорії для листа вибору (замість плоского пікера на 171 рядок).
+    public ObservableCollection<CategoryGroup> SheetGroups { get; } = new();
+
+    /// Сусідні категорії того ж розділу — стрибок «Ноутбуки → Процесори» одним тапом.
+    public ObservableCollection<Category> Neighbors { get; } = new();
+
     public IReadOnlyList<SortOption> SortOptions { get; } = new List<SortOption>
     {
         // підписи короткі: пікери тепер по третині ширини (компактна панель фільтрів)
@@ -28,7 +35,9 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
         new("Дорожчі", "expensive"),
         new("Найновіші", "new"),
     };
-    public IReadOnlyList<PriceOption> PriceOptions { get; } = new List<PriceOption>
+
+    // глобальний фолбек — коли категорія не обрана або без цінових меж (замало даних)
+    private static readonly IReadOnlyList<PriceOption> _globalPrices = new List<PriceOption>
     {
         new("Будь-яка", null, null),   // «ціна» зайве — пікер і так підписаний; довше різалось
         new("до 500 ₴", null, 50_000),
@@ -38,10 +47,17 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
         new("від 30 000 ₴", 3_000_000, null),
     };
 
+    /// Діапазони ціни — ДИНАМІЧНІ від терцілей обраної категорії (§17-nav): «до 500 ₴»
+    /// у ноутбуках було декоративним. Перебудовуються при зміні категорії.
+    public ObservableCollection<PriceOption> PriceOptions { get; } = new(_globalPrices);
+
     [ObservableProperty] private Category? _selectedCategory;
     [ObservableProperty] private SortOption? _selectedSort;
     [ObservableProperty] private PriceOption? _selectedPrice;
     [ObservableProperty] private string _searchText = "";
+    [ObservableProperty] private bool _isCategorySheetOpen;
+    [ObservableProperty] private bool _hasNeighbors;
+    [ObservableProperty] private string _selectedCategoryLabel = "Усі категорії";
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private bool _isRefreshing;
     [ObservableProperty] private string? _errorMessage;
@@ -98,6 +114,11 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
         }
         catch { /* категорії необовʼязкові — «Усі» вже є */ }
 
+        // розділи для листа вибору категорії (сервер уже відсортував за розділами)
+        foreach (var g in Categories.Where(c => !string.IsNullOrEmpty(c.Slug))
+                                    .GroupBy(c => c.Section))
+            SheetGroups.Add(new CategoryGroup(g.Key, g));
+
         // пуш із каталогу → обрати ту категорію; інакше «Усі»
         _selectedCategory = string.IsNullOrEmpty(_pendingCategory)
             ? Categories[0]
@@ -105,6 +126,8 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
         if (!string.IsNullOrEmpty(_pendingQuery))
             _searchText = _pendingQuery;         // backing-поле: не тригерити debounce-reload тут
         _selectedSort = SortOptions[0];
+        // backing-поля не проходять partial-хуки → залежне будуємо руками
+        ApplyCategorySideEffects(_selectedCategory);
         _selectedPrice = PriceOptions[0];    // «Будь-яка ціна»
         OnPropertyChanged(nameof(SelectedCategory));
         OnPropertyChanged(nameof(SelectedSort));
@@ -116,9 +139,72 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
     }
 
     // property-changed від пікерів → перезавантаження (після ініціалізації)
-    partial void OnSelectedCategoryChanged(Category? value) { if (_ready) _ = ReloadAsync(); }
+    partial void OnSelectedCategoryChanged(Category? value)
+    {
+        ApplyCategorySideEffects(value);
+        if (_ready) _ = ReloadAsync();
+    }
     partial void OnSelectedSortChanged(SortOption? value) { if (_ready) _ = ReloadAsync(); }
-    partial void OnSelectedPriceChanged(PriceOption? value) { if (_ready) _ = ReloadAsync(); }
+    partial void OnSelectedPriceChanged(PriceOption? value)
+    { if (_ready && !_rebuildingPrices) _ = ReloadAsync(); }
+
+    private bool _rebuildingPrices;   // зміна категорії міняє список цін — без другого reload
+
+    /// Залежне від категорії: підпис кнопки, сусідні чіпи розділу, діапазони ціни.
+    private void ApplyCategorySideEffects(Category? c)
+    {
+        var real = c is not null && !string.IsNullOrEmpty(c.Slug);
+        SelectedCategoryLabel = real ? c!.Display : "Усі категорії";
+        if (real) PageTitle = c!.Name;
+
+        Neighbors.Clear();
+        if (real)
+            foreach (var n in Categories.Where(x => !string.IsNullOrEmpty(x.Slug)
+                                                    && x.Section == c!.Section
+                                                    && x.Slug != c.Slug))
+                Neighbors.Add(n);
+        HasNeighbors = Neighbors.Count > 0;
+
+        _rebuildingPrices = true;
+        try
+        {
+            PriceOptions.Clear();
+            if (real && c!.P33Kop is int lo && c.P66Kop is int hi)
+            {
+                // межі — «гарні» терцілі реальних цін категорії (сервер): три чесні кошики
+                var loTxt = Money.Grn(lo);
+                PriceOptions.Add(new("Будь-яка", null, null));
+                PriceOptions.Add(new($"до {loTxt}", null, lo));
+                PriceOptions.Add(new($"{loTxt.Replace(" ₴", "")}–{Money.Grn(hi)}", lo, hi));
+                PriceOptions.Add(new($"від {Money.Grn(hi)}", hi, null));
+            }
+            else
+                foreach (var p in _globalPrices) PriceOptions.Add(p);
+            SelectedPrice = PriceOptions[0];   // фільтр ціни скидається разом із категорією
+        }
+        finally { _rebuildingPrices = false; }
+    }
+
+    [RelayCommand] private void OpenCategorySheet() => IsCategorySheetOpen = true;
+    [RelayCommand] private void CloseCategorySheet() => IsCategorySheetOpen = false;
+
+    /// Тап по чіпу (лист вибору або сусідні) → перемкнути категорію.
+    [RelayCommand]
+    private void PickCategory(Category? c)
+    {
+        IsCategorySheetOpen = false;
+        if (c is null) return;
+        SelectedCategory = Categories.FirstOrDefault(x => x.Slug == c.Slug) ?? Categories[0];
+    }
+
+    /// «Усі категорії» з листа вибору.
+    [RelayCommand]
+    private void PickAllCategories()
+    {
+        IsCategorySheetOpen = false;
+        SelectedCategory = Categories.FirstOrDefault(x => string.IsNullOrEmpty(x.Slug));
+        PageTitle = "Хапай";
+    }
 
     partial void OnSearchTextChanged(string value)
     {

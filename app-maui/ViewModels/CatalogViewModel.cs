@@ -21,12 +21,18 @@ public partial class CatalogViewModel : ObservableObject
     /// «Популярні моделі» (§17): товари, які продають найбільше крамниць — «від X ₴».
     public ObservableCollection<Discount> Popular { get; } = new();
 
+    /// Підказки категорій під пошуком: «овер» → Оверлоки (пошук знаходить і КАТЕГОРІЇ,
+    /// не лише товари — при 171 категорії згадати точну назву нереально).
+    public ObservableCollection<Category> Suggestions { get; } = new();
+
     [ObservableProperty] private bool _isRefreshing;
     [ObservableProperty] private string? _errorMessage;
     [ObservableProperty] private bool _showEmpty;
     [ObservableProperty] private bool _hasPopular;
+    [ObservableProperty] private bool _hasSuggestions;
     [ObservableProperty] private string _searchText = "";
 
+    private readonly List<Category> _allCats = new();
     private bool _ready;
 
     public CatalogViewModel(ApiService api, AuthService auth, IPriceWatchScheduler watchScheduler)
@@ -61,10 +67,12 @@ public partial class CatalogViewModel : ObservableObject
         {
             var cats = await _api.CategoriesAsync();
             Groups.Clear();
+            _allCats.Clear();
             // сервер уже сортує за розділом, тоді за к-стю → GroupBy зберігає цей порядок
             foreach (var g in cats.Where(c => !string.IsNullOrEmpty(c.Slug))
                                   .GroupBy(c => c.Section))
                 Groups.Add(new CategoryGroup(g.Key, g));
+            _allCats.AddRange(cats.Where(c => !string.IsNullOrEmpty(c.Slug)));
             ShowEmpty = Groups.Count == 0;
         }
         catch (Exception e)
@@ -109,6 +117,18 @@ public partial class CatalogViewModel : ObservableObject
         if (string.IsNullOrEmpty(q)) return;
         await Shell.Current.GoToAsync(nameof(HomePage),
             new Dictionary<string, object> { ["Query"] = q, ["Title"] = $"Пошук: {q}" });
+    }
+
+    // введення в пошук → підказки категорій за назвою (CurrentCulture: кирилиця)
+    partial void OnSearchTextChanged(string value)
+    {
+        Suggestions.Clear();
+        var q = value?.Trim();
+        if (!string.IsNullOrEmpty(q) && q.Length >= 2)
+            foreach (var c in _allCats.Where(c =>
+                         c.Name.Contains(q, StringComparison.CurrentCultureIgnoreCase)).Take(8))
+                Suggestions.Add(c);
+        HasSuggestions = Suggestions.Count > 0;
     }
 
     /// Відстеження — з тулбара, а не трьома тапами через профіль.

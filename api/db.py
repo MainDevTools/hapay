@@ -4,6 +4,8 @@
 Гроші повертаємо в копійках (int); формат у грн — на клієнті.
 """
 from __future__ import annotations
+import math
+
 from psycopg import errors
 from psycopg.rows import dict_row
 from search import search_patterns
@@ -383,6 +385,15 @@ _TILE_SKIP_RE = _USED_RE + r'|комплект|набір|набор'
 _TILE_SOURCE_RANK = {"Comfy": 0, "Brain": 0, "Rozetka": 1, "Foxtrot": 2, "Moyo": 2, "Citrus": 3}
 
 
+def _nice_kop(kop: float) -> int:
+    """Округлити копійки до «гарної» цінової межі: 1/1.5/2/3/5/7 × 10^k гривень.
+    2 149 900 коп (21 499 грн) → 2 000 000 (20 000 грн)."""
+    grn = max(float(kop) / 100.0, 1.0)
+    exp = 10 ** math.floor(math.log10(grn))
+    best = min((m * exp for m in (1, 1.5, 2, 3, 5, 7, 10)), key=lambda v: abs(v - grn))
+    return int(round(best * 100))
+
+
 def categories(conn):
     """Лише категорії з активними знижками (+ лічильник) — для селектора §9.1 та
     сітки-каталогу §17. Порожні (без знижок) НЕ повертаємо. Кожну збагачуємо розділом
@@ -415,9 +426,27 @@ def categories(conn):
         grp AS (   -- канонічність моделі: скільки РІЗНИХ крамниць її продають
             SELECT match_key, count(DISTINCT source_id) AS stores
             FROM store_product WHERE match_key IS NOT NULL GROUP BY match_key
+        ),
+        price AS (  -- остання ціна кожного знижкового товару → терцілі категорії
+            SELECT sp.category_id, lp.price_now_kop
+            FROM (SELECT DISTINCT store_product_id FROM discount_event
+                  WHERE ended_at IS NULL) de
+            JOIN store_product sp USING (store_product_id)
+            JOIN LATERAL (
+                SELECT ps.price_now_kop FROM price_snapshot ps
+                WHERE ps.store_product_id = sp.store_product_id
+                ORDER BY ps.seen_at DESC LIMIT 1
+            ) lp ON TRUE
+        ),
+        pct AS (
+            SELECT category_id,
+                   percentile_cont(0.33) WITHIN GROUP (ORDER BY price_now_kop) AS p33,
+                   percentile_cont(0.66) WITHIN GROUP (ORDER BY price_now_kop) AS p66
+            FROM price GROUP BY category_id
         )
-        SELECT cnt.slug, cnt.name, cnt.n, pic.image_url
+        SELECT cnt.slug, cnt.name, cnt.n, pic.image_url, pct.p33, pct.p66
         FROM cnt
+        LEFT JOIN pct ON pct.category_id = cnt.category_id
         LEFT JOIN LATERAL (
             SELECT sp.image_url
             FROM store_product sp
@@ -437,6 +466,17 @@ def categories(conn):
         rows = cur.execute(sql, (_TILE_SKIP_RE,)).fetchall()
     for r in rows:
         r["section"], r["icon"] = category_ui(r["slug"])
+        # цінові межі КАТЕГОРІЇ для фільтра (§17-nav): терцілі реальних цін,
+        # округлені до «гарних» гривень. Глобальні діапазони («до 500 ₴» у
+        # ноутбуках) були декоративні. Мало товарів або межі злиплись → null,
+        # клієнт відкотиться до глобального списку.
+        p33, p66 = r.pop("p33", None), r.pop("p66", None)
+        lo = _nice_kop(p33) if p33 is not None and r["n"] >= 12 else None
+        hi = _nice_kop(p66) if p66 is not None and r["n"] >= 12 else None
+        if lo is not None and hi is not None and lo < hi:
+            r["p33_kop"], r["p66_kop"] = lo, hi
+        else:
+            r["p33_kop"] = r["p66_kop"] = None
     rows.sort(key=lambda r: (SECTION_ORDER.get(r["section"], 9), -r["n"], r["name"]))
     return rows
 

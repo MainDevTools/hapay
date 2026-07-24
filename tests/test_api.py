@@ -63,6 +63,15 @@ def main():
                    all(c.get("section") and c.get("icon") for c in cats), cats))
     checks.append(("категорії несуть image_url (фото плитки; може бути null)",
                    all("image_url" in c for c in cats), [list(c) for c in cats[:2]]))
+    # цінові межі фільтра (§17-nav): ключі є завжди; значення або null (замало
+    # даних, n<12), або пара «гарних» меж lo<hi
+    checks.append(("категорії несуть p33_kop/p66_kop (null або lo<hi)",
+                   all("p33_kop" in c and "p66_kop" in c
+                       and ((c["p33_kop"] is None and c["p66_kop"] is None)
+                            or (isinstance(c["p33_kop"], int) and isinstance(c["p66_kop"], int)
+                                and c["p33_kop"] < c["p66_kop"]))
+                       for c in cats),
+                   [(c["slug"], c["p33_kop"], c["p66_kop"]) for c in cats[:4]]))
     koty = next((c for c in cats if c["slug"] == "koty-suhyi-korm"), None)
     checks.append(("koty-suhyi-korm → розділ «Зоотовари»",
                    koty is not None and koty["section"] == "Зоотовари", koty))
