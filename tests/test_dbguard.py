@@ -12,7 +12,7 @@ import sys
 from contextlib import redirect_stdout
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from tests.dbguard import test_dsn, _target          # noqa: E402
+from tests.dbguard import test_dsn, _TABLES, _target  # noqa: E402
 
 PROD = "postgresql://user:s3cret@ep-still-cherry.eu-central-1.aws.neon.tech/neondb?sslmode=require"
 PROD_ROTATED = "postgresql://user:NEW-pass@ep-still-cherry.eu-central-1.aws.neon.tech/neondb"
@@ -75,6 +75,28 @@ def test_target_has_host_and_db_but_no_password():
 def test_target_unparsed_is_conservative():
     """Нерозпізнані DSN вважаються однаковими → STOP. Краще відмовитись, ніж дропнути."""
     assert _target("що завгодно") == _target("зовсім інше") == "<unparsed>"
+
+
+# ---- reset(): повнота переліку таблиць ----
+
+def test_reset_covers_all_migrated_tables():
+    """КОЖНА таблиця з міграцій мусить бути в _TABLES: DROP CASCADE по батьківській
+    зносить лише FK, не залежну таблицю — пропущена переживає reset() без запису в
+    schema_migration, і наступний migrate.apply падає на «already exists» (впіймано
+    CI 2026-07-24: product_spec + чотири таблиці S9, приховані раннім збоєм CI)."""
+    import re as _re
+    mig_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                           "migrations")
+    created: set[str] = set()
+    for fname in os.listdir(mig_dir):
+        if not fname.endswith(".sql"):
+            continue
+        with open(os.path.join(mig_dir, fname), encoding="utf-8") as f:
+            sql = f.read()
+        created |= {m.lower() for m in _re.findall(
+            r"CREATE TABLE(?: IF NOT EXISTS)?\s+([a-zA-Z_]+)", sql, _re.I)}
+    missing = created - set(_TABLES)
+    assert not missing, f"таблиці з міграцій поза dbguard._TABLES: {sorted(missing)}"
 
 
 def _main():

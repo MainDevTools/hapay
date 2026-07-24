@@ -16,9 +16,17 @@ import os
 import re
 import sys
 
-_TABLES = ("alert_log", "watchlist", "discount_event", "price_snapshot", "scan_run",
-           "http_cache", "canary", "store_product", "source_category_map",
-           "category", "source", "detection_config", "app_config", "app_user",
+# ПОВНИЙ перелік таблиць із міграцій + schema_migration. DROP ... CASCADE по
+# батьківській таблиці зносить лише FK-констрейнти залежних, НЕ самі таблиці — тому
+# таблиця поза цим списком переживає reset() без запису в schema_migration, і
+# наступний migrate.apply падає на «already exists» (впіймано CI 2026-07-24 на
+# product_spec; тоді ж виявлено, що S9-таблиці мали ту саму діру, приховану раннім
+# збоєм CI). Повноту стереже test_dbguard::test_reset_covers_all_migrated_tables.
+_TABLES = ("alert_log", "ops_alert", "watchlist", "discount_event", "price_snapshot",
+           "scan_run", "http_cache", "canary", "spec_attr", "product_spec",
+           "store_product", "source_category_map", "category",
+           "delivery_rule", "store_network", "choice_weights", "source",
+           "detection_config", "app_config", "app_user",
            "collect_task", "schema_migration")
 
 
