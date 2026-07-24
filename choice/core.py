@@ -85,11 +85,13 @@ def pick(offers: list[Offer], w: Weights) -> dict | None:
                            "pickup_bonus": float(bonus)},
             "score": float(round(score, 4)),
         })
-    # стабільний тай-брейк: рівний скор → дешевша ефективна, тоді алфавіт крамниці
-    best = max(rows, key=lambda r: (r["score"], -r["effective_kop"], r["store"]))
+    # стабільний тай-брейк: рівний скор → дешевша ефективна, тоді алфавіт крамниці;
+    # кандидати сортуються ТИМ САМИМ ключем — переможець завжди перший рядок
+    key = lambda r: (r["score"], -r["effective_kop"], r["store"])
+    best = max(rows, key=key)
     return {
         "our_choice": best["store"],
         "effective_kop": best["effective_kop"],
         "savings_kop": hi - best["effective_kop"],
-        "candidates": sorted(rows, key=lambda r: -r["score"]),
+        "candidates": sorted(rows, key=key, reverse=True),
     }

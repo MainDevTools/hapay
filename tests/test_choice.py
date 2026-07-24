@@ -73,6 +73,17 @@ def test_equal_effective_prices_span_zero():
     assert all(c["components"]["price_score"] == 1.0 for c in r["candidates"])
 
 
+def test_winner_is_first_candidate_even_on_tie():
+    """Кандидати сортуються ключем тай-брейка: переможець — завжди перший рядок,
+    навіть при однаковому округленому score (впіймано смоком на РРЦ-групі:
+    Rozetka вигравала тай-брейком, але в списку стояла після Epicentr)."""
+    r = pick([_o("Epicentr", 100_00, pickup=True),
+              _o("Rozetka", 100_00, pickup=True)], W)
+    assert r["candidates"][0]["store"] == r["our_choice"]
+    r2 = pick([_o("B", 100_00), _o("A", 99_00), _o("C", 101_00)], W)
+    assert r2["candidates"][0]["store"] == r2["our_choice"] == "A"
+
+
 def test_components_visible_and_sum_matches():
     r = pick([_o("A", 100_00, pickup=True, total=4, pumped=1), _o("B", 120_00)], W)
     for c in r["candidates"]:
