@@ -47,6 +47,18 @@ def test_refine_keeps_real_phones():
     assert refine_category("smartfony", "Motorola G06 4/64GB Tapestry (PBA20002UA)") == "smartfony"
 
 
+def test_refine_nondevice_out_of_smartfony():
+    """Посуд/текстиль з АКЦІЙНИХ лендингів Allo (hub-дефолт smartfony) → inshe, не
+    засмічують профільну категорію (сковорода RINGEL, прогін 2026-07-25)."""
+    assert refine_category("smartfony", "Сковорода RINGEL Koriander глибока 24 см з кришкою (RG-1107-24)") == "inshe"
+    assert refine_category("smartfony", "Каструля з кришкою 5 л нержавіюча сталь") == "inshe"
+    assert refine_category("tv", "Комплект постільної білизни (підковдра, простирадло, 2 подушки)") == "inshe"
+    # _NON_DEVICE_RE діє лише в device-базах: посудомийка з pobut-tehnika йде своїм
+    # шляхом (→ власна полиця posudomyiky), «посуд» її не збиває в inshe
+    assert refine_category("pobut-tehnika", "Посудомийна машина BOSCH SMS4HMI26Q") == "posudomyiky"
+    assert refine_category("smartfony", "Смартфон Samsung Galaxy A55 5G") == "smartfony"
+
+
 def test_refine_splits_appliances_from_pobut():
     """Кроки 1–2: холодильники й пральні з широкого лістинга → власні полиці."""
     assert refine_category("pobut-tehnika", "Холодильник Samsung RB34C670EB1/UA No Frost") == "holodylnyky"
