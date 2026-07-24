@@ -8,6 +8,18 @@ using Hapay.Views;
 
 namespace Hapay.ViewModels;
 
+/// Плитка банерної каруселі: категорія + кольори тла/тексту (стиль E-Katalog).
+public record BannerTile(Category Cat, Color Bg, Color Fg);
+
+/// Сторінка каруселі — четвірка плиток 2×2.
+public class BannerPage : List<BannerTile> { }
+
+/// Картка «Популярних розділів»: фото + назва + лінки топ-категорій.
+public record SectionCard(string Title, string? ImageUrl, List<Category> Cats)
+{
+    public bool HasImage => !string.IsNullOrEmpty(ImageUrl);
+}
+
 // Головна = сітка-каталог (E-Katalog, §17): категорії зі знижками, згруповані в розділи.
 // Тап по плитці → HomePage зі стрічкою тієї категорії. Порожні категорії сервер не віддає.
 public partial class CatalogViewModel : ObservableObject
@@ -25,11 +37,19 @@ public partial class CatalogViewModel : ObservableObject
     /// не лише товари — при 171 категорії згадати точну назву нереально).
     public ObservableCollection<Category> Suggestions { get; } = new();
 
+    /// Банерна карусель (E-Katalog): сторінки 2×2 з топ-категорій із фото.
+    public ObservableCollection<BannerPage> BannerPages { get; } = new();
+
+    /// «Популярні розділи»: картки з фото + лінками топ-категорій розділу.
+    public ObservableCollection<SectionCard> PopularSections { get; } = new();
+
     [ObservableProperty] private bool _isRefreshing;
     [ObservableProperty] private string? _errorMessage;
     [ObservableProperty] private bool _showEmpty;
     [ObservableProperty] private bool _hasPopular;
     [ObservableProperty] private bool _hasSuggestions;
+    [ObservableProperty] private bool _hasBanners;
+    [ObservableProperty] private bool _hasPopularSections;
     [ObservableProperty] private string _searchText = "";
 
     private readonly List<Category> _allCats = new();
@@ -73,6 +93,7 @@ public partial class CatalogViewModel : ObservableObject
                                   .GroupBy(c => c.Section))
                 Groups.Add(new CategoryGroup(g.Key, g));
             _allCats.AddRange(cats.Where(c => !string.IsNullOrEmpty(c.Slug)));
+            BuildShowcase();
             ShowEmpty = Groups.Count == 0;
         }
         catch (Exception e)
@@ -92,6 +113,49 @@ public partial class CatalogViewModel : ObservableObject
         {
             HasPopular = Popular.Count > 0;   // блок — бонус; збій не ламає каталог
         }
+    }
+
+    // палітра банерів (цикл): два насичені з білим текстом + два пастельні з темним
+    private static readonly (string Bg, string Fg)[] _tileColors =
+    {
+        ("#4A6DA7", "#FFFFFF"), ("#D65B4F", "#FFFFFF"),
+        ("#E9EFF6", "#1F2A3A"), ("#F5EADB", "#3A2E1F"),
+    };
+
+    /// Банери (топ-категорії з фото, ≤2 на розділ — розмаїття) + «Популярні розділи»
+    /// (топ-6 за сумою знижок, у картці — лінки топ-8 категорій). Усе з /api/categories.
+    private void BuildShowcase()
+    {
+        BannerPages.Clear();
+        var perSection = new Dictionary<string, int>();
+        var banners = new List<Category>();
+        foreach (var c in _allCats.Where(c => c.HasImage).OrderByDescending(c => c.N))
+        {
+            perSection.TryGetValue(c.Section, out var k);
+            if (k >= 2) continue;
+            perSection[c.Section] = k + 1;
+            banners.Add(c);
+            if (banners.Count == 8) break;
+        }
+        for (var i = 0; i + 4 <= banners.Count; i += 4)   // лише повні четвірки — 2×2
+        {
+            var page = new BannerPage();
+            for (var j = 0; j < 4; j++)
+            {
+                var (bg, fg) = _tileColors[j % _tileColors.Length];
+                page.Add(new BannerTile(banners[i + j], Color.FromArgb(bg), Color.FromArgb(fg)));
+            }
+            BannerPages.Add(page);
+        }
+        HasBanners = BannerPages.Count > 0;
+
+        PopularSections.Clear();
+        foreach (var g in Groups.OrderByDescending(g => g.Sum(c => c.N)).Take(6))
+            PopularSections.Add(new SectionCard(
+                g.Title,
+                g.FirstOrDefault(c => c.HasImage)?.ImageUrl,
+                g.OrderByDescending(c => c.N).Take(8).ToList()));
+        HasPopularSections = PopularSections.Count > 0;
     }
 
     [RelayCommand]

@@ -93,9 +93,53 @@
                     </VerticalStackLayout>
                 </CollectionView.EmptyView>
 
-                <!-- «Популярні моделі»: товар у найбільшій к-сті крамниць → «від X ₴» -->
+                <!-- Хедер сітки (E-Katalog-стиль, рішення оператора 2026-07-24):
+                     банерна карусель 2×2 → популярні моделі → популярні розділи. -->
                 <CollectionView.Header>
-                    <VerticalStackLayout Spacing="8" Padding="0,4,0,6" IsVisible="{Binding HasPopular}">
+                    <VerticalStackLayout Spacing="8" Padding="0,4,0,6">
+
+                    <!-- банерна карусель: топ-категорії з фото, сторінки по 4 плитки -->
+                    <VerticalStackLayout Spacing="6" IsVisible="{Binding HasBanners}">
+                        <CarouselView ItemsSource="{Binding BannerPages}" HeightRequest="252"
+                                      Loop="False" IndicatorView="BannerDots">
+                            <CarouselView.ItemTemplate>
+                                <DataTemplate x:DataType="vm:BannerPage">
+                                    <FlexLayout Wrap="Wrap" JustifyContent="SpaceBetween"
+                                                AlignContent="SpaceBetween" Padding="12,2"
+                                                BindableLayout.ItemsSource="{Binding .}">
+                                        <BindableLayout.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:BannerTile">
+                                                <Border StrokeThickness="0" BackgroundColor="{Binding Bg}"
+                                                        StrokeShape="RoundRectangle 14"
+                                                        FlexLayout.Basis="49%" HeightRequest="118">
+                                                    <Border.GestureRecognizers>
+                                                        <TapGestureRecognizer
+                                                            Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenCategoryCommand}"
+                                                            CommandParameter="{Binding Cat}" />
+                                                    </Border.GestureRecognizers>
+                                                    <Grid ColumnDefinitions="*,Auto" Padding="10,8">
+                                                        <Label Grid.Column="0" Text="{Binding Cat.Name}"
+                                                               TextColor="{Binding Fg}" FontSize="13"
+                                                               FontAttributes="Bold" LineBreakMode="WordWrap"
+                                                               VerticalOptions="Start" />
+                                                        <Image Grid.Column="1" Source="{Binding Cat.ImageUrl}"
+                                                               WidthRequest="58" HeightRequest="76"
+                                                               Aspect="AspectFit" VerticalOptions="End" />
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </BindableLayout.ItemTemplate>
+                                    </FlexLayout>
+                                </DataTemplate>
+                            </CarouselView.ItemTemplate>
+                        </CarouselView>
+                        <IndicatorView x:Name="BannerDots" HorizontalOptions="Center"
+                                       IndicatorSize="7" IndicatorColor="#66888888"
+                                       SelectedIndicatorColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
+                    </VerticalStackLayout>
+
+                    <!-- «Популярні моделі»: товар у найбільшій к-сті крамниць → «від X ₴» -->
+                    <VerticalStackLayout Spacing="8" IsVisible="{Binding HasPopular}">
                         <Label Text="Популярні моделі" Style="{StaticResource H2}"
                                Padding="16,8,16,0" />
                         <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
@@ -124,6 +168,52 @@
                                 </BindableLayout.ItemTemplate>
                             </HorizontalStackLayout>
                         </ScrollView>
+                    </VerticalStackLayout>
+
+                    <!-- «Популярні розділи»: картки з фото + лінки топ-категорій -->
+                    <VerticalStackLayout Spacing="8" IsVisible="{Binding HasPopularSections}">
+                        <Label Text="Популярні розділи" Style="{StaticResource H2}"
+                               Padding="16,10,16,0" />
+                        <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                            <HorizontalStackLayout Padding="16,0" Spacing="10"
+                                                   BindableLayout.ItemsSource="{Binding PopularSections}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:SectionCard">
+                                        <Border WidthRequest="250" Style="{StaticResource Card}" Padding="0">
+                                            <VerticalStackLayout>
+                                                <Border HeightRequest="106" Padding="10" Margin="10,10,10,0"
+                                                        Style="{StaticResource Thumb}"
+                                                        IsVisible="{Binding HasImage}">
+                                                    <Image Source="{Binding ImageUrl}" Aspect="AspectFit" />
+                                                </Border>
+                                                <VerticalStackLayout Padding="12,8,12,10" Spacing="6">
+                                                    <Label Text="{Binding Title}" FontAttributes="Bold"
+                                                           FontSize="14" />
+                                                    <FlexLayout Wrap="Wrap" JustifyContent="Start"
+                                                                BindableLayout.ItemsSource="{Binding Cats}">
+                                                        <BindableLayout.ItemTemplate>
+                                                            <DataTemplate x:DataType="models:Category">
+                                                                <Label Text="{Binding Name}" FontSize="12"
+                                                                       Margin="0,0,12,6"
+                                                                       TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}">
+                                                                    <Label.GestureRecognizers>
+                                                                        <TapGestureRecognizer
+                                                                            Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenCategoryCommand}"
+                                                                            CommandParameter="{Binding .}" />
+                                                                    </Label.GestureRecognizers>
+                                                                </Label>
+                                                            </DataTemplate>
+                                                        </BindableLayout.ItemTemplate>
+                                                    </FlexLayout>
+                                                </VerticalStackLayout>
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </HorizontalStackLayout>
+                        </ScrollView>
+                    </VerticalStackLayout>
+
                     </VerticalStackLayout>
                 </CollectionView.Header>
 
