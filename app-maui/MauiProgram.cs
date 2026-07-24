@@ -38,6 +38,8 @@ public static class MauiProgram
         builder.Services.AddTransient<CatalogPage>();
         builder.Services.AddTransient<HomeViewModel>();
         builder.Services.AddTransient<HomePage>();
+        builder.Services.AddTransient<CategoryPickerViewModel>();
+        builder.Services.AddTransient<CategoryPickerPage>();
         builder.Services.AddTransient<DetailViewModel>();
         builder.Services.AddTransient<DetailPage>();
         builder.Services.AddTransient<LoginViewModel>();

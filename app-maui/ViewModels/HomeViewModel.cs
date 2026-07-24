@@ -20,9 +20,6 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
     public ObservableCollection<Discount> Items { get; } = new();
     public ObservableCollection<Category> Categories { get; } = new();
 
-    /// Розділи → категорії для листа вибору (замість плоского пікера на 171 рядок).
-    public ObservableCollection<CategoryGroup> SheetGroups { get; } = new();
-
     /// Сусідні категорії того ж розділу — стрибок «Ноутбуки → Процесори» одним тапом.
     public ObservableCollection<Category> Neighbors { get; } = new();
 
@@ -55,7 +52,6 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
     [ObservableProperty] private SortOption? _selectedSort;
     [ObservableProperty] private PriceOption? _selectedPrice;
     [ObservableProperty] private string _searchText = "";
-    [ObservableProperty] private bool _isCategorySheetOpen;
     [ObservableProperty] private bool _hasNeighbors;
     [ObservableProperty] private string _selectedCategoryLabel = "Усі категорії";
     [ObservableProperty] private bool _isLoading;
@@ -89,11 +85,19 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
         _scheduler = scheduler;
     }
 
-    // прийшли з каталогу (§17): категорія / пошук / заголовок сторінки
+    // прийшли з каталогу (§17) АБО повернулись із «Каталогу товарів» (вибір через ".."):
+    // категорія / пошук / заголовок. Після ініціалізації застосовуємо ОДРАЗУ.
     public void ApplyQueryAttributes(IDictionary<string, object> query)
     {
-        if (query.TryGetValue("Category", out var cat) && cat is string s && s.Length > 0)
-            _pendingCategory = s;
+        if (query.TryGetValue("Category", out var cat) && cat is string s)
+        {
+            if (_ready)
+                SelectedCategory = string.IsNullOrEmpty(s)
+                    ? Categories.FirstOrDefault(c => string.IsNullOrEmpty(c.Slug))
+                    : Categories.FirstOrDefault(c => c.Slug == s) ?? Categories[0];
+            else if (s.Length > 0)
+                _pendingCategory = s;
+        }
         if (query.TryGetValue("Query", out var q) && q is string qs && qs.Length > 0)
             _pendingQuery = qs;
         if (query.TryGetValue("Title", out var t) && t is string ts && ts.Length > 0)
@@ -113,11 +117,6 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
             foreach (var c in cats) Categories.Add(c);
         }
         catch { /* категорії необовʼязкові — «Усі» вже є */ }
-
-        // розділи для листа вибору категорії (сервер уже відсортував за розділами)
-        foreach (var g in Categories.Where(c => !string.IsNullOrEmpty(c.Slug))
-                                    .GroupBy(c => c.Section))
-            SheetGroups.Add(new CategoryGroup(g.Key, g));
 
         // пуш із каталогу → обрати ту категорію; інакше «Усі»
         _selectedCategory = string.IsNullOrEmpty(_pendingCategory)
@@ -185,25 +184,18 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
         finally { _rebuildingPrices = false; }
     }
 
-    [RelayCommand] private void OpenCategorySheet() => IsCategorySheetOpen = true;
-    [RelayCommand] private void CloseCategorySheet() => IsCategorySheetOpen = false;
+    /// Кнопка категорії → повноекранний «Каталог товарів» (E-Katalog-стиль);
+    /// вибір повертається через ".." у ApplyQueryAttributes.
+    [RelayCommand]
+    private async Task OpenCategoryPicker() =>
+        await Shell.Current.GoToAsync(nameof(CategoryPickerPage));
 
-    /// Тап по чіпу (лист вибору або сусідні) → перемкнути категорію.
+    /// Тап по чіпу сусідньої категорії → перемкнути.
     [RelayCommand]
     private void PickCategory(Category? c)
     {
-        IsCategorySheetOpen = false;
         if (c is null) return;
         SelectedCategory = Categories.FirstOrDefault(x => x.Slug == c.Slug) ?? Categories[0];
-    }
-
-    /// «Усі категорії» з листа вибору.
-    [RelayCommand]
-    private void PickAllCategories()
-    {
-        IsCategorySheetOpen = false;
-        SelectedCategory = Categories.FirstOrDefault(x => string.IsNullOrEmpty(x.Slug));
-        PageTitle = "Хапай";
     }
 
     partial void OnSearchTextChanged(string value)

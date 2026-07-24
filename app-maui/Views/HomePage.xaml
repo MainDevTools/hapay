@@ -37,10 +37,11 @@
                          третинах категорію різало просто на лічильнику. -->
                     <Grid ColumnDefinitions="1.35*,*,0.8*" ColumnSpacing="6">
                         <!-- Категорія: НЕ плоский пікер (171 рядок — колесо непридатне),
-                             а кнопка → лист «розділ → чіпи категорій» (§17-nav) -->
+                             а кнопка → повноекранний «Каталог товарів» (розділи →
+                             категорії, E-Katalog-стиль — рішення оператора 2026-07-24) -->
                         <Grid Grid.Column="0" ColumnDefinitions="*,Auto" Padding="4,10">
                             <Grid.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding OpenCategorySheetCommand}" />
+                                <TapGestureRecognizer Command="{Binding OpenCategoryPickerCommand}" />
                             </Grid.GestureRecognizers>
                             <Label Grid.Column="0" Text="{Binding SelectedCategoryLabel}"
                                    FontSize="13" LineBreakMode="TailTruncation" VerticalOptions="Center" />
@@ -188,60 +189,5 @@
             </CollectionView>
         </RefreshView>
 
-        <!-- лист вибору категорії: розділ → чіпи. Закриття — ✕ або вибір (бекдроп без
-             tap-close: у MAUI жест батька спрацьовує РАЗОМ із жестом чіпа). -->
-        <Grid Grid.Row="0" Grid.RowSpan="2" IsVisible="{Binding IsCategorySheetOpen}"
-              BackgroundColor="#80000000">
-            <Border VerticalOptions="End" MaximumHeightRequest="540"
-                    Style="{StaticResource Card}" Padding="16,12"
-                    StrokeShape="RoundRectangle 16,16,0,0">
-                <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
-                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
-                        <Label Grid.Column="0" Text="Категорія" FontAttributes="Bold" FontSize="16" />
-                        <Label Grid.Column="1" Text="✕" FontSize="18" Padding="8,0">
-                            <Label.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding CloseCategorySheetCommand}" />
-                            </Label.GestureRecognizers>
-                        </Label>
-                    </Grid>
-                    <Border Grid.Row="1" Style="{StaticResource Card}" Padding="10,5"
-                            StrokeShape="RoundRectangle 14" HorizontalOptions="Start">
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding PickAllCategoriesCommand}" />
-                        </Border.GestureRecognizers>
-                        <Label Text="Усі категорії" FontSize="13" />
-                    </Border>
-                    <ScrollView Grid.Row="2">
-                        <VerticalStackLayout Spacing="8"
-                                             BindableLayout.ItemsSource="{Binding SheetGroups}">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="models:CategoryGroup">
-                                    <VerticalStackLayout Spacing="6">
-                                        <Label Text="{Binding Title}" FontAttributes="Bold"
-                                               FontSize="13" Margin="0,6,0,0" />
-                                        <FlexLayout Wrap="Wrap" JustifyContent="Start"
-                                                    BindableLayout.ItemsSource="{Binding .}">
-                                            <BindableLayout.ItemTemplate>
-                                                <DataTemplate x:DataType="models:Category">
-                                                    <Border Style="{StaticResource Card}" Padding="10,4"
-                                                            Margin="0,0,6,6" StrokeShape="RoundRectangle 14">
-                                                        <Border.GestureRecognizers>
-                                                            <TapGestureRecognizer
-                                                                Command="{Binding Source={x:Reference Page}, Path=BindingContext.PickCategoryCommand}"
-                                                                CommandParameter="{Binding .}" />
-                                                        </Border.GestureRecognizers>
-                                                        <Label Text="{Binding Display}" FontSize="12" />
-                                                    </Border>
-                                                </DataTemplate>
-                                            </BindableLayout.ItemTemplate>
-                                        </FlexLayout>
-                                    </VerticalStackLayout>
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
-                        </VerticalStackLayout>
-                    </ScrollView>
-                </Grid>
-            </Border>
-        </Grid>
     </Grid>
 </ContentPage>

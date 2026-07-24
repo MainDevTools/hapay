@@ -154,6 +154,9 @@ public class CategoryGroup : List<Category>
 {
     public string Title { get; }
     public CategoryGroup(string title, IEnumerable<Category> items) : base(items) => Title = title;
+
+    /// Іконка розділу в «Каталозі товарів» — емодзі першої категорії (свого поля розділ не має).
+    public string Icon => Count > 0 ? this[0].Icon : "";
 }
 
 /// Точка історії ціни з /api/product/{id}/history.
