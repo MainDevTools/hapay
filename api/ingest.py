@@ -622,6 +622,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/termosy-i-butylki/c4627638/", "termosy", 2),  # головний домен
         ("https://bt.rozetka.com.ua/ua/boilers/c80131/", "boylery", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/kotly-gazovye/c117206/", "kotly-hazovi", 2),  # bt-піддомен
+        ("https://rozetka.com.ua/ua/building_kits/c97420/", "konstruktory", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/nastoljnye-igry-i-golovolomki/c98280/", "nastilni-ihry", 2),  # головний домен
         ("https://rozetka.com.ua/ua/skovorody/c4626754/", "skovorody", 2),  # головний домен
         ("https://rozetka.com.ua/ua/nozhi-kuhonnie/c4626670/", "nozhi-kukhonni", 2),  # головний домен
         ("https://rozetka.com.ua/ua/binoculars/c83917/", "binokli", 2),  # головний домен
@@ -1312,6 +1314,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://antoshka.ua/uk/kimnata/pobutova-tehnika/radionjani/", "radionyani", 1),
         ("https://antoshka.ua/uk/kimnata/pobutova-tehnika/vagi-dlja-novonarodzhenih/", "dytyachi-vagy", 1),
         ("https://antoshka.ua/uk/goduvannja/stil-ci-dlja-goduvannja/", "stilchyky"),
+        ("https://antoshka.ua/uk/igrashki/konstruktori/", "konstruktory"),               # LEGO 5/30 на заг. стор.
     )},
     # Dnipro-M (розвідка 2026-07-23) — виробник+рітейл інструменту, 10 слагів
     # «Інструментів» (11 лістингів: зварювальні = інвертори + напівавтомати).
@@ -1363,6 +1366,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://maudau.com.ua/category/amunitsiia-dlia-sobak", "amunitsiya"),
         ("https://maudau.com.ua/category/zasoby-dlia-kupannia-kishok", "koty-shampuni"),
         ("https://maudau.com.ua/category/zasoby-dlia-kupannia-sobak", "psy-shampuni"),
+        ("https://maudau.com.ua/category/konstruktory", "konstruktory"),         # LEGO 37/48
+        ("https://maudau.com.ua/category/nastilni-ihry", "nastilni-ihry"),       # MPN 13/48
     )},
     # Yabko (розвідка 2026-07-23) — Apple-мережа, 6 сильних крос-категорій
     # (iPad MPN 24/24, GoPro 18/24, Watch 10/24). Головна пастка — span.old
