@@ -56,6 +56,12 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
     [RelayCommand]
     private void ToggleChoice() => IsChoiceExpanded = !IsChoiceExpanded;
 
+    /// «Як ми рахуємо?» — формула з живими вагами, окремий toggle усередині блока.
+    [ObservableProperty] private bool _isFormulaExpanded;
+
+    [RelayCommand]
+    private void ToggleFormula() => IsFormulaExpanded = !IsFormulaExpanded;
+
     /// ── Характеристики (S12): пари назва-значення з картки крамниці ───────────────
     [ObservableProperty] private SpecsResult? _specs;
     [ObservableProperty] private bool _isSpecsExpanded;    // згорнуто → перші 6 рядків
@@ -106,7 +112,9 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
             foreach (var o in snapshot)
             {
                 o.IsOurChoice = o.Store == Choice.OurChoice;
-                o.HonestyNote = byStore.TryGetValue(o.Store, out var c) ? c.HonestyText : null;
+                // фактологічний бейдж перевірки знижок замість «чесність N%»
+                // (юр-рішення 2026-07-24: без оцінок крамниці, лише наші перевірки)
+                o.HonestyNote = byStore.TryGetValue(o.Store, out var c) ? c.DiscountBadge : null;
             }
             Offers.Clear();
             foreach (var o in snapshot) Offers.Add(o);

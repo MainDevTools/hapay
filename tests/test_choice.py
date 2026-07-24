@@ -32,6 +32,9 @@ def test_honesty_flips_choice_when_prices_close():
     r = pick([_o("Pumper", 99_00, pumped=9, total=10),
               _o("Honest", 100_00, pumped=0, total=10)], W)
     assert r["our_choice"] == "Honest", r
+    # сирі лічильники перевірок — факт для UI-бейджа (без «чесність N%» назовні)
+    p = next(c for c in r["candidates"] if c["store"] == "Pumper")
+    assert (p["discounts_checked"], p["discounts_passed"]) == (10, 1), p
 
 
 def test_free_from_boundary_changes_effective_price():

@@ -80,6 +80,12 @@ def pick(offers: list[Offer], w: Weights) -> dict | None:
         rows.append({
             "store": o.store, "effective_kop": e, "no_delivery_data": nodata,
             "delivery_kop": e - o.price_now_kop,
+            # сирі лічильники перевірок — ФАКТ для UI-бейджа (юр-рішення 2026-07-24:
+            # жодних «чесність N%» назовні — лише фактологічне «знижки збігаються з
+            # історією цін» / «"старі" ціни часто вищі за реальні», і лише при
+            # достатніх даних; пороги — на стороні клієнта від цих чисел)
+            "discounts_checked": o.total_events,
+            "discounts_passed": o.total_events - o.pumped_events,
             "components": {"price_score": float(round(price_score, 4)),
                            "honesty_score": float(round(hon, 4)),
                            "pickup_bonus": float(bonus)},

@@ -355,6 +355,24 @@ public class ChoiceResult
     [JsonPropertyName("effective_kop")] public int EffectiveKop { get; set; }
     [JsonPropertyName("savings_kop")] public int SavingsKop { get; set; }
     [JsonPropertyName("candidates")] public List<ChoiceCandidate> Candidates { get; set; } = new();
+    [JsonPropertyName("weights")] public ChoiceWeights? Weights { get; set; }
+
+    /// «Як ми рахуємо?» — ЖИВІ ваги з сервера (choice_weights), не захардкоджений текст.
+    [JsonIgnore] public string FormulaText => Weights is null ? "" :
+        $"Скор = {Weights.WPrice:0.00}·ціна + {Weights.WHonesty:0.00}·перевірка знижок " +
+        $"+ {Weights.PickupBonus:0.00}·самовивіз.\n" +
+        "Ціна — відношення найдешевшої ефективної ціни (з доставкою) до ціни крамниці. " +
+        "Перевірка знижок — частка знижок крамниці за 90 днів, що пройшли перевірку " +
+        "найнижчою ціною за 30 днів (закон №3153-IX), зі згладжуванням Лапласа. " +
+        "Бейдж 🛡 — від 95% підтверджених знижок при щонайменше 10 перевірених; " +
+        "⚠ — менш як 70%.";
+}
+
+public class ChoiceWeights
+{
+    [JsonPropertyName("w_price")] public double WPrice { get; set; }
+    [JsonPropertyName("w_honesty")] public double WHonesty { get; set; }
+    [JsonPropertyName("pickup_bonus")] public double PickupBonus { get; set; }
 }
 
 /// Кандидат зі СКЛАДНИКАМИ — пояснюваність вимога брифа: людина бачить, з чого зшитий
@@ -365,17 +383,42 @@ public class ChoiceCandidate
     [JsonPropertyName("effective_kop")] public int EffectiveKop { get; set; }
     [JsonPropertyName("delivery_kop")] public int DeliveryKop { get; set; }
     [JsonPropertyName("no_delivery_data")] public bool NoDeliveryData { get; set; }
+    [JsonPropertyName("discounts_checked")] public int DiscountsChecked { get; set; }
+    [JsonPropertyName("discounts_passed")] public int DiscountsPassed { get; set; }
     [JsonPropertyName("score")] public double Score { get; set; }
     [JsonPropertyName("components")] public ChoiceComponents Components { get; set; } = new();
 
     [JsonIgnore] public string EffGrn => Money.Grn(EffectiveKop);
-    [JsonIgnore] public string ScoreText => Score.ToString("0.00");
-    /// «чесність 92%» — з нашої-таки детекції (Лаплас), сірим під назвою крамниці.
-    [JsonIgnore] public string HonestyText => $"чесність {Components.HonestyScore * 100:0}%";
-    [JsonIgnore] public string DetailText =>
-        $"ціна {Components.PriceScore:0.00} · чесність {Components.HonestyScore:0.00}"
-        + (Components.PickupBonus > 0 ? " · самовивіз +0.05" : "")
-        + (NoDeliveryData ? " · доставка: даних нема" : $" · доставка {Money.Grn(DeliveryKop)}");
+
+    /// Бейдж перевірки знижок (юр-формулювання оператора 2026-07-24): ФАКТОЛОГІЧНІ
+    /// твердження про наші перевірки, не оцінка «чесності» крамниці. З'являється лише
+    /// при достатніх даних (≥10 перевірених за 90 дн) і лише на краях (≥95% / <70%) —
+    /// відсутність бейджа не є звинуваченням. Сирі частки скора в UI не показуємо.
+    [JsonIgnore] public string? DiscountBadge
+    {
+        get
+        {
+            if (DiscountsChecked < 10) return null;
+            var share = (double)DiscountsPassed / DiscountsChecked;
+            if (share >= 0.95) return "🛡 знижки збігаються з історією цін";
+            if (share < 0.70) return "⚠ «старі» ціни часто вищі за реальні";
+            return null;
+        }
+    }
+
+    /// Рядок під крамницею — ЛЮДСЬКІ одиниці (жодних часток формули): бейдж перевірки
+    /// знижок (якщо заслужений) · самовивіз ✓ · доставка в гривнях або «даних нема».
+    [JsonIgnore] public string DetailText
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (DiscountBadge is string b) parts.Add(b);
+            if (Components.PickupBonus > 0) parts.Add("самовивіз ✓");
+            parts.Add(NoDeliveryData ? "доставки: даних нема" : $"доставка {Money.Grn(DeliveryKop)}");
+            return string.Join(" · ", parts);
+        }
+    }
 }
 
 public class ChoiceComponents

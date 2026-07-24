@@ -65,4 +65,11 @@ def our_choice(conn, offers: list[dict]) -> dict | None:
             base_delivery_kop=f.get("base_delivery_kop"),
             pumped_events=int(f.get("pumped", 0)), total_events=int(f.get("total", 0)),
             has_pickup=bool(f.get("has_pickup", False))))
-    return pick(cands, load_weights(conn))
+    w = load_weights(conn)
+    result = pick(cands, w)
+    if result is not None:
+        # ваги — у відповідь: «Як ми рахуємо?» в UI показує ЖИВІ числа з
+        # choice_weights, а не захардкоджений текст, що протух би при зміні політики
+        result["weights"] = {"w_price": float(w.w_price), "w_honesty": float(w.w_honesty),
+                             "pickup_bonus": float(w.pickup_bonus)}
+    return result

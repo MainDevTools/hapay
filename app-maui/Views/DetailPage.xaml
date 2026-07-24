@@ -55,8 +55,10 @@
             </Border>
 
             <!-- 🏆 «Наш вибір» (S9): найвигідніший спосіб купити — не найдешевша цифра.
-                 Tap розкриває СКЛАДНИКИ скора (пояснюваність — вимога брифа: людина
-                 бачить, з чого зшитий вибір, а не «AI так сказав»). -->
+                 Tap розкриває кандидатів у ЛЮДСЬКИХ одиницях (редизайн 2026-07-24:
+                 сирі частки формули з рядків прибрано — прозорість живе в
+                 «Як ми рахуємо?» і в API). Бейдж перевірки знижок — фактологічний,
+                 лише на краях і лише при достатніх даних. -->
             <Border IsVisible="{Binding HasChoice}" Style="{StaticResource Card}"
                     Padding="14,12" StrokeShape="RoundRectangle 12">
                 <Border.GestureRecognizers>
@@ -67,7 +69,7 @@
                            TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
                     <Label Text="{Binding ChoiceSavingsText}" FontSize="13"
                            IsVisible="{Binding ShowSavings}" Style="{StaticResource Body}" />
-                    <VerticalStackLayout Spacing="4" IsVisible="{Binding IsChoiceExpanded}"
+                    <VerticalStackLayout Spacing="5" IsVisible="{Binding IsChoiceExpanded}"
                                          BindableLayout.ItemsSource="{Binding Choice.Candidates}">
                         <BindableLayout.ItemTemplate>
                             <DataTemplate x:DataType="models:ChoiceCandidate">
@@ -76,16 +78,23 @@
                                         <Label Text="{Binding Store}" FontSize="13" FontAttributes="Bold" />
                                         <Label Text="{Binding DetailText}" Style="{StaticResource Caption}" FontSize="11" />
                                     </VerticalStackLayout>
-                                    <VerticalStackLayout Grid.Column="1" Spacing="1" HorizontalOptions="End">
-                                        <Label Text="{Binding ScoreText}" FontSize="13" FontAttributes="Bold"
-                                               HorizontalOptions="End" />
-                                        <Label Text="{Binding EffGrn}" Style="{StaticResource Caption}"
-                                               FontSize="11" HorizontalOptions="End" />
-                                    </VerticalStackLayout>
+                                    <Label Grid.Column="1" Text="{Binding EffGrn}" FontSize="13"
+                                           FontAttributes="Bold" HorizontalOptions="End"
+                                           VerticalOptions="Center" />
                                 </Grid>
                             </DataTemplate>
                         </BindableLayout.ItemTemplate>
                     </VerticalStackLayout>
+                    <!-- формула з ЖИВИМИ вагами з сервера — для тих, кому треба -->
+                    <Label Text="Як ми рахуємо? ▸" FontSize="12" FontAttributes="Bold"
+                           IsVisible="{Binding IsChoiceExpanded}"
+                           TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ToggleFormulaCommand}" />
+                        </Label.GestureRecognizers>
+                    </Label>
+                    <Label Text="{Binding Choice.FormulaText}" Style="{StaticResource Caption}"
+                           FontSize="11" IsVisible="{Binding IsFormulaExpanded}" />
                     <!-- TODO(§8.2 брифа S9): фінальний текст дисклеймера — оператор -->
                     <Label Text="Розрахунок за відкритою формулою з публічних цін. Крамниці не платять за позицію."
                            Style="{StaticResource Caption}" FontSize="10" />
