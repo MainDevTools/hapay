@@ -218,7 +218,18 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
     narrow_sql = ("WHERE " + " AND ".join(narrow)) if narrow else ""
 
     order = _PSORTS.get(sort, _PSORTS["discount"])
-    sql = f"""
+    # Сторінка-СПЕРШУ (2026-07-24, скарга на затримки): збагачення «дешевше деінде» /
+    # «порожня знижка» рахувалось для ВСІХ ~31k груп, тоді сортувалось і бралось 50 —
+    # 0.83 с на глобальній стрічці. Тепер сторінку обираємо ДО збагачення (сорти
+    # discount/new/cheap/expensive ранжують колонками best) і збагачуємо лише її.
+    # Винятки: «cheaper» ранжує САМИМ збагаченням (ch.kop) → легасі-шлях повним
+    # проходом; «popular» ранжуємо легким агрегатом по ev (к-сть свіжих крамниць
+    # групи) замість підзапиту offers_n на кожен рядок — показуваний offers_n
+    # лишається точним (рахується підзапитом уже для 50).
+    page_first = sort != "cheaper"
+    popular = sort == "popular"
+    page_order = "pop.n DESC, b.declared_pct DESC NULLS LAST" if popular else order
+    head = f"""
         WITH latest AS (   -- остання ціна кожного товару (index-scan по ix_ps_prod_window)
             SELECT DISTINCT ON (ps.store_product_id)
                    ps.store_product_id, ps.price_now_kop AS current_kop,
@@ -248,14 +259,6 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
                    ON de.store_product_id = l.store_product_id AND de.ended_at IS NULL
             WHERE {' AND '.join(base)}
         ),
-        alt AS (   -- кандидати «дешевше деінде»: уся група, БЕЗ уцінених/відновлених
-            SELECT gkey,
-                   array_agg(current_kop ORDER BY current_kop) AS kops,
-                   array_agg(source_id   ORDER BY current_kop) AS srcs,
-                   array_agg(store       ORDER BY current_kop) AS stores,
-                   array_agg(shown_pct   ORDER BY current_kop) AS pcts
-            FROM ev WHERE NOT used GROUP BY gkey
-        ),
         best AS (   -- одна картка на групу (MPN): найдешевша, знижкова пріоритетно
             SELECT DISTINCT ON (gkey)
                    gkey, store_product_id, title, url, image_url, variant_note, match_key, store,
@@ -268,6 +271,32 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
             -- де ВІСІМ крамниць продають новий (заміряно 2026-07-21: таких груп 10).
             -- Якщо чистих у групі нема — уцінене лишається представником, товар реальний.
             ORDER BY gkey, used, (discount_event_id IS NOT NULL) DESC, current_kop
+        ),"""
+
+    # «popular» ранжує к-стю свіжих крамниць групи (легкий агрегат) — точний offers_n
+    # для показу однаково рахується нижче, вже лише для сторінки
+    pop_cte = ("""
+        pop AS (SELECT gkey, count(DISTINCT source_id) AS n FROM ev GROUP BY gkey),"""
+               if popular else "")
+    page_cte = (f"""
+        page AS (   -- сторінку обираємо ДО збагачення: LIMIT тут, не в кінці
+            SELECT b.* FROM best b {"JOIN pop USING (gkey)" if popular else ""}
+            ORDER BY {page_order} LIMIT %s OFFSET %s
+        ),""" if page_first else "")
+    alt_scope = "AND gkey IN (SELECT gkey FROM page) " if page_first else ""
+    src = "page" if page_first else "best"
+    tail = "" if page_first else "LIMIT %s OFFSET %s"
+    final_order = ("offers_n DESC NULLS LAST, b.declared_pct DESC NULLS LAST"
+                   if popular else order)
+
+    sql = head + pop_cte + page_cte + f"""
+        alt AS (   -- кандидати «дешевше деінде»: уся група, БЕЗ уцінених/відновлених
+            SELECT gkey,
+                   array_agg(current_kop ORDER BY current_kop) AS kops,
+                   array_agg(source_id   ORDER BY current_kop) AS srcs,
+                   array_agg(store       ORDER BY current_kop) AS stores,
+                   array_agg(shown_pct   ORDER BY current_kop) AS pcts
+            FROM ev WHERE NOT used {alt_scope}GROUP BY gkey
         )
         SELECT b.store_product_id, b.title, b.url, b.image_url, b.variant_note, b.store,
                b.current_kop, b.old_declared_kop, b.declared_pct, b.verified_pct, b.badge_state,
@@ -284,7 +313,7 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
                     ELSE (SELECT count(DISTINCT sp2.source_id)
                           FROM store_product sp2 WHERE sp2.match_key = b.match_key)
                END AS offers_n
-        FROM best b
+        FROM {src} b
         JOIN store_product sp0 USING (store_product_id)
         LEFT JOIN alt a USING (gkey)
         -- найдешевша пропозиція ІНШОЇ крамниці, дешевша за показану. «Іншої» —
@@ -315,9 +344,9 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
               AND t.kop <= b.current_kop * {_HOLLOW_SAME_PRICE}
               AND t.pct = 0
         ) hol ON TRUE
-        ORDER BY {order}
-        LIMIT %s OFFSET %s"""
-    params += [limit, offset]
+        ORDER BY {final_order}
+        {tail}"""
+    params += [limit, offset]   # позиційно збігається в обох формах: page-CTE або хвіст
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(sql, params).fetchall()
 
