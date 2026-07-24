@@ -443,7 +443,7 @@ def categories(conn):
                    percentile_cont(0.33) WITHIN GROUP (ORDER BY price_now_kop) AS p33,
                    percentile_cont(0.66) WITHIN GROUP (ORDER BY price_now_kop) AS p66
             FROM price GROUP BY category_id
-        )
+        ),
         pic AS (
             -- обличчя категорії ОДНИМ проходом (DISTINCT ON), не LATERAL-ом на кожну:
             -- 137 категорій × скан-сорт знижкових товарів давали 8 с на /api/categories
