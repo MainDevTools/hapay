@@ -624,6 +624,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://bt.rozetka.com.ua/ua/kotly-gazovye/c117206/", "kotly-hazovi", 2),  # bt-піддомен
         ("https://rozetka.com.ua/ua/building_kits/c97420/", "konstruktory", 2),  # головний домен
         ("https://rozetka.com.ua/ua/nastoljnye-igry-i-golovolomki/c98280/", "nastilni-ihry", 2),  # головний домен
+        ("https://bt.rozetka.com.ua/ua/sewing_machines/c80159/", "shveyni-mashyny", 2),  # bt-піддомен
+        ("https://bt.rozetka.com.ua/ua/overloki/c4670141/", "overloky", 2),  # bt-піддомен; єдине джерело (0146)
         ("https://rozetka.com.ua/ua/skovorody/c4626754/", "skovorody", 2),  # головний домен
         ("https://rozetka.com.ua/ua/nozhi-kuhonnie/c4626670/", "nozhi-kukhonni", 2),  # головний домен
         ("https://rozetka.com.ua/ua/binoculars/c83917/", "binokli", 2),  # головний домен
@@ -790,6 +792,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://eldorado.ua/uk/notebooks/c1039096/", "noutbuky"),
         ("https://eldorado.ua/uk/keyboards/c1039113/", "klaviatury"),   # render
         ("https://eldorado.ua/uk/mouse/c1039112/", "myshi"),   # render
+        ("https://eldorado.ua/uk/sewing-machines/c1039042/", "shveyni-mashyny"),   # render
         ("https://eldorado.ua/uk/gpu/c1209287/", "videokarty"),   # slug «gpu», render
         ("https://eldorado.ua/uk/1216773/c1216773/", "ssd"),   # slug — числовий id, render
         ("https://eldorado.ua/uk/1209289/c1209289/", "procesory"),   # slug — числовий id, render
@@ -972,6 +975,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/termosy/", "termosy", 2),   # MPN 13/60 (Flamberg-тайл)
         ("https://epicentrk.ua/ua/shop/smesiteli/", "zmishuvachi", 2),   # MPN 20/60
         ("https://epicentrk.ua/ua/shop/kotly-gazovye/", "kotly-hazovi", 2),   # MPN 6/60
+        ("https://epicentrk.ua/ua/shop/shveynaya-tekhnika/", "shveyni-mashyny", 2),   # мішає ~5/60 оверлоків
         ("https://epicentrk.ua/ua/shop/radiatory-otopleniya/", "radiatory-opalennya", 2),   # MPN 4/60
         ("https://epicentrk.ua/ua/shop/skovorodki/", "skovorody", 2),   # MPN 4/60
         ("https://epicentrk.ua/ua/shop/binokli/", "binokli", 2),   # MPN 7/60
