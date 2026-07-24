@@ -93,19 +93,21 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
     [RelayCommand]
     private void ToggleSpecs() => IsSpecsExpanded = !IsSpecsExpanded;
 
-    private async Task LoadSpecs(int storeProductId)
+    private async Task LoadSpecs(Task<SpecsResult?> specsTask)
     {
-        try { Specs = await _api.SpecsAsync(storeProductId); }
+        try { Specs = await specsTask; }
         catch { Specs = null; }    // характеристики — бонус; збій не ламає картку
     }
 
-    /// Тягнеться ПІСЛЯ оферів (послідовно): переможцю ставимо 🏆, крамницям — «чесність N%»,
+    /// HTTP-запит вибору стартує РАЗОМ з оферами (послідовність давала подвійну
+    /// затримку — скарга 2026-07-24); тут лише чекаємо результат і накладаємо на
+    /// вже завантажені офери: переможцю 🏆, крамницям — бейдж перевірки знижок,
     /// і перебудовуємо колекцію, щоб BindableLayout перечитав обчислювані властивості.
-    private async Task LoadChoice(int storeProductId)
+    private async Task LoadChoice(Task<ChoiceResult?> choiceTask)
     {
         try
         {
-            Choice = await _api.ChoiceAsync(storeProductId);
+            Choice = await choiceTask;
             if (Choice is null) return;
             var byStore = Choice.Candidates.ToDictionary(c => c.Store, c => c);
             var snapshot = Offers.ToList();
@@ -244,6 +246,10 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
 
     private async Task LoadOffers(int storeProductId)
     {
+        // усі три запити СТАРТУЮТЬ одразу; choice/specs лише ЧЕКАЮТЬСЯ після оферів
+        // (накладання бейджів потребує завантаженої колекції, а не відповіді сервера)
+        var choiceTask = _api.ChoiceAsync(storeProductId);
+        var specsTask = _api.SpecsAsync(storeProductId);
         try
         {
             var offers = await _api.OffersAsync(storeProductId);
@@ -254,7 +260,7 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
             OnPropertyChanged(nameof(PriceRangeText));       // діапазон рахується з оферів
             OnPropertyChanged(nameof(ShowSingleDiscount));
             OnPropertyChanged(nameof(PageTitle));            // група → «Порівняння цін»
-            if (HasOffers) await LoadChoice(storeProductId); // S9: вибір — поверх оферів
+            if (HasOffers) await LoadChoice(choiceTask);     // S9: вибір — поверх оферів
         }
         catch
         {
@@ -263,7 +269,7 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
             OnPropertyChanged(nameof(ShowSingleDiscount));
             OnPropertyChanged(nameof(PageTitle));
         }
-        await LoadSpecs(storeProductId);    // S12: і для груп, і соло (свій try всередині)
+        await LoadSpecs(specsTask);         // S12: і для груп, і соло (свій try всередині)
     }
 
     [RelayCommand]

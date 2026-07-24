@@ -76,16 +76,19 @@ public partial class CatalogViewModel : ObservableObject
     private async Task Refresh()
     {
         IsRefreshing = true;
-        await LoadAsync();
+        await LoadAsync(fresh: true);   // явний жест оновлення — повз кеш
         IsRefreshing = false;
     }
 
-    private async Task LoadAsync()
+    private async Task LoadAsync(bool fresh = false)
     {
         ErrorMessage = null;
+        // обидва запити СТАРТУЮТЬ одразу (послідовність давала подвійну затримку)
+        var catsTask = _api.CategoriesAsync(fresh);
+        var popTask = _api.ProductsAsync(sort: "popular", onlyDiscounts: true);
         try
         {
-            var cats = await _api.CategoriesAsync();
+            var cats = await catsTask;
             Groups.Clear();
             _allCats.Clear();
             // сервер уже сортує за розділом, тоді за к-стю → GroupBy зберігає цей порядок
@@ -104,7 +107,7 @@ public partial class CatalogViewModel : ObservableObject
 
         try
         {
-            var pop = await _api.ProductsAsync(sort: "popular", onlyDiscounts: true);
+            var pop = await popTask;
             Popular.Clear();
             foreach (var p in pop.Take(12)) Popular.Add(p);
             HasPopular = Popular.Count > 0;

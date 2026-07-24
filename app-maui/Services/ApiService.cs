@@ -59,8 +59,22 @@ public class ApiService
         return await _http.GetFromJsonAsync<List<Discount>>(url, _json, ct) ?? new();
     }
 
-    public async Task<List<Category>> CategoriesAsync(CancellationToken ct = default) =>
-        await _http.GetFromJsonAsync<List<Category>>($"{Base}/api/categories", _json, ct) ?? new();
+    // Кеш категорій (сінглтон-сервіс): каталог, стрічка і «Каталог товарів» тягнули
+    // той самий список по колу — кожна навігація коштувала зайвого раунд-тріпа
+    // (скарга на затримки 2026-07-24). Каталог міняється повільно; pull-to-refresh
+    // проходить повз кеш (fresh: true).
+    private List<Category>? _catsCache;
+    private DateTime _catsCachedAt;
+    private static readonly TimeSpan _catsTtl = TimeSpan.FromMinutes(3);
+
+    public async Task<List<Category>> CategoriesAsync(bool fresh = false, CancellationToken ct = default)
+    {
+        if (!fresh && _catsCache is not null && DateTime.UtcNow - _catsCachedAt < _catsTtl)
+            return _catsCache;
+        var cats = await _http.GetFromJsonAsync<List<Category>>($"{Base}/api/categories", _json, ct) ?? new();
+        if (cats.Count > 0) { _catsCache = cats; _catsCachedAt = DateTime.UtcNow; }
+        return cats;
+    }
 
     public async Task<List<HistoryPoint>> HistoryAsync(int storeProductId, CancellationToken ct = default) =>
         await _http.GetFromJsonAsync<List<HistoryPoint>>(
