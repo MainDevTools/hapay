@@ -635,6 +635,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://bt.rozetka.com.ua/ua/91456/c91456/", "nastinni-hodynnyky", 2),  # bt-піддомен; єдине джерело (0152)
         ("https://auto.rozetka.com.ua/ua/avtoshiny/c4330821/", "shyny", 2),  # auto-піддомен
         ("https://rozetka.com.ua/ua/motornie-masla/c4659575/", "motorni-olyvy", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/koffee/c4625011/", "kava", 2),  # головний домен
         ("https://auto.rozetka.com.ua/ua/gps-navigators/c80047/", "gps-navigatory", 2),  # auto-піддомен
         ("https://rozetka.com.ua/ua/skovorody/c4626754/", "skovorody", 2),  # головний домен
         ("https://rozetka.com.ua/ua/nozhi-kuhonnie/c4626670/", "nozhi-kukhonni", 2),  # головний домен
@@ -1389,6 +1390,11 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://maudau.com.ua/category/zasoby-dlia-kupannia-sobak", "psy-shampuni"),
         ("https://maudau.com.ua/category/konstruktory", "konstruktory"),         # LEGO 37/48
         ("https://maudau.com.ua/category/nastilni-ihry", "nastilni-ihry"),       # MPN 13/48
+        # ── FMCG-пакет 2026-07-24 (0155-0158): хімія/кава/підгузки ──
+        ("https://maudau.com.ua/category/zasoby-dlia-prannia", "praly-zasoby"),          # рел 32/48
+        ("https://maudau.com.ua/category/zasoby-dlia-myttia-posudu", "zasoby-dlya-posudu"),  # Fairy 47/48
+        ("https://maudau.com.ua/category/kava", "kava"),                          # рел 40/48
+        ("https://maudau.com.ua/category/pidhuzky-i-spovyvannia", "pidhuzky"),    # Pampers 42/48
     )},
     # Yabko (розвідка 2026-07-23) — Apple-мережа, 6 сильних крос-категорій
     # (iPad MPN 24/24, GoPro 18/24, Watch 10/24). Головна пастка — span.old
