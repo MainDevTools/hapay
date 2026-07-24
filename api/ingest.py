@@ -633,6 +633,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/rods/c85169/", "vudylyshcha", 2),  # головний домен
         ("https://bt.rozetka.com.ua/ua/naruchnye-chasy/c91451/", "naruchni-hodynnyky", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/91456/c91456/", "nastinni-hodynnyky", 2),  # bt-піддомен; єдине джерело (0152)
+        ("https://auto.rozetka.com.ua/ua/avtoshiny/c4330821/", "shyny", 2),  # auto-піддомен
+        ("https://rozetka.com.ua/ua/motornie-masla/c4659575/", "motorni-olyvy", 2),  # головний домен
         ("https://auto.rozetka.com.ua/ua/gps-navigators/c80047/", "gps-navigatory", 2),  # auto-піддомен
         ("https://rozetka.com.ua/ua/skovorody/c4626754/", "skovorody", 2),  # головний домен
         ("https://rozetka.com.ua/ua/nozhi-kuhonnie/c4626670/", "nozhi-kukhonni", 2),  # головний домен
@@ -987,6 +989,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/ratsii/", "ratsii", 2),   # MPN 10/60
         ("https://epicentrk.ua/ua/shop/rybolovnye-katushki/", "kotushky-rybalski", 2),   # MPN 3/60
         ("https://epicentrk.ua/ua/shop/naruchnye-chasy/", "naruchni-hodynnyky", 2),   # Skmei-тайл, MPN 11/60
+        ("https://epicentrk.ua/ua/shop/avtoshiny/", "shyny", 2),   # розмірні коди — per-store
+        ("https://epicentrk.ua/ua/shop/motornye-masla/", "motorni-olyvy", 2),   # MPN 0/60 (в'язкість+літраж)
         ("https://epicentrk.ua/ua/shop/udilishcha/", "vudylyshcha", 2),   # MPN 6/60
         ("https://epicentrk.ua/ua/shop/gps-navigatory/", "gps-navigatory", 2),   # 75% чистоти (HUD-домішка)
         ("https://epicentrk.ua/ua/shop/radiatory-otopleniya/", "radiatory-opalennya", 2),   # MPN 4/60
