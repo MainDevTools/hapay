@@ -115,11 +115,13 @@ public partial class CatalogViewModel : ObservableObject
         }
     }
 
-    // палітра банерів (цикл): два насичені з білим текстом + два пастельні з темним
+    // Палітра банерів — ЛИШЕ пастелі з темним текстом тієї ж гами: наші фото — це
+    // hotlink-продуктівки на білому тлі, на насичених кольорах вони виглядали
+    // «наліпками»; на пастелі біле тло фото зливається з плиткою.
     private static readonly (string Bg, string Fg)[] _tileColors =
     {
-        ("#4A6DA7", "#FFFFFF"), ("#D65B4F", "#FFFFFF"),
-        ("#E9EFF6", "#1F2A3A"), ("#F5EADB", "#3A2E1F"),
+        ("#EAF1FA", "#1F3A5F"), ("#FDECEA", "#7A2E25"), ("#EAF6EE", "#1F5F3A"),
+        ("#FFF4E2", "#7A5222"), ("#F1ECFA", "#46307A"), ("#EAF7F9", "#1F5F6E"),
     };
 
     /// Банери (топ-категорії з фото, ≤2 на розділ — розмаїття) + «Популярні розділи»
@@ -142,7 +144,8 @@ public partial class CatalogViewModel : ObservableObject
             var page = new BannerPage();
             for (var j = 0; j < 4; j++)
             {
-                var (bg, fg) = _tileColors[j % _tileColors.Length];
+                // глобальний індекс: сусідні сторінки не повторюють ту саму четвірку кольорів
+                var (bg, fg) = _tileColors[(i + j) % _tileColors.Length];
                 page.Add(new BannerTile(banners[i + j], Color.FromArgb(bg), Color.FromArgb(fg)));
             }
             BannerPages.Add(page);

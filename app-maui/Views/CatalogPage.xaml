@@ -98,33 +98,40 @@
                 <CollectionView.Header>
                     <VerticalStackLayout Spacing="8" Padding="0,4,0,6">
 
-                    <!-- банерна карусель: топ-категорії з фото, сторінки по 4 плитки -->
-                    <VerticalStackLayout Spacing="6" IsVisible="{Binding HasBanners}">
-                        <CarouselView ItemsSource="{Binding BannerPages}" HeightRequest="252"
-                                      Loop="False" IndicatorView="BannerDots">
+                    <!-- банерна карусель: топ-категорії з фото, сторінки по 4 плитки;
+                         PeekAreaInsets показує край наступної сторінки — натяк на свайп -->
+                    <VerticalStackLayout Spacing="8" IsVisible="{Binding HasBanners}">
+                        <CarouselView ItemsSource="{Binding BannerPages}" HeightRequest="300"
+                                      Loop="False" IndicatorView="BannerDots"
+                                      PeekAreaInsets="0,0,24,0">
                             <CarouselView.ItemTemplate>
                                 <DataTemplate x:DataType="vm:BannerPage">
                                     <FlexLayout Wrap="Wrap" JustifyContent="SpaceBetween"
-                                                AlignContent="SpaceBetween" Padding="12,2"
+                                                AlignContent="SpaceBetween" Padding="12,2,4,2"
                                                 BindableLayout.ItemsSource="{Binding .}">
                                         <BindableLayout.ItemTemplate>
                                             <DataTemplate x:DataType="vm:BannerTile">
                                                 <Border StrokeThickness="0" BackgroundColor="{Binding Bg}"
-                                                        StrokeShape="RoundRectangle 14"
-                                                        FlexLayout.Basis="49%" HeightRequest="118">
+                                                        StrokeShape="RoundRectangle 18"
+                                                        FlexLayout.Basis="49%" HeightRequest="142">
                                                     <Border.GestureRecognizers>
                                                         <TapGestureRecognizer
                                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenCategoryCommand}"
                                                             CommandParameter="{Binding Cat}" />
                                                     </Border.GestureRecognizers>
-                                                    <Grid ColumnDefinitions="*,Auto" Padding="10,8">
-                                                        <Label Grid.Column="0" Text="{Binding Cat.Name}"
-                                                               TextColor="{Binding Fg}" FontSize="13"
-                                                               FontAttributes="Bold" LineBreakMode="WordWrap"
-                                                               VerticalOptions="Start" />
-                                                        <Image Grid.Column="1" Source="{Binding Cat.ImageUrl}"
-                                                               WidthRequest="58" HeightRequest="76"
-                                                               Aspect="AspectFit" VerticalOptions="End" />
+                                                    <Grid RowDefinitions="Auto,*" Padding="12,10,8,6">
+                                                        <VerticalStackLayout Grid.Row="0" Spacing="1">
+                                                            <Label Text="{Binding Cat.Name}"
+                                                                   TextColor="{Binding Fg}" FontSize="13"
+                                                                   FontAttributes="Bold" MaxLines="2"
+                                                                   LineBreakMode="TailTruncation" />
+                                                            <Label Text="{Binding Cat.CountText}"
+                                                                   TextColor="{Binding Fg}" Opacity="0.55"
+                                                                   FontSize="11" />
+                                                        </VerticalStackLayout>
+                                                        <Image Grid.Row="1" Source="{Binding Cat.ImageUrl}"
+                                                               HeightRequest="84" Aspect="AspectFit"
+                                                               HorizontalOptions="End" VerticalOptions="End" />
                                                     </Grid>
                                                 </Border>
                                             </DataTemplate>
@@ -179,22 +186,24 @@
                                                    BindableLayout.ItemsSource="{Binding PopularSections}">
                                 <BindableLayout.ItemTemplate>
                                     <DataTemplate x:DataType="vm:SectionCard">
-                                        <Border WidthRequest="250" Style="{StaticResource Card}" Padding="0">
+                                        <Border WidthRequest="256" Style="{StaticResource Card}"
+                                                Padding="0" StrokeShape="RoundRectangle 18">
                                             <VerticalStackLayout>
-                                                <Border HeightRequest="106" Padding="10" Margin="10,10,10,0"
+                                                <Border HeightRequest="118" Padding="12" Margin="12,12,12,0"
                                                         Style="{StaticResource Thumb}"
+                                                        StrokeShape="RoundRectangle 12"
                                                         IsVisible="{Binding HasImage}">
                                                     <Image Source="{Binding ImageUrl}" Aspect="AspectFit" />
                                                 </Border>
-                                                <VerticalStackLayout Padding="12,8,12,10" Spacing="6">
+                                                <VerticalStackLayout Padding="14,10,14,12" Spacing="7">
                                                     <Label Text="{Binding Title}" FontAttributes="Bold"
-                                                           FontSize="14" />
+                                                           FontSize="15" />
                                                     <FlexLayout Wrap="Wrap" JustifyContent="Start"
                                                                 BindableLayout.ItemsSource="{Binding Cats}">
                                                         <BindableLayout.ItemTemplate>
                                                             <DataTemplate x:DataType="models:Category">
-                                                                <Label Text="{Binding Name}" FontSize="12"
-                                                                       Margin="0,0,12,6"
+                                                                <Label Text="{Binding Name}" FontSize="12.5"
+                                                                       Margin="0,0,14,7"
                                                                        TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}">
                                                                     <Label.GestureRecognizers>
                                                                         <TapGestureRecognizer
