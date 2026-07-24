@@ -54,6 +54,44 @@
                        TextColor="{AppThemeBinding Light={StaticResource WarnFgLight}, Dark={StaticResource WarnFgDark}}" />
             </Border>
 
+            <!-- 🏆 «Наш вибір» (S9): найвигідніший спосіб купити — не найдешевша цифра.
+                 Tap розкриває СКЛАДНИКИ скора (пояснюваність — вимога брифа: людина
+                 бачить, з чого зшитий вибір, а не «AI так сказав»). -->
+            <Border IsVisible="{Binding HasChoice}" Style="{StaticResource Card}"
+                    Padding="14,12" StrokeShape="RoundRectangle 12">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding ToggleChoiceCommand}" />
+                </Border.GestureRecognizers>
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="{Binding ChoiceLine}" FontAttributes="Bold" FontSize="16"
+                           TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
+                    <Label Text="{Binding ChoiceSavingsText}" FontSize="13"
+                           IsVisible="{Binding ShowSavings}" Style="{StaticResource Body}" />
+                    <VerticalStackLayout Spacing="4" IsVisible="{Binding IsChoiceExpanded}"
+                                         BindableLayout.ItemsSource="{Binding Choice.Candidates}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:ChoiceCandidate">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <VerticalStackLayout Grid.Column="0" Spacing="1">
+                                        <Label Text="{Binding Store}" FontSize="13" FontAttributes="Bold" />
+                                        <Label Text="{Binding DetailText}" Style="{StaticResource Caption}" FontSize="11" />
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="1" HorizontalOptions="End">
+                                        <Label Text="{Binding ScoreText}" FontSize="13" FontAttributes="Bold"
+                                               HorizontalOptions="End" />
+                                        <Label Text="{Binding EffGrn}" Style="{StaticResource Caption}"
+                                               FontSize="11" HorizontalOptions="End" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                    <!-- TODO(§8.2 брифа S9): фінальний текст дисклеймера — оператор -->
+                    <Label Text="Розрахунок за відкритою формулою з публічних цін. Крамниці не платять за позицію."
+                           Style="{StaticResource Caption}" FontSize="10" />
+                </VerticalStackLayout>
+            </Border>
+
             <Label Text="Історія ціни" Style="{StaticResource H2}" Margin="0,12,0,0" />
             <ActivityIndicator IsRunning="{Binding LoadingHistory}" IsVisible="{Binding LoadingHistory}"
                                HorizontalOptions="Start" />
@@ -78,8 +116,12 @@
                                 </Border.GestureRecognizers>
                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                                     <VerticalStackLayout Grid.Column="0" Spacing="3" VerticalOptions="Center">
-                                        <Label Text="{Binding Store}" Style="{StaticResource Body}"
+                                        <!-- 🏆 у переможця «Нашого вибору»; «чесність N%» — з наших discount_event -->
+                                        <Label Text="{Binding StoreLine}" Style="{StaticResource Body}"
                                                FontAttributes="Bold" />
+                                        <Label Text="{Binding HonestyNote}" Style="{StaticResource Caption}"
+                                               FontSize="10"
+                                               IsVisible="{Binding HonestyNote, Converter={StaticResource NotEmpty}}" />
                                         <!-- Уцінене не ховаємо, але й не даємо прочитати його
                                              як «найкращу ціну»: без позначки найдешевший рядок
                                              виглядає звичайною пропозицією. -->

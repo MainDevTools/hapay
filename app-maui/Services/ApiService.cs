@@ -71,6 +71,12 @@ public class ApiService
         await _http.GetFromJsonAsync<List<Offer>>(
             $"{Base}/api/product/{storeProductId}/offers", _json, ct) ?? new();
 
+    /// «Наш вибір» (S9): найвигідніший спосіб купити — прозорий скор зі складниками.
+    /// null = нема ≥2 крамниць у наявності (блок не показується).
+    public async Task<ChoiceResult?> ChoiceAsync(int storeProductId, CancellationToken ct = default) =>
+        (await _http.GetFromJsonAsync<ChoiceEnvelope>(
+            $"{Base}/api/product/{storeProductId}/choice", _json, ct))?.Choice;
+
     // ── auth (S11) ────────────────────────────────────────────────────────────────
     public Task<AuthResult> RegisterAsync(string email, string password, CancellationToken ct = default) =>
         PostAuthAsync("/api/auth/register", email, password, ct);

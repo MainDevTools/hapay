@@ -34,6 +34,49 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
     /// «Де купити» (T15): той самий товар (mpn) у крамницях, від найдешевшої.
     public ObservableCollection<Offer> Offers { get; } = new();
 
+    // ── «Наш вибір» (S9-E2): прозорий скор зі складниками ─────────────────────────
+    [ObservableProperty] private ChoiceResult? _choice;
+    [ObservableProperty] private bool _isChoiceExpanded;   // tap розкриває складники
+
+    public bool HasChoice => Choice is not null;
+    public string ChoiceLine => Choice is null ? "" : $"🏆 Наш вибір: {Choice.OurChoice}";
+    /// Рядок економії — лише коли вона Є: «економите 0 грн» звучало б як глум.
+    public bool ShowSavings => (Choice?.SavingsKop ?? 0) > 0;
+    public string ChoiceSavingsText => Choice is null ? "" :
+        $"Ви економите {Money.Grn(Choice.SavingsKop)} у порівнянні з найдорожчим варіантом";
+
+    partial void OnChoiceChanged(ChoiceResult? value)
+    {
+        OnPropertyChanged(nameof(HasChoice));
+        OnPropertyChanged(nameof(ChoiceLine));
+        OnPropertyChanged(nameof(ShowSavings));
+        OnPropertyChanged(nameof(ChoiceSavingsText));
+    }
+
+    [RelayCommand]
+    private void ToggleChoice() => IsChoiceExpanded = !IsChoiceExpanded;
+
+    /// Тягнеться ПІСЛЯ оферів (послідовно): переможцю ставимо 🏆, крамницям — «чесність N%»,
+    /// і перебудовуємо колекцію, щоб BindableLayout перечитав обчислювані властивості.
+    private async Task LoadChoice(int storeProductId)
+    {
+        try
+        {
+            Choice = await _api.ChoiceAsync(storeProductId);
+            if (Choice is null) return;
+            var byStore = Choice.Candidates.ToDictionary(c => c.Store, c => c);
+            var snapshot = Offers.ToList();
+            foreach (var o in snapshot)
+            {
+                o.IsOurChoice = o.Store == Choice.OurChoice;
+                o.HonestyNote = byStore.TryGetValue(o.Store, out var c) ? c.HonestyText : null;
+            }
+            Offers.Clear();
+            foreach (var o in snapshot) Offers.Add(o);
+        }
+        catch { Choice = null; }   // вибір — бонус; збій мережі не ламає картку
+    }
+
     private readonly IPriceWatchScheduler _watchScheduler;
 
     public DetailViewModel(ApiService api, AuthService auth, IPriceWatchScheduler watchScheduler)
@@ -166,6 +209,7 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
             OnPropertyChanged(nameof(PriceRangeText));       // діапазон рахується з оферів
             OnPropertyChanged(nameof(ShowSingleDiscount));
             OnPropertyChanged(nameof(PageTitle));            // група → «Порівняння цін»
+            if (HasOffers) await LoadChoice(storeProductId); // S9: вибір — поверх оферів
         }
         catch
         {

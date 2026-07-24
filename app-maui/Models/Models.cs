@@ -193,6 +193,13 @@ public class Offer
     // уцінене/відновлене — ІНШИЙ стан товару (правило одне на сервері, api/db.py)
     [JsonPropertyName("is_used")] public bool IsUsed { get; set; }
 
+    // ── «Наш вибір» (S9-E2): виставляється VM-ом ПІСЛЯ /choice, не з JSON оферів ──
+    /// «чесність 92%» під назвою крамниці (з наших discount_event; null до завантаження).
+    [JsonIgnore] public string? HonestyNote { get; set; }
+    /// 🏆 у рядку крамниці-переможця «Де купити».
+    [JsonIgnore] public bool IsOurChoice { get; set; }
+    [JsonIgnore] public string StoreLine => IsOurChoice ? $"🏆 {Store}" : Store;
+
     [JsonIgnore] public string CurrentGrn => Money.Grn(CurrentKop);
     [JsonIgnore] public double Opacity => InStock ? 1.0 : 0.45;   // «немає» — приглушено
 
@@ -333,4 +340,47 @@ public class IngestHtmlResult
     [JsonPropertyName("accepted")] public int Accepted { get; set; }
     [JsonPropertyName("rejected")] public int Rejected { get; set; }
     [JsonPropertyName("discovered")] public List<string>? Discovered { get; set; }
+}
+
+// ── «Наш вибір» v1 (S9-E2): відповідь /api/product/{id}/choice ─────────────────────
+/// Конверт: {"choice": {...} | null}. null = нема ≥2 in_stock-кандидатів — блок не показуємо.
+public class ChoiceEnvelope
+{
+    [JsonPropertyName("choice")] public ChoiceResult? Choice { get; set; }
+}
+
+public class ChoiceResult
+{
+    [JsonPropertyName("our_choice")] public string OurChoice { get; set; } = "";
+    [JsonPropertyName("effective_kop")] public int EffectiveKop { get; set; }
+    [JsonPropertyName("savings_kop")] public int SavingsKop { get; set; }
+    [JsonPropertyName("candidates")] public List<ChoiceCandidate> Candidates { get; set; } = new();
+}
+
+/// Кандидат зі СКЛАДНИКАМИ — пояснюваність вимога брифа: людина бачить, з чого зшитий
+/// скор, а не «AI так сказав».
+public class ChoiceCandidate
+{
+    [JsonPropertyName("store")] public string Store { get; set; } = "";
+    [JsonPropertyName("effective_kop")] public int EffectiveKop { get; set; }
+    [JsonPropertyName("delivery_kop")] public int DeliveryKop { get; set; }
+    [JsonPropertyName("no_delivery_data")] public bool NoDeliveryData { get; set; }
+    [JsonPropertyName("score")] public double Score { get; set; }
+    [JsonPropertyName("components")] public ChoiceComponents Components { get; set; } = new();
+
+    [JsonIgnore] public string EffGrn => Money.Grn(EffectiveKop);
+    [JsonIgnore] public string ScoreText => Score.ToString("0.00");
+    /// «чесність 92%» — з нашої-таки детекції (Лаплас), сірим під назвою крамниці.
+    [JsonIgnore] public string HonestyText => $"чесність {Components.HonestyScore * 100:0}%";
+    [JsonIgnore] public string DetailText =>
+        $"ціна {Components.PriceScore:0.00} · чесність {Components.HonestyScore:0.00}"
+        + (Components.PickupBonus > 0 ? " · самовивіз +0.05" : "")
+        + (NoDeliveryData ? " · доставка: даних нема" : $" · доставка {Money.Grn(DeliveryKop)}");
+}
+
+public class ChoiceComponents
+{
+    [JsonPropertyName("price_score")] public double PriceScore { get; set; }
+    [JsonPropertyName("honesty_score")] public double HonestyScore { get; set; }
+    [JsonPropertyName("pickup_bonus")] public double PickupBonus { get; set; }
 }
