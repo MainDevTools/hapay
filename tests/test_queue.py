@@ -145,8 +145,11 @@ def main():
                                            "ORDER BY source").fetchall()]
         if len(srcs) >= 4:
             fresh = srcs[:len(srcs) // 2]      # перші за абеткою — робимо СВІЖИМИ (щойно збирані)
+            # kind <> 'sitemap': інакше цей UPDATE будить приспаний вище sitemap
+            # (AddUa — перший за абеткою → у fresh), і той з priority 10 обганяє
+            # page-задачі, ламаючи замір ротації (впіймано CI після T20)
             conn.execute("UPDATE collect_task SET not_before = now() - interval '1 minute' "
-                         "WHERE source = ANY(%s)", (fresh,))
+                         "WHERE source = ANY(%s) AND kind <> 'sitemap'", (fresh,))
             got_fair = qtasks.lease_tasks(conn, "phone-fair", limit=len(fresh))
             picked = {t["source"] for t in got_fair}
             checks.append(("чесна ротація: бере найдовше очікувані, не за абеткою",
