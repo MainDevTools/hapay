@@ -104,6 +104,16 @@ def offers(store_product_id: int, conn=Depends(get_conn)):
     return qdb.product_offers(conn, store_product_id)
 
 
+@app.get("/api/product/{store_product_id}/choice")
+def choice(store_product_id: int, conn=Depends(get_conn)):
+    """«Наш вибір» v1 (S9): найвигідніший спосіб купити — прозорий score поверх
+    «Де купити» (ефективна ціна з доставкою-довідником + індекс чесності знижок
+    із ВЛАСНИХ discount_event + самовивіз). ОКРЕМИЙ endpoint — /offers незмінний
+    (сумісність MAUI). null = нема ≥2 in_stock-кандидатів (блок не показується)."""
+    from choice.service import our_choice
+    return {"choice": our_choice(conn, qdb.product_offers(conn, store_product_id))}
+
+
 @app.get("/api/watchlist")
 def watchlist(user=Depends(require_user), conn=Depends(get_conn)):
     return qdb.list_watchlist(conn, int(user["id"]))

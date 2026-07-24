@@ -396,6 +396,9 @@ def main():
     solo = client.get(f"/api/product/{a37_id}/offers").json()
     checks.append(("offers до 2-ї крамниці: група з 1 (сам товар)",
                    len(solo) == 1 and solo[0]["store"] == "Allo", solo))
+    # «Наш вибір» (S9): група з 1 крамниці → null (нема з чим порівнювати, guardrail §7)
+    ch1 = client.get(f"/api/product/{a37_id}/choice").json()
+    checks.append(("choice для групи-одиначки → null", ch1.get("choice") is None, ch1))
 
     # Foxtrot продає ТОЙ САМИЙ товар (той самий MPN у назві) дешевше
     client.post("/api/ingest", headers=ing_tok, json={"source": "Foxtrot", "items": [
@@ -410,6 +413,15 @@ def main():
                    len(duo) == 2 and duo[0]["store"] == "Foxtrot"
                    and duo[0]["current_kop"] == 1999900
                    and duo[0]["current_kop"] <= duo[1]["current_kop"], duo))
+    # «Наш вибір» (S9): 2 крамниці → об'єкт зі СКЛАДНИКАМИ (пояснюваність — вимога брифа);
+    # без delivery_rule ефективна = ціна + no_delivery_data=true; savings = різниця цін
+    ch2 = client.get(f"/api/product/{a37_id}/choice").json().get("choice")
+    checks.append(("choice для 2 крамниць: вибір + економія + складники",
+                   ch2 is not None and ch2["our_choice"] == "Foxtrot"
+                   and ch2["savings_kop"] == duo[1]["current_kop"] - 1999900
+                   and len(ch2["candidates"]) == 2
+                   and all("components" in c and "no_delivery_data" in c
+                           for c in ch2["candidates"]), ch2))
     # офери несуть стару ціну по крамниці (для «ціна зі знижкою + перекреслена стара» в «Де купити»)
     fox_off = next((o for o in duo if o["store"] == "Foxtrot"), None)
     checks.append(("Foxtrot-оффер (без старої ціни) → old_declared_kop = None",
