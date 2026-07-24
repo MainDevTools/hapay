@@ -444,24 +444,28 @@ def categories(conn):
                    percentile_cont(0.66) WITHIN GROUP (ORDER BY price_now_kop) AS p66
             FROM price GROUP BY category_id
         )
+        pic AS (
+            -- обличчя категорії ОДНИМ проходом (DISTINCT ON), не LATERAL-ом на кожну:
+            -- 137 категорій × скан-сорт знижкових товарів давали 8 с на /api/categories
+            -- (впіймано 2026-07-24 за скаргою на затримки). Порядок вибору той самий:
+            -- крамниці з великими фото → канонічність моделі → стабільний id.
+            SELECT DISTINCT ON (sp.category_id) sp.category_id, sp.image_url
+            FROM store_product sp
+            JOIN source s USING (source_id)
+            JOIN (SELECT DISTINCT store_product_id FROM discount_event
+                  WHERE ended_at IS NULL) de ON de.store_product_id = sp.store_product_id
+            LEFT JOIN grp g ON g.match_key = sp.match_key
+            WHERE sp.image_url IS NOT NULL
+              AND sp.title !~* %s
+            ORDER BY sp.category_id,
+                     CASE s.name {order_rank} ELSE 9 END,
+                     COALESCE(g.stores, 1) DESC,
+                     sp.store_product_id
+        )
         SELECT cnt.slug, cnt.name, cnt.n, pic.image_url, pct.p33, pct.p66
         FROM cnt
         LEFT JOIN pct ON pct.category_id = cnt.category_id
-        LEFT JOIN LATERAL (
-            SELECT sp.image_url
-            FROM store_product sp
-            JOIN source s USING (source_id)
-            JOIN discount_event de ON de.store_product_id = sp.store_product_id
-                                  AND de.ended_at IS NULL
-            LEFT JOIN grp g ON g.match_key = sp.match_key
-            WHERE sp.category_id = cnt.category_id
-              AND sp.image_url IS NOT NULL
-              AND sp.title !~* %s
-            ORDER BY CASE s.name {order_rank} ELSE 9 END,
-                     COALESCE(g.stores, 1) DESC,
-                     sp.store_product_id
-            LIMIT 1
-        ) pic ON TRUE"""
+        LEFT JOIN pic ON pic.category_id = cnt.category_id"""
     with conn.cursor(row_factory=dict_row) as cur:
         rows = cur.execute(sql, (_TILE_SKIP_RE,)).fetchall()
     for r in rows:
