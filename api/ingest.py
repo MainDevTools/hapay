@@ -628,6 +628,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://bt.rozetka.com.ua/ua/sewing_machines/c80159/", "shveyni-mashyny", 2),  # bt-піддомен
         ("https://bt.rozetka.com.ua/ua/overloki/c4670141/", "overloky", 2),  # bt-піддомен; єдине джерело (0146)
         ("https://rozetka.com.ua/ua/walkie-talkie/c84018/", "ratsii", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/reels/c84712/", "kotushky-rybalski", 2),  # головний домен
+        ("https://rozetka.com.ua/ua/rods/c85169/", "vudylyshcha", 2),  # головний домен
         ("https://auto.rozetka.com.ua/ua/gps-navigators/c80047/", "gps-navigatory", 2),  # auto-піддомен
         ("https://rozetka.com.ua/ua/skovorody/c4626754/", "skovorody", 2),  # головний домен
         ("https://rozetka.com.ua/ua/nozhi-kuhonnie/c4626670/", "nozhi-kukhonni", 2),  # головний домен
@@ -980,6 +982,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/kotly-gazovye/", "kotly-hazovi", 2),   # MPN 6/60
         ("https://epicentrk.ua/ua/shop/shveynaya-tekhnika/", "shveyni-mashyny", 2),   # мішає ~5/60 оверлоків
         ("https://epicentrk.ua/ua/shop/ratsii/", "ratsii", 2),   # MPN 10/60
+        ("https://epicentrk.ua/ua/shop/rybolovnye-katushki/", "kotushky-rybalski", 2),   # MPN 3/60
+        ("https://epicentrk.ua/ua/shop/udilishcha/", "vudylyshcha", 2),   # MPN 6/60
         ("https://epicentrk.ua/ua/shop/gps-navigatory/", "gps-navigatory", 2),   # 75% чистоти (HUD-домішка)
         ("https://epicentrk.ua/ua/shop/radiatory-otopleniya/", "radiatory-opalennya", 2),   # MPN 4/60
         ("https://epicentrk.ua/ua/shop/skovorodki/", "skovorody", 2),   # MPN 4/60
