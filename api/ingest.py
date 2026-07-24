@@ -621,6 +621,7 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://rozetka.com.ua/ua/fonari-i-aksessuary/c85432/", "likhtari", 2),  # головний домен
         ("https://rozetka.com.ua/ua/termosy-i-butylki/c4627638/", "termosy", 2),  # головний домен
         ("https://bt.rozetka.com.ua/ua/boilers/c80131/", "boylery", 2),  # bt-піддомен
+        ("https://bt.rozetka.com.ua/ua/kotly-gazovye/c117206/", "kotly-hazovi", 2),  # bt-піддомен
         ("https://rozetka.com.ua/ua/skovorody/c4626754/", "skovorody", 2),  # головний домен
         ("https://rozetka.com.ua/ua/nozhi-kuhonnie/c4626670/", "nozhi-kukhonni", 2),  # головний домен
         ("https://rozetka.com.ua/ua/binoculars/c83917/", "binokli", 2),  # головний домен
@@ -968,6 +969,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://epicentrk.ua/ua/shop/fonari/", "likhtari", 2),   # MPN 31/60
         ("https://epicentrk.ua/ua/shop/termosy/", "termosy", 2),   # MPN 13/60 (Flamberg-тайл)
         ("https://epicentrk.ua/ua/shop/smesiteli/", "zmishuvachi", 2),   # MPN 20/60
+        ("https://epicentrk.ua/ua/shop/kotly-gazovye/", "kotly-hazovi", 2),   # MPN 6/60
+        ("https://epicentrk.ua/ua/shop/radiatory-otopleniya/", "radiatory-opalennya", 2),   # MPN 4/60
         ("https://epicentrk.ua/ua/shop/skovorodki/", "skovorody", 2),   # MPN 4/60
         ("https://epicentrk.ua/ua/shop/binokli/", "binokli", 2),   # MPN 7/60
         ("https://epicentrk.ua/ua/shop/teleskopy/", "teleskopy", 2),   # MPN 8/60
@@ -1018,6 +1021,8 @@ HTML_SOURCES: dict[str, dict] = {
         ("https://vencon.ua/catalog/blendery", "blendery"),                    # 27/стор.
         ("https://vencon.ua/catalog/bojlery", "boylery"),                      # 27/стор.
         ("https://vencon.ua/catalog/protochnye-vodonagrevateli", "boylery", 2),
+        ("https://vencon.ua/catalog/gazovye-kotly", "kotly-hazovi", 2),        # MPN 3/27
+        ("https://vencon.ua/catalog/stalnye-radiatory", "radiatory-opalennya", 2),  # підтип; загальна = хаб
         ("https://vencon.ua/catalog/kondicionery-split-sistemy", "kondycionery"),
         ("https://vencon.ua/catalog/monoblochnye-kondicionery", "kondycionery", 2),
         ("https://vencon.ua/catalog/stiralnye-mashiny", "pobut-tehnika"),      # 47/стор.
