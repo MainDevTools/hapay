@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Hapay.Views.OnboardingPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:Hapay.Views"
+    Shell.NavBarIsVisible="False"
+    Shell.TabBarIsVisible="False">
+
+    <!-- Онбординг (3 слайди, показ раз): пояснює, чим Хапай НЕ черговий агрегатор —
+         формулювання фактологічні, без обіцянок (B8). -->
+    <Grid RowDefinitions="*,Auto,Auto" Padding="0,24">
+
+        <CarouselView x:Name="Slides" Grid.Row="0" Loop="False" IndicatorView="Dots"
+                      PositionChanged="OnPositionChanged">
+            <CarouselView.ItemTemplate>
+                <DataTemplate x:DataType="views:OnboardSlide">
+                    <VerticalStackLayout Padding="32" Spacing="16" VerticalOptions="Center">
+                        <Label Text="{Binding Icon}" FontSize="56" HorizontalOptions="Center" />
+                        <Label Text="{Binding Title}" FontSize="20" FontAttributes="Bold"
+                               HorizontalTextAlignment="Center" />
+                        <Label Text="{Binding Body}" FontSize="15"
+                               HorizontalTextAlignment="Center" Style="{StaticResource Body}" />
+                    </VerticalStackLayout>
+                </DataTemplate>
+            </CarouselView.ItemTemplate>
+        </CarouselView>
+
+        <IndicatorView x:Name="Dots" Grid.Row="1" HorizontalOptions="Center" Margin="0,8"
+                       IndicatorSize="8" IndicatorColor="#66888888"
+                       SelectedIndicatorColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
+
+        <Button x:Name="NextBtn" Grid.Row="2" Text="Далі" Margin="32,8" HeightRequest="48"
+                FontAttributes="Bold" CornerRadius="12" Clicked="OnNextClicked"
+                BackgroundColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
+                TextColor="White" />
+    </Grid>
+</ContentPage>

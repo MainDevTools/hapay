@@ -183,7 +183,7 @@ _HOLLOW_SAME_PRICE = 1.02  # «та сама ціна» = у межах +2%: к�
 
 
 def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=None,
-                  price_min=None, price_max=None, only_discounts=False):
+                  price_min=None, price_max=None, only_discounts=False, badge=None):
     """УСІ товари (не лише знижкові), остання відома ціна кожного, MPN-дедуп як стрічка.
 
     Розворот у бік повного прайс-агрегатора: показуємо весь зібраний каталог, а знижка —
@@ -215,6 +215,11 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
         narrow.append("current_kop <= %s"); params.append(price_max)
     if only_discounts:
         narrow.append("discount_event_id IS NOT NULL")
+    if badge == "verified":
+        # «лише підтверджені»: пройшли перевірку 30-денним мінімумом; provisional —
+        # теж пройшли, лише на ще неповному вікні (чесний стан молодих даних)
+        narrow.append("badge_state = ANY(%s)")
+        params.append(["verified", "verified_provisional"])
     narrow_sql = ("WHERE " + " AND ".join(narrow)) if narrow else ""
 
     order = _PSORTS.get(sort, _PSORTS["discount"])
@@ -571,6 +576,13 @@ def add_watchlist_user(conn, user_id: int, kind: str, ref_id: int | None, query_
                 (user_id, ref_id)).fetchone()
             if dup:
                 return dup
+        if kind == "category" and query_text:
+            dup = cur.execute(
+                "SELECT watchlist_id, kind, ref_id, query_text, price_at_add_kop FROM watchlist "
+                "WHERE user_id = %s AND kind = 'category' AND query_text = %s",
+                (user_id, query_text)).fetchone()
+            if dup:
+                return dup
         price = None
         if kind == "store_product" and ref_id is not None:
             row = cur.execute(
@@ -672,4 +684,63 @@ def list_watchlist_user(conn, user_id: int):
         WHERE w.user_id = %s
         ORDER BY w.created_at DESC"""
     with conn.cursor(row_factory=dict_row) as cur:
-        return cur.execute(sql, (user_id, user_id)).fetchall()
+        rows = cur.execute(sql, (user_id, user_id)).fetchall()
+    # категорійні рядки: людська назва замість порожнього title (slug лишаємось
+    # у query_text — клієнту треба обидва)
+    slugs = {r["query_text"] for r in rows if r["kind"] == "category" and r["query_text"]}
+    if slugs:
+        names = dict(conn.execute(
+            "SELECT slug, name FROM category WHERE slug = ANY(%s)", (list(slugs),)).fetchall())
+        for r in rows:
+            if r["kind"] == "category":
+                r["title"] = names.get(r["query_text"], r["query_text"])
+    return rows
+
+
+def list_category_news(conn, user_id: int):
+    """Відстежувані КАТЕГОРІЇ з новими знижками від часу останнього сповіщення.
+
+    Водяний знак — `last_notified_at` (нема → created_at): рахуємо discount_event,
+    ЩО З'ЯВИЛИСЬ (computed_at) після нього і досі активні. Групуємо в один рядок на
+    категорію (одне сповіщення «N нових знижок, топ −X%», не N окремих)."""
+    sql = """
+        SELECT w.watchlist_id, w.query_text AS slug, c.name AS category,
+               n.new_n, n.top_pct, n.top_title
+        FROM watchlist w
+        JOIN category c ON c.slug = w.query_text
+        JOIN LATERAL (
+            SELECT count(*)::int AS new_n,
+                   max(de.declared_pct)::int AS top_pct,
+                   (array_agg(sp.title ORDER BY de.declared_pct DESC NULLS LAST))[1] AS top_title
+            FROM discount_event de
+            JOIN store_product sp USING (store_product_id)
+            WHERE sp.category_id = c.category_id
+              AND de.ended_at IS NULL
+              AND de.computed_at > COALESCE(w.last_notified_at, w.created_at)
+        ) n ON n.new_n > 0
+        WHERE w.user_id = %s AND w.kind = 'category'
+        ORDER BY n.new_n DESC"""
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(sql, (user_id,)).fetchall()
+
+
+def ack_category_news(conn, user_id: int, watchlist_ids: list[int]) -> int:
+    """Позначити, що про нові знижки категорії повідомлено (водяний знак = now()).
+    Чужі рядки не зачепить (user_id у WHERE)."""
+    if not watchlist_ids:
+        return 0
+    rows = conn.execute(
+        "UPDATE watchlist SET last_notified_at = now() "
+        "WHERE user_id = %s AND kind = 'category' AND watchlist_id = ANY(%s) "
+        "RETURNING watchlist_id", (user_id, list(watchlist_ids))).fetchall()
+    return len(rows)
+
+
+def freshness(conn) -> dict:
+    """Скільки хвилин тому востаннє УСПІШНО збирали ціни — чесна свіжість даних для
+    шапки стрічки. Публічне і навмисно бідне: лише хвилини, без внутрішніх метрик
+    черги (вони — за гейтом колектора в collect_health)."""
+    row = conn.execute(
+        "SELECT round(EXTRACT(epoch FROM now() - max(last_done_at)) / 60)::int "
+        "FROM collect_task WHERE last_status = 'ok'").fetchone()
+    return {"minutes": row[0] if row and row[0] is not None else None}

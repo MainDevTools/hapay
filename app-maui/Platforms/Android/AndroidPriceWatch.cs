@@ -117,6 +117,40 @@ public class AndroidPriceNotifier : IPriceNotifier
         catch (Java.Lang.SecurityException) { /* користувач не дав дозвіл — мовчимо */ }
     }
 
+    /// Нові знижки у відстежуваних категоріях. Текст — лише виміряне (§7.5):
+    /// к-сть нових discount_event і найбільший заявлений відсоток.
+    public void ShowCategoryNews(IReadOnlyList<Models.CategoryNews> news)
+    {
+        if (news.Count == 0) return;
+        var ctx = global::Android.App.Application.Context!;
+        EnsureChannel(ctx);
+
+        var first = news[0];
+        var title = news.Count == 1
+            ? $"Нові знижки: {first.Category}"
+            : $"Нові знижки у {news.Count} категоріях";
+        var text = news.Count == 1
+            ? first.NotifyText
+            : string.Join("\n", news.Select(x => x.NotifyText));
+
+        var intent = ctx.PackageManager?.GetLaunchIntentForPackage(ctx.PackageName!);
+        intent?.SetFlags(ActivityFlags.NewTask | ActivityFlags.ClearTop);
+        var pending = PendingIntent.GetActivity(
+            ctx, 0, intent, PendingIntentFlags.Immutable | PendingIntentFlags.UpdateCurrent);
+
+        var n = new NotificationCompat.Builder(ctx, ChannelId)
+            .SetContentTitle(title)!
+            .SetContentText(text)!
+            .SetStyle(new NotificationCompat.BigTextStyle().BigText(text!))!
+            .SetSmallIcon(global::Android.Resource.Drawable.IcDialogInfo)!
+            .SetAutoCancel(true)!
+            .SetContentIntent(pending)!
+            .Build();
+
+        try { NotificationManagerCompat.From(ctx).Notify(NotificationId + 1, n); }
+        catch (Java.Lang.SecurityException) { /* без дозволу — мовчимо */ }
+    }
+
     private static void EnsureChannel(Context ctx)
     {
         if (Build.VERSION.SdkInt < BuildVersionCodes.O) return;

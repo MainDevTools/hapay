@@ -6,12 +6,15 @@ public interface IPriceNotifier
 {
     bool IsSupported { get; }
     void ShowDrops(IReadOnlyList<Models.PriceDrop> drops);
+    /// Нові знижки у відстежуваних категоріях (уже згруповано сервером по категорії).
+    void ShowCategoryNews(IReadOnlyList<Models.CategoryNews> news);
 }
 
 public class NoopPriceNotifier : IPriceNotifier
 {
     public bool IsSupported => false;
     public void ShowDrops(IReadOnlyList<Models.PriceDrop> drops) { }
+    public void ShowCategoryNews(IReadOnlyList<Models.CategoryNews> news) { }
 }
 
 /// Одна перевірка зниження цін: спитати сервер → показати сповіщення → підтвердити показ.
@@ -39,11 +42,28 @@ public class PriceWatchService
         await _auth.LoadAsync();                 // токен із SecureStorage (працює і без UI)
         if (!_auth.IsLoggedIn) return 0;
 
+        var shown = 0;
         var drops = await _api.DropsAsync(ct);
-        if (drops.Count == 0) return 0;
+        if (drops.Count > 0)
+        {
+            _notifier.ShowDrops(drops);
+            await _api.AckDropsAsync(drops.Select(d => d.WatchlistId), ct);
+            shown += drops.Count;
+        }
 
-        _notifier.ShowDrops(drops);
-        await _api.AckDropsAsync(drops.Select(d => d.WatchlistId), ct);
-        return drops.Count;
+        // категорійні новини — окреме сповіщення (згруповане сервером по категорії);
+        // збій тут не має глушити цінові, тому свій try
+        try
+        {
+            var news = await _api.CategoryNewsAsync(ct);
+            if (news.Count > 0)
+            {
+                _notifier.ShowCategoryNews(news);
+                await _api.AckCategoryNewsAsync(news.Select(n => n.WatchlistId), ct);
+                shown += news.Count;
+            }
+        }
+        catch (UnauthorizedException) { /* токен здох — цінові вже відпрацювали */ }
+        return shown;
     }
 }

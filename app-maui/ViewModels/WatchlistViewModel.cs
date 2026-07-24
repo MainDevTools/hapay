@@ -18,6 +18,10 @@ public partial class WatchlistViewModel : ObservableObject
 
     public ObservableCollection<WatchItem> Items { get; } = new();
 
+    /// Відстежувані КАТЕГОРІЇ (сповіщення про нові знижки) — окремим блоком над товарами.
+    public ObservableCollection<WatchItem> CategoriesWatched { get; } = new();
+    [ObservableProperty] private bool _hasCategories;
+
     [ObservableProperty] private bool _isRefreshing;
     [ObservableProperty] private string? _errorMessage;
     [ObservableProperty] private bool _showEmpty;
@@ -63,11 +67,13 @@ public partial class WatchlistViewModel : ObservableObject
         {
             var all = await _api.WatchlistAsync();
             Items.Clear();
-            // поки показуємо лише товари: стеження за категорією/запитом є в API,
-            // але без сповіщень воно нічого не додає користувачеві
+            CategoriesWatched.Clear();
             foreach (var w in all.Where(w => w.Kind == "store_product"))
                 Items.Add(w);
-            ShowEmpty = Items.Count == 0;
+            foreach (var w in all.Where(w => w.Kind == "category"))
+                CategoriesWatched.Add(w);       // сервер уже підставив людську назву в title
+            HasCategories = CategoriesWatched.Count > 0;
+            ShowEmpty = Items.Count == 0 && CategoriesWatched.Count == 0;
         }
         catch (UnauthorizedException)
         {
@@ -96,7 +102,9 @@ public partial class WatchlistViewModel : ObservableObject
         {
             await _api.UnwatchAsync(w.WatchlistId);
             Items.Remove(w);
-            ShowEmpty = Items.Count == 0;
+            CategoriesWatched.Remove(w);
+            HasCategories = CategoriesWatched.Count > 0;
+            ShowEmpty = Items.Count == 0 && CategoriesWatched.Count == 0;
         }
         catch (Exception e)
         {

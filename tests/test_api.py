@@ -227,6 +227,54 @@ def main():
                    client.post("/api/me/watchlist/drops/ack", headers=ahdr,
                                json={"watchlist_ids": "abc"}).status_code == 400, None))
 
+    # ── стеження за КАТЕГОРІЄЮ: новини + ack (0165) ──────────────────────────────
+    with psycopg.connect(URL) as c:
+        cslug, = c.execute(
+            "SELECT c.slug FROM category c JOIN store_product sp "
+            "ON sp.category_id = c.category_id WHERE sp.store_product_id = %s",
+            (spid,)).fetchone()
+    wc = client.post("/api/me/watchlist",
+                     json={"kind": "category", "query_text": cslug}, headers=ahdr)
+    checks.append(("watch категорії → 200", wc.status_code == 200, wc.json()))
+    wc2 = client.post("/api/me/watchlist",
+                      json={"kind": "category", "query_text": cslug}, headers=ahdr)
+    checks.append(("повторний watch категорії не дублює",
+                   wc2.json().get("watchlist_id") == wc.json().get("watchlist_id"),
+                   (wc.json(), wc2.json())))
+    checks.append(("категорія видна у списку стеження з людською назвою",
+                   any(x["kind"] == "category" and x["query_text"] == cslug and x["title"]
+                       for x in client.get("/api/me/watchlist", headers=ahdr).json()), None))
+    # події категорії старіші за момент підписки → новин нема
+    checks.append(("щойно підписався → новин ще нема",
+                   client.get("/api/me/watchlist/category-news", headers=ahdr).json() == [],
+                   None))
+    # пересуваємо водяний знак у минуле — наявні події стають «новими»
+    with psycopg.connect(URL, autocommit=True) as c:
+        c.execute("UPDATE watchlist SET created_at = created_at - interval '2 days' "
+                  "WHERE watchlist_id = %s", (wc.json()["watchlist_id"],))
+    cn = client.get("/api/me/watchlist/category-news", headers=ahdr).json()
+    checks.append(("нові знижки категорії згруповано одним рядком",
+                   len(cn) == 1 and cn[0]["new_n"] >= 1 and cn[0]["slug"] == cslug
+                   and cn[0]["category"] and cn[0]["top_title"], cn))
+    ackc = client.post("/api/me/watchlist/category-news/ack", headers=ahdr,
+                       json={"watchlist_ids": [cn[0]["watchlist_id"]]})
+    checks.append(("ack категорійних новин → 1", ackc.json().get("acked") == 1, ackc.json()))
+    checks.append(("після ack ті самі знижки не турбують",
+                   client.get("/api/me/watchlist/category-news", headers=ahdr).json() == [],
+                   None))
+
+    # ── фільтр «лише підтверджені» у стрічці ─────────────────────────────────────
+    vb = client.get("/api/products?badge=verified")
+    checks.append(("badge=verified → 200 і лише verified/provisional",
+                   vb.status_code == 200 and all(
+                       r["badge_state"] in ("verified", "verified_provisional")
+                       for r in vb.json()), [r.get("badge_state") for r in vb.json()[:5]]))
+
+    # ── свіжість даних (шапка стрічки) ───────────────────────────────────────────
+    fr = client.get("/api/freshness")
+    checks.append(("/api/freshness публічний і віддає minutes",
+                   fr.status_code == 200 and "minutes" in fr.json(), fr.json()))
+
     # чуже стеження не видаляється — інакше будь-хто чистив би чужі списки
     other = client.post("/api/auth/register",
                         json={"email": "watcher2@hapay.today", "password": "watchpass"}).json()

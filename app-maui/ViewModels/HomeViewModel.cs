@@ -75,6 +75,14 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
 
     // refId → watchlist_id: серденька на картках знають свій стан і чим видалятись
     private readonly Dictionary<int, int> _watchIds = new();
+    // slug категорії → watchlist_id: дзвіночок «Стежити за категорією»
+    private readonly Dictionary<string, int> _watchCatIds = new();
+
+    [ObservableProperty] private bool _isCategoryWatched;
+    [ObservableProperty] private string? _freshnessText;   // «Ціни оновлено N хв тому»
+
+    /// «✓ Підтверджені» — лише знижки, що пройшли перевірку 30-денним мінімумом.
+    [ObservableProperty] private bool _onlyVerified;
 
     private bool _pendingCacheSwap;   // кеш на екрані → перший свіжий батч його замінює
     [ObservableProperty] private bool _isLoading;
@@ -100,25 +108,28 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
     private CancellationTokenSource? _searchCts;
 
     private readonly ICollectScheduler _scheduler;
+    private readonly IPriceWatchScheduler _priceWatch;
     private readonly FeedCache _feedCache;
     private readonly SearchHistory _searchHistory;
 
     public HomeViewModel(ApiService api, AuthService auth, ICollectScheduler scheduler,
-                         FeedCache feedCache, SearchHistory searchHistory)
+                         IPriceWatchScheduler priceWatch, FeedCache feedCache,
+                         SearchHistory searchHistory)
     {
         _api = api;
         _auth = auth;
         _scheduler = scheduler;
+        _priceWatch = priceWatch;
         _feedCache = feedCache;
         _searchHistory = searchHistory;
         foreach (var s in SortOptions)
             SortChips.Add(new SortChip(s.Label, s.Key));
     }
 
-    /// Ключ кешу стрічки: лише «чисті» види (без пошуку/цінового фільтра).
+    /// Ключ кешу стрічки: лише «чисті» види (без пошуку/цінового фільтра/бейджа).
     private string CacheKey => $"{SelectedCategory?.Slug}|{SelectedSort?.Key}";
 
-    private bool IsCleanView => !IsSearching
+    private bool IsCleanView => !IsSearching && !OnlyVerified
         && SelectedPrice?.MinKop is null && SelectedPrice?.MaxKop is null;
 
     // прийшли з каталогу (§17) АБО повернулись із «Каталогу товарів» (вибір через ".."):
@@ -146,6 +157,7 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
         await _auth.LoadAsync();   // підняти збережений токен (SecureStorage) до першого запиту
         _scheduler.EnsureIfEnabled();   // відновити фоновий збір (T16), якщо був увімкнений
         _ = LoadWatchMapAsync();   // серденька на картках; тихо і паралельно до категорій
+        _ = LoadFreshnessAsync();  // «Ціни оновлено N хв тому» — теж тихо й паралельно
         // «Усі категорії» додаємо ДО запиту — щоб пікер не лишився порожнім, якщо мережа впаде
         Categories.Add(new Category { Slug = "", Name = "Усі категорії" });
         try
@@ -243,6 +255,7 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
         var real = c is not null && !string.IsNullOrEmpty(c.Slug);
         SelectedCategoryLabel = real ? c!.Display : "Усі категорії";
         IsCategoryNarrowed = real;
+        SyncCategoryWatched();
         if (real) PageTitle = c!.Name;
 
         Neighbors.Clear();
@@ -308,6 +321,7 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
     private async Task Refresh()
     {
         IsRefreshing = true;
+        _ = LoadFreshnessAsync();
         await ReloadAsync();
         IsRefreshing = false;
     }
@@ -358,19 +372,80 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
         await FetchAsync(gen);         // НЕ через LoadMore: свіжий reload не блокується IsLoading
     }
 
-    /// Звірка стеження для сердець на картках. Тихо: збій не ламає стрічку.
+    /// Звірка стеження (серця на картках + дзвіночок категорії). Тихо: збій не ламає стрічку.
     private async Task LoadWatchMapAsync()
     {
         _watchIds.Clear();
+        _watchCatIds.Clear();
         if (!_auth.IsLoggedIn) return;
         try
         {
             foreach (var w in await _api.WatchlistAsync())
+            {
                 if (w.Kind == "store_product" && w.RefId is int rid)
                     _watchIds[rid] = w.WatchlistId;
+                if (w.Kind == "category" && !string.IsNullOrEmpty(w.QueryText))
+                    _watchCatIds[w.QueryText!] = w.WatchlistId;
+            }
+            SyncCategoryWatched();
         }
         catch { /* серденька просто лишаться порожніми */ }
     }
+
+    private void SyncCategoryWatched() =>
+        IsCategoryWatched = SelectedCategory?.Slug is string s && s.Length > 0
+                            && _watchCatIds.ContainsKey(s);
+
+    /// Дзвіночок: стежити за категорією → сповіщення про нові знижки в ній.
+    [RelayCommand]
+    private async Task ToggleWatchCategory()
+    {
+        var slug = SelectedCategory?.Slug;
+        if (string.IsNullOrEmpty(slug)) return;
+        if (!_auth.IsLoggedIn)
+        {
+            await Shell.Current.GoToAsync(nameof(LoginPage));
+            return;
+        }
+        try
+        {
+            if (_watchCatIds.TryGetValue(slug!, out var wid))
+            {
+                await _api.UnwatchAsync(wid);
+                _watchCatIds.Remove(slug!);
+            }
+            else
+            {
+                await _api.WatchCategoryAsync(slug!);
+                await LoadWatchMapAsync();
+                // дозвіл на сповіщення — саме в момент, коли людина попросила стежити
+                await Permissions.RequestAsync<Permissions.PostNotifications>();
+                _priceWatch.Enable();
+            }
+            SyncCategoryWatched();
+        }
+        catch { /* мережевий збій — стан не змінився */ }
+    }
+
+    /// «Ціни оновлено N хв тому» — чесна свіжість (тихо, збій не показуємо).
+    private async Task LoadFreshnessAsync()
+    {
+        try
+        {
+            var m = await _api.FreshnessAsync();
+            FreshnessText = m is null ? null
+                : m < 2 ? "Ціни оновлено щойно"
+                : m < 60 ? $"Ціни оновлено {m} хв тому"
+                : $"Ціни оновлено {m / 60} год тому";
+        }
+        catch { FreshnessText = null; }
+    }
+
+    partial void OnOnlyVerifiedChanged(bool value) { if (_ready) _ = ReloadAsync(); }
+
+    /// Чіп «✓ Підтверджені».
+    [RelayCommand]
+    private void ToggleVerified() => OnlyVerified = !OnlyVerified;
 
     /// Серденько на картці: додати/зняти стеження одним тапом, без відкриття картки.
     /// Оновлення рядка — заміною елемента (Discount без INPC, патерн IsOurChoice).
@@ -422,7 +497,8 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
                 // «нічого не знайдено» через те, що на нього зараз немає знижки.
                 // Заміряно 2026-07-21: знижкові — лише 48% зібраного (2673 товари
                 // були недосяжні пошуком).
-                onlyDiscounts: !IsSearching);
+                onlyDiscounts: !IsSearching,
+                badge: OnlyVerified ? "verified" : null);
             if (gen != _gen) return;   // фільтр змінився під час запиту → відповідь застаріла
 
             // Глухий кут: шукали всередині категорії й нічого. Замість «нічого не

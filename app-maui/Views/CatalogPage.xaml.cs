@@ -19,6 +19,9 @@ public partial class CatalogPage : ContentPage
         _vm.RefreshLocal();            // нещодавні/історія запитів — свіжі щоразу
         if (_initialized) return;
         _initialized = true;
+        // перший запуск → онбординг (3 слайди, раз); вітрина вантажиться під ним
+        if (!Preferences.Default.Get(OnboardingPage.DoneKey, false))
+            await Shell.Current.GoToAsync(nameof(OnboardingPage));
         await _vm.InitializeAsync();   // категорії зі знижками → вітрина
     }
 }

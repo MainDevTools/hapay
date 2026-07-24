@@ -156,6 +156,21 @@ public class Category
 }
 
 /// Розділ сітки-каталогу (E-Katalog, §17): заголовок + категорії розділу.
+/// Нові знижки у відстежуваній категорії (одне згруповане сповіщення на категорію).
+public class CategoryNews
+{
+    [JsonPropertyName("watchlist_id")] public int WatchlistId { get; set; }
+    [JsonPropertyName("slug")] public string Slug { get; set; } = "";
+    [JsonPropertyName("category")] public string Category { get; set; } = "";
+    [JsonPropertyName("new_n")] public int NewN { get; set; }
+    [JsonPropertyName("top_pct")] public int? TopPct { get; set; }
+    [JsonPropertyName("top_title")] public string? TopTitle { get; set; }
+
+    [JsonIgnore] public string NotifyText =>
+        $"{Category}: {NewN} нових знижок" +
+        (TopPct is int p && TopTitle is not null ? $", топ −{p}% {TopTitle}" : "");
+}
+
 public class CategoryGroup : List<Category>
 {
     public string Title { get; }
@@ -275,6 +290,7 @@ public class WatchItem
     [JsonPropertyName("watchlist_id")] public int WatchlistId { get; set; }
     [JsonPropertyName("kind")] public string Kind { get; set; } = "";
     [JsonPropertyName("ref_id")] public int? RefId { get; set; }
+    [JsonPropertyName("query_text")] public string? QueryText { get; set; }   // slug категорії (kind=category)
     [JsonPropertyName("title")] public string? Title { get; set; }
     [JsonPropertyName("url")] public string? Url { get; set; }
     [JsonPropertyName("image_url")] public string? ImageUrl { get; set; }

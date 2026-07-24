@@ -12,6 +12,7 @@
 
     <ContentPage.Resources>
         <conv:StringNotEmptyConverter x:Key="NotEmpty" />
+        <conv:InvertBoolConverter x:Key="Invert" />
     </ContentPage.Resources>
 
     <!-- «Стеження» пішло в таб-бар (UX-пакет 2026-07-24) — тулбар без дублів -->
@@ -49,9 +50,33 @@
                                 ItemDisplayBinding="{Binding Label}"
                                 SelectedItem="{Binding SelectedPrice}" />
                     </Grid>
-                    <!-- сорт — сегмент-чіпами: всі опції видно одразу, один тап -->
+                    <!-- сорт — сегмент-чіпами + чіп «Підтверджені» попереду -->
                     <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
-                        <HorizontalStackLayout Spacing="6" Padding="2,0,2,4"
+                        <HorizontalStackLayout Spacing="6" Padding="2,0,2,4">
+                        <!-- «✓ Підтверджені»: знижки, що пройшли перевірку 30-денним
+                             мінімумом; окремий тогл, стилістично відмінний від сорту -->
+                        <Border Padding="10,4" StrokeShape="RoundRectangle 14" StrokeThickness="0.8"
+                                Stroke="{AppThemeBinding Light={StaticResource SaveFgLight}, Dark={StaticResource SaveFgDark}}"
+                                BackgroundColor="Transparent">
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding OnlyVerified}" Value="True">
+                                    <Setter Property="BackgroundColor"
+                                            Value="{AppThemeBinding Light={StaticResource SaveFgLight}, Dark={StaticResource SaveFgDark}}" />
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ToggleVerifiedCommand}" />
+                            </Border.GestureRecognizers>
+                            <Label Text="✓ Підтверджені" FontSize="12"
+                                   TextColor="{AppThemeBinding Light={StaticResource SaveFgLight}, Dark={StaticResource SaveFgDark}}">
+                                <Label.Triggers>
+                                    <DataTrigger TargetType="Label" Binding="{Binding OnlyVerified}" Value="True">
+                                        <Setter Property="TextColor" Value="White" />
+                                    </DataTrigger>
+                                </Label.Triggers>
+                            </Label>
+                        </Border>
+                        <HorizontalStackLayout Spacing="6"
                                                BindableLayout.ItemsSource="{Binding SortChips}">
                             <BindableLayout.ItemTemplate>
                                 <DataTemplate x:DataType="vm:SortChip">
@@ -81,9 +106,26 @@
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>
                         </HorizontalStackLayout>
+                        </HorizontalStackLayout>
                     </ScrollView>
                 </VerticalStackLayout>
             </Border>
+            <!-- «Ціни оновлено N хв тому» — чесна свіжість даних -->
+            <Label Text="{Binding FreshnessText}" Style="{StaticResource Caption}"
+                   FontSize="11" Margin="4,0"
+                   IsVisible="{Binding FreshnessText, Converter={StaticResource NotEmpty}}" />
+            <!-- дзвіночок: сповіщення про нові знижки в обраній категорії -->
+            <HorizontalStackLayout Spacing="4" Margin="4,0" IsVisible="{Binding IsCategoryNarrowed}">
+                <HorizontalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding ToggleWatchCategoryCommand}" />
+                </HorizontalStackLayout.GestureRecognizers>
+                <Label Text="🔔 Стежити за категорією" FontSize="12"
+                       TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
+                       IsVisible="{Binding IsCategoryWatched, Converter={StaticResource Invert}}" />
+                <Label Text="🔔 Стежиш за категорією ✓ (тапни, щоб вимкнути)" FontSize="12"
+                       Style="{StaticResource Caption}"
+                       IsVisible="{Binding IsCategoryWatched}" />
+            </HorizontalStackLayout>
             <!-- сусідні категорії розділу: стрибок «Ноутбуки → Процесори» одним тапом -->
             <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never"
                         IsVisible="{Binding HasNeighbors}">

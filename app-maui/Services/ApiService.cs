@@ -48,7 +48,7 @@ public class ApiService
     public async Task<List<Discount>> ProductsAsync(
         string? category = null, string? q = null, string sort = "discount", int page = 0,
         int? priceMinKop = null, int? priceMaxKop = null, bool onlyDiscounts = false,
-        CancellationToken ct = default)
+        string? badge = null, CancellationToken ct = default)
     {
         var url = $"{Base}/api/products?sort={Uri.EscapeDataString(sort)}&page={page}";
         if (!string.IsNullOrWhiteSpace(category)) url += $"&category={Uri.EscapeDataString(category)}";
@@ -56,7 +56,16 @@ public class ApiService
         if (priceMinKop is int lo) url += $"&price_min={lo}";
         if (priceMaxKop is int hi) url += $"&price_max={hi}";
         if (onlyDiscounts) url += "&only_discounts=1";
+        if (!string.IsNullOrEmpty(badge)) url += $"&badge={Uri.EscapeDataString(badge)}";
         return await _http.GetFromJsonAsync<List<Discount>>(url, _json, ct) ?? new();
+    }
+
+    /// Хвилини від останнього успішного збору (чесна свіжість у шапці стрічки).
+    public async Task<int?> FreshnessAsync(CancellationToken ct = default)
+    {
+        var doc = await _http.GetFromJsonAsync<Dictionary<string, int?>>(
+            $"{Base}/api/freshness", _json, ct);
+        return doc is not null && doc.TryGetValue("minutes", out var m) ? m : null;
     }
 
     // Кеш категорій (сінглтон-сервіс): каталог, стрічка і «Каталог товарів» тягнули
@@ -131,6 +140,32 @@ public class ApiService
     {
         var resp = await _http.PostAsJsonAsync($"{Base}/api/me/watchlist",
             new { kind = "store_product", ref_id = storeProductId }, ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
+    }
+
+    /// Стежити за КАТЕГОРІЄЮ (kind=category, ключ — slug у query_text).
+    public async Task WatchCategoryAsync(string slug, CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync($"{Base}/api/me/watchlist",
+            new { kind = "category", query_text = slug }, ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
+    }
+
+    /// Нові знижки у відстежуваних категоріях (згруповано по категорії).
+    public async Task<List<CategoryNews>> CategoryNewsAsync(CancellationToken ct = default)
+    {
+        var resp = await _http.GetAsync($"{Base}/api/me/watchlist/category-news", ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content.ReadFromJsonAsync<List<CategoryNews>>(_json, ct) ?? new();
+    }
+
+    public async Task AckCategoryNewsAsync(IEnumerable<int> watchlistIds, CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync($"{Base}/api/me/watchlist/category-news/ack",
+            new { watchlist_ids = watchlistIds.ToArray() }, ct);
         if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
         if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
     }

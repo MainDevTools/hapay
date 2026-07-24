@@ -87,10 +87,20 @@ def products(category: str | None = None, q: str | None = None, sort: str = "dis
              page: int = Query(0, ge=0),
              price_min: int | None = Query(None, ge=0),
              price_max: int | None = Query(None, ge=0),
-             only_discounts: bool = False, conn=Depends(get_conn)):
-    """УСІ товари (не лише знижки) — повний прайс-агрегатор. `only_discounts=1` → лише знижкові."""
+             only_discounts: bool = False, badge: str | None = None,
+             conn=Depends(get_conn)):
+    """УСІ товари (не лише знижки) — повний прайс-агрегатор. `only_discounts=1` → лише
+    знижкові; `badge=verified` → лише зі знижками, що пройшли перевірку 30-денним
+    мінімумом (вкл. provisional на неповному вікні)."""
     return qdb.list_products(conn, category, sort, limit=50, offset=page * 50, q=q,
-                             price_min=price_min, price_max=price_max, only_discounts=only_discounts)
+                             price_min=price_min, price_max=price_max,
+                             only_discounts=only_discounts, badge=badge)
+
+
+@app.get("/api/freshness")
+def api_freshness(conn=Depends(get_conn)):
+    """Хвилини від останнього успішного збору — чесна свіжість даних у шапці стрічки."""
+    return qdb.freshness(conn)
 
 
 @app.get("/api/product/{store_product_id}/history")
@@ -236,6 +246,22 @@ def my_price_drops_ack(body: dict, claims=Depends(require_account), conn=Depends
     if not isinstance(ids, list) or not all(isinstance(i, int) for i in ids):
         raise HTTPException(400, "watchlist_ids: список int")
     return {"acked": qdb.ack_price_drops(conn, int(claims["sub"]), ids)}
+
+
+@app.get("/api/me/watchlist/category-news")
+def my_category_news(claims=Depends(require_account), conn=Depends(get_conn)):
+    """Відстежувані КАТЕГОРІЇ з новими знижками від останнього сповіщення — одне
+    згруповане сповіщення на категорію («N нових знижок, топ −X%»), не спам."""
+    return qdb.list_category_news(conn, int(claims["sub"]))
+
+
+@app.post("/api/me/watchlist/category-news/ack")
+def my_category_news_ack(body: dict, claims=Depends(require_account), conn=Depends(get_conn)):
+    """Підтвердити показ категорійних новин — водяний знак пересувається на now()."""
+    ids = (body or {}).get("watchlist_ids")
+    if not isinstance(ids, list) or not all(isinstance(i, int) for i in ids):
+        raise HTTPException(400, "watchlist_ids: список int")
+    return {"acked": qdb.ack_category_news(conn, int(claims["sub"]), ids)}
 
 
 @app.delete("/api/me/watchlist/{watchlist_id}")
