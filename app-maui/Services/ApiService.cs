@@ -78,11 +78,13 @@ public class ApiService
 
     public async Task<List<Category>> CategoriesAsync(bool fresh = false, CancellationToken ct = default)
     {
+        // повертаємо КОПІЮ: викликачі роблять AddRange/foreach, і хоча зараз ніхто
+        // список не мутує, віддати сам кеш-екземпляр — крихко (bug-review 2026-07-25)
         if (!fresh && _catsCache is not null && DateTime.UtcNow - _catsCachedAt < _catsTtl)
-            return _catsCache;
+            return new List<Category>(_catsCache);
         var cats = await _http.GetFromJsonAsync<List<Category>>($"{Base}/api/categories", _json, ct) ?? new();
         if (cats.Count > 0) { _catsCache = cats; _catsCachedAt = DateTime.UtcNow; }
-        return cats;
+        return new List<Category>(cats);
     }
 
     public async Task<List<HistoryPoint>> HistoryAsync(int storeProductId, CancellationToken ct = default) =>

@@ -61,6 +61,8 @@ jobs:
         run: python tests/test_matching.py
       - name: nice_kop — «гарні» цінові межі фільтра (§17-nav)
         run: python tests/test_nice_kop.py
+      - name: ratelimit — sliding-window per-IP на auth (bug-review)
+        run: python tests/test_ratelimit.py
 
   migration:
     # Верифікація 0001 проти живого PostgreSQL 18 (= версія прод-Neon; Timescale-фічі → 0002).

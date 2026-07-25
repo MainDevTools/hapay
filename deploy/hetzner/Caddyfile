@@ -17,6 +17,10 @@
 	}
 
 	reverse_proxy 127.0.0.1:8080 {
+		# реальний IP клієнта для app-rate-limiter (api/ratelimit): {remote_host} —
+		# TCP-peer, який бачить Caddy, тож клієнт НЕ може підробити (сервер слухає
+		# лише localhost за проксі). Заголовок додано 2026-07-25 (bug-review, P2).
+		header_up X-Real-IP {remote_host}
 		health_uri /api/health
 		health_interval 30s
 	}

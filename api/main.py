@@ -7,7 +7,7 @@ from __future__ import annotations
 import os
 import time
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.responses import FileResponse
 
 import re
@@ -17,6 +17,7 @@ from api import db as qdb
 from api import ingest as qingest
 from api import qtasks
 from api import auth as qauth
+from api import ratelimit as qrl
 from api.initdata import verify_init_data, check_auth_age, InitDataError
 from detection.runner import detect_pass
 
@@ -171,8 +172,17 @@ def require_account(authorization: str | None = Header(default=None)):
     return claims
 
 
+def _rate_gate(request: Request, limiter: qrl.RateLimiter, limit: int, window: int):
+    """429 із Retry-After, коли IP перевищив ліміт дорогого auth-ендпойнта."""
+    ok, retry = limiter.check(qrl.client_ip(request), limit, window)
+    if not ok:
+        raise HTTPException(429, "Забагато спроб. Спробуй пізніше.",
+                            headers={"Retry-After": str(retry)})
+
+
 @app.post("/api/auth/register")
-def register(body: dict, conn=Depends(get_conn)):
+def register(body: dict, request: Request, conn=Depends(get_conn)):
+    _rate_gate(request, qrl.register_limiter, qrl.REGISTER_LIMIT, qrl.REGISTER_WINDOW_S)
     email = (body.get("email") or "").strip().lower()
     password = body.get("password") or ""
     if not _EMAIL_RE.match(email):
@@ -190,7 +200,8 @@ def register(body: dict, conn=Depends(get_conn)):
 
 
 @app.post("/api/auth/login")
-def login(body: dict, conn=Depends(get_conn)):
+def login(body: dict, request: Request, conn=Depends(get_conn)):
+    _rate_gate(request, qrl.login_limiter, qrl.LOGIN_LIMIT, qrl.LOGIN_WINDOW_S)
     email = (body.get("email") or "").strip().lower()
     password = body.get("password") or ""
     u = qdb.get_user_by_email(conn, email)
