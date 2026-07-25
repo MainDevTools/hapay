@@ -61,11 +61,14 @@ case "$BACKUP_TARGET" in
       while IFS= read -r f; do [[ -n "$f" ]] && printf 'rm %s/%s\n' "$dir" "$f"; done <<<"$old" \
         | sftp -o StrictHostKeyChecking=accept-new "$host" >/dev/null 2>&1 || true
     fi ;;
-  s3://*)                             # Backblaze B2 / будь-який S3
+  s3://*)                             # Backblaze B2 / будь-який S3 через rclone
     command -v rclone >/dev/null || { echo "нема rclone" >&2; exit 1; }
-    rclone copy "$DUMP" "$BACKUP_TARGET" --s3-no-check-bucket
-    # ретенція за віком: дампи старші за KEEP днів геть (rclone надійно вміє це сам)
-    rclone delete "$BACKUP_TARGET" --min-age "${KEEP}d" --include "hapay-*.dump" 2>/dev/null || true ;;
+    # rclone адресує як remote:path, не голим s3:// (то AWS CLI). BACKUP_TARGET
+    # інтуїтивний (s3://bucket/prefix), а ім'я rclone-remote з env (default 'b2').
+    dest="${RCLONE_REMOTE:-b2}:${BACKUP_TARGET#s3://}"
+    rclone copy "$DUMP" "$dest"
+    # ретенція за віком: дампи старші за KEEP днів геть (rclone вміє це сам)
+    rclone delete "$dest" --min-age "${KEEP}d" --include "hapay-*.dump" 2>/dev/null || true ;;
   *)
     echo "СТОП: не розумію BACKUP_TARGET='$BACKUP_TARGET' (треба rsync://, host:path або s3://)" >&2
     exit 1 ;;
