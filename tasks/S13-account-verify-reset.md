@@ -83,9 +83,16 @@ SMTP_HOST=smtp.resend.com, **SMTP_PORT=587** (⚠ НЕ 465 — Hetzner блок�
 465/25, буде TimeoutError; 587/2465/2587 відкриті), SMTP_USER=resend, SMTP_PASS=re_-ключ,
 SMTP_FROM=onboarding@resend.dev.
 
-**Лишилось (🧭 оператор):**
-- **Домен для розсилки будь-кому:** `onboarding@resend.dev` шле ЛИШЕ на власний email
-  акаунта. Для реальних користувачів — Resend «Add domain» hapay.today + DNS (SPF/DKIM)
-  у HostPro, тоді SMTP_FROM=noreply@hapay.today. Доти реальні юзери листа не отримають.
-- **Рев'ю текстів листів** (api/email.py) — юр-дотичне, перед масовою розсилкою.
-- (Тестовий FROM часто потрапляє в спам — домен це виправить.)
+**Домен ПІДКЛЮЧЕНО 2026-07-25.** hapay.today верифіковано в Resend (DKIM
+resend._domainkey + SPF/MX на send.hapay.today + DMARC _dmarc — усі в HostPro DNS,
+поширились на всі 4 NS). SMTP_FROM=noreply@hapay.today; Resend прийняв лист із нашого
+домену (автентифікований DKIM/SPF/DMARC → inbox, не спам). Канал повністю робочий для
+БУДЬ-ЯКИХ адрес. Дорогою: Hetzner блокує 465 → порт 587; ns3 HostPro відставав ~пів
+години (наздогнав сам).
+
+**Лишилось (🧭 оператор, дрібне):**
+- **Рев'ю текстів листів** (api/email.py verify_body/reset_body) — юр-дотичне,
+  фактологічний тон витриманий, але фінальне слово оператора.
+- DMARC p=none (лише моніторинг) — з часом можна посилити до quarantine/reject.
+
+**S13 ПОВНІСТЮ ЗАКРИТО:** E1 сервер + E2 MAUI + реальний email-канал через власний домен.
