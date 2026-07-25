@@ -31,6 +31,35 @@ public partial class ProfileViewModel : ObservableObject
     public string Email => _auth.Email ?? "";
     public string Role => _auth.Role;
     public bool IsCollector => _auth.IsCollector;
+    /// Банер «email не підтверджено» — лише коли залогінений і ще не verified (S13).
+    public bool ShowVerifyBanner => _auth.IsLoggedIn && !_auth.EmailVerified;
+    [ObservableProperty] private string? _verifyStatus;
+
+    /// Підтвердити email кодом із листа (діалог вводу — простіше за окремий екран).
+    [RelayCommand]
+    private async Task VerifyEmail()
+    {
+        var code = await Shell.Current.DisplayPromptAsync(
+            "Підтвердження email", "Введи 6-значний код із листа.",
+            "Підтвердити", "Скасувати", keyboard: Keyboard.Numeric, maxLength: 6);
+        if (string.IsNullOrWhiteSpace(code)) return;
+        try
+        {
+            await _auth.VerifyEmailAsync(code.Trim());
+            VerifyStatus = "Email підтверджено ✓";
+            OnPropertyChanged(nameof(ShowVerifyBanner));
+        }
+        catch (ApiException e) { VerifyStatus = e.Message; }
+        catch { VerifyStatus = "Не вдалося. Спробуй пізніше."; }
+    }
+
+    [RelayCommand]
+    private async Task ResendVerify()
+    {
+        try { await _auth.ResendVerifyAsync(); VerifyStatus = "Код надіслано на email."; }
+        catch (ApiException e) { VerifyStatus = e.Message; }
+        catch { VerifyStatus = "Не вдалося надіслати код."; }
+    }
     public string RoleLabel => _auth.Role switch
     {
         "collector" => "Колектор",
@@ -102,6 +131,7 @@ public partial class ProfileViewModel : ObservableObject
         OnPropertyChanged(nameof(IsCollector));
         OnPropertyChanged(nameof(AutoCollectSupported));
         OnPropertyChanged(nameof(TodayText));
+        OnPropertyChanged(nameof(ShowVerifyBanner));
     }
 
     /// На відкритті: звіряємось із сервером (актуальні email+роль). Якщо сесія мертва —

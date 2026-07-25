@@ -135,6 +135,40 @@ public class ApiService
         return (await resp.Content.ReadFromJsonAsync<UserProfile>(_json, ct))!;
     }
 
+    // ── S13: підтвердження email + скидання пароля ────────────────────────────────
+    /// Підтвердити email кодом із листа (потрібен токен акаунта). True — підтверджено.
+    public async Task VerifyEmailAsync(string code, CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync($"{Base}/api/auth/verify", new { code }, ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
+    }
+
+    /// Надіслати новий код підтвердження на email акаунта.
+    public async Task ResendVerifyAsync(CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsync($"{Base}/api/auth/verify/resend", null, ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
+    }
+
+    /// «Забув пароль»: запросити код на email. Сервер ЗАВЖДИ відповідає 200 (не
+    /// розкриває, чи email зареєстрований) — тож тут не розрізняємо існування.
+    public async Task RequestResetAsync(string email, CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync($"{Base}/api/auth/reset/request", new { email }, ct);
+        if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
+    }
+
+    /// Змінити пароль за кодом із листа.
+    public async Task ConfirmResetAsync(string email, string code, string newPassword,
+                                        CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync($"{Base}/api/auth/reset/confirm",
+            new { email, code, new_password = newPassword }, ct);
+        if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
+    }
+
     // ── «Стежити за ціною» ────────────────────────────────────────────────────────
     /// Додати товар у відстеження. Ціну на момент додавання фіксує СЕРВЕР — тут її
     /// свідомо не передаємо (клієнт не має диктувати, від чого рахувати економію).

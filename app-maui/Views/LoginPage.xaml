@@ -10,6 +10,7 @@
 
     <ContentPage.Resources>
         <conv:StringNotEmptyConverter x:Key="NotEmpty" />
+        <conv:InvertBoolConverter x:Key="Invert" />
     </ContentPage.Resources>
 
     <ScrollView>
@@ -35,6 +36,15 @@
 
             <Button Text="{Binding ToggleText}" Command="{Binding ToggleCommand}"
                     BackgroundColor="Transparent" TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}" />
+
+            <!-- «Забув пароль?» лише в режимі входу (S13) -->
+            <Label Text="Забув пароль?" FontSize="13" HorizontalOptions="Center"
+                   IsVisible="{Binding IsRegister, Converter={StaticResource Invert}}"
+                   TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}">
+                <Label.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding ForgotPasswordCommand}" />
+                </Label.GestureRecognizers>
+            </Label>
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

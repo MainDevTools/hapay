@@ -13,11 +13,15 @@ public partial class AuthService : ObservableObject
 
     private readonly ApiService _api;
 
+    private const string KeyVerified = "hapay_email_verified";
+
     [ObservableProperty] private bool _isLoggedIn;
     [ObservableProperty] private string? _email;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsCollector))]   // IsCollector залежить від Role → авто-сповіщення
     private string _role = "user";
+    /// email підтверджено (S13). Профіль показує банер, коли false.
+    [ObservableProperty] private bool _emailVerified;
 
     public bool IsCollector => Role is "collector" or "moderator" or "admin";
 
@@ -36,6 +40,7 @@ public partial class AuthService : ObservableObject
             _api.SetToken(token);
             Email = await SecureStorage.GetAsync(KeyEmail);
             Role = await SecureStorage.GetAsync(KeyRole) ?? "user";
+            EmailVerified = await SecureStorage.GetAsync(KeyVerified) == "1";
             IsLoggedIn = true;
         }
         catch
@@ -61,10 +66,22 @@ public partial class AuthService : ObservableObject
         await SecureStorage.SetAsync(KeyToken, r.Token);
         await SecureStorage.SetAsync(KeyEmail, r.Email);
         await SecureStorage.SetAsync(KeyRole, r.Role);
+        await SecureStorage.SetAsync(KeyVerified, r.EmailVerified ? "1" : "0");
         Email = r.Email;
         Role = r.Role;   // сповістить і IsCollector (NotifyPropertyChangedFor)
+        EmailVerified = r.EmailVerified;
         IsLoggedIn = true;
     }
+
+    /// Підтвердити email кодом (оновлює локальний стан при успіху).
+    public async Task VerifyEmailAsync(string code)
+    {
+        await _api.VerifyEmailAsync(code);
+        EmailVerified = true;
+        await SecureStorage.SetAsync(KeyVerified, "1");
+    }
+
+    public Task ResendVerifyAsync() => _api.ResendVerifyAsync();
 
     /// Звіряє кеш із сервером через /api/me: оновлює email+роль на актуальні (напр. роль
     /// щойно підняли до collector). На 401 (акаунт зник / токен протух) — розлогінює, щоб
@@ -78,8 +95,10 @@ public partial class AuthService : ObservableObject
             var me = await _api.MeAsync();
             Email = me.Email;
             Role = me.Role;                                 // сповістить і IsCollector
+            EmailVerified = me.EmailVerified;
             await SecureStorage.SetAsync(KeyEmail, me.Email);
             await SecureStorage.SetAsync(KeyRole, me.Role);
+            await SecureStorage.SetAsync(KeyVerified, me.EmailVerified ? "1" : "0");
             return true;
         }
         catch (UnauthorizedException)
@@ -98,9 +117,11 @@ public partial class AuthService : ObservableObject
         SecureStorage.Remove(KeyToken);
         SecureStorage.Remove(KeyEmail);
         SecureStorage.Remove(KeyRole);
+        SecureStorage.Remove(KeyVerified);
         _api.SetToken(null);
         IsLoggedIn = false;
         Email = null;
         Role = "user";   // сповістить і IsCollector (NotifyPropertyChangedFor)
+        EmailVerified = false;
     }
 }

@@ -18,6 +18,28 @@
         <Label Text="{Binding Email}" FontSize="18" FontAttributes="Bold" />
         <Label Text="{Binding RoleLabel}" TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}" />
 
+        <!-- банер «email не підтверджено» (S13): бурштиновий, з діями підтвердити/повторити -->
+        <Border IsVisible="{Binding ShowVerifyBanner}" Style="{StaticResource PillWarn}"
+                Padding="12,10" StrokeShape="RoundRectangle 10">
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Email не підтверджено" FontAttributes="Bold" FontSize="14"
+                       TextColor="{AppThemeBinding Light={StaticResource WarnFgLight}, Dark={StaticResource WarnFgDark}}" />
+                <Label Text="Підтверди email кодом із листа, щоб убезпечити акаунт і повернути доступ, якщо забудеш пароль."
+                       FontSize="12"
+                       TextColor="{AppThemeBinding Light={StaticResource WarnFgLight}, Dark={StaticResource WarnFgDark}}" />
+                <HorizontalStackLayout Spacing="10">
+                    <Button Text="Ввести код" Command="{Binding VerifyEmailCommand}"
+                            FontSize="13" MinimumHeightRequest="40" />
+                    <Button Text="Надіслати код" Command="{Binding ResendVerifyCommand}"
+                            FontSize="13" MinimumHeightRequest="40" BackgroundColor="Transparent"
+                            TextColor="{AppThemeBinding Light={StaticResource WarnFgLight}, Dark={StaticResource WarnFgDark}}" />
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+        </Border>
+        <Label Text="{Binding VerifyStatus}" FontSize="13"
+               IsVisible="{Binding VerifyStatus, Converter={StaticResource NotEmpty}}"
+               TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
+
         <!-- збір: лише для колектора. Тягне HTML крамниць зі свого IP, парсить сервер (S11 етап 3) -->
         <VerticalStackLayout IsVisible="{Binding IsCollector}" Spacing="10">
             <Border Padding="12" StrokeThickness="0"

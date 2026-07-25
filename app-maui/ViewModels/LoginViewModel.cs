@@ -33,6 +33,10 @@ public partial class LoginViewModel : ObservableObject
     private void Toggle() => IsRegister = !IsRegister;
 
     [RelayCommand]
+    private async Task ForgotPassword() =>
+        await Shell.Current.GoToAsync(nameof(Views.ResetPasswordPage));
+
+    [RelayCommand]
     private async Task Submit()
     {
         if (IsBusy) return;

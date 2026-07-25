@@ -197,6 +197,7 @@ public class AuthResult
     [JsonPropertyName("token")] public string Token { get; set; } = "";
     [JsonPropertyName("role")] public string Role { get; set; } = "user";
     [JsonPropertyName("email")] public string Email { get; set; } = "";
+    [JsonPropertyName("email_verified")] public bool EmailVerified { get; set; }
 }
 
 /// Профіль із /api/me.
@@ -205,6 +206,7 @@ public class UserProfile
     [JsonPropertyName("user_id")] public int UserId { get; set; }
     [JsonPropertyName("email")] public string Email { get; set; } = "";
     [JsonPropertyName("role")] public string Role { get; set; } = "user";
+    [JsonPropertyName("email_verified")] public bool EmailVerified { get; set; }
 }
 
 /// Оффер із /api/product/{id}/offers — той самий товар (mpn) в одній із крамниць (T15).

@@ -50,6 +50,8 @@ public static class MauiProgram
         builder.Services.AddTransient<DetailPage>();
         builder.Services.AddTransient<LoginViewModel>();
         builder.Services.AddTransient<LoginPage>();
+        builder.Services.AddTransient<ResetPasswordViewModel>();
+        builder.Services.AddTransient<ResetPasswordPage>();
         builder.Services.AddTransient<WatchlistViewModel>();
         builder.Services.AddTransient<WatchlistPage>();
         builder.Services.AddTransient<ProfileViewModel>();
