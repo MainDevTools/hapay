@@ -46,7 +46,18 @@ echo "    таблиць у дампі: $(grep -c 'TABLE DATA' "$WORK/toc.txt")"
 KEEP="${BACKUP_KEEP:-30}"
 
 echo "==> відправка → $BACKUP_TARGET"
+# ⚠ ПОРЯДОК гілок критичний: s3:// теж містить ':', тож ПЕРШИМ мусить стояти s3://*,
+# інакше `*:*` (rsync) перехоплює s3-адресу й ssh-ить до хоста «s3» (впіймано на
+# першому бекапі 2026-07-25: «Could not resolve hostname s3»).
 case "$BACKUP_TARGET" in
+  s3://*)                             # Backblaze B2 / будь-який S3 через rclone
+    command -v rclone >/dev/null || { echo "нема rclone" >&2; exit 1; }
+    # rclone адресує як remote:path, не голим s3:// (то AWS CLI). BACKUP_TARGET
+    # інтуїтивний (s3://bucket/prefix), а ім'я rclone-remote з env (default 'b2').
+    dest="${RCLONE_REMOTE:-b2}:${BACKUP_TARGET#s3://}"
+    rclone copy "$DUMP" "$dest"
+    # ретенція за віком: дампи старші за KEEP днів геть (rclone вміє це сам)
+    rclone delete "$dest" --min-age "${KEEP}d" --include "hapay-*.dump" 2>/dev/null || true ;;
   rsync://*|*:*)                      # Hetzner Storage Box (SSH/rsync)
     rsync -avz --remove-source-files -e "ssh -o StrictHostKeyChecking=accept-new" \
       "$DUMP" "$BACKUP_TARGET/"
@@ -61,14 +72,6 @@ case "$BACKUP_TARGET" in
       while IFS= read -r f; do [[ -n "$f" ]] && printf 'rm %s/%s\n' "$dir" "$f"; done <<<"$old" \
         | sftp -o StrictHostKeyChecking=accept-new "$host" >/dev/null 2>&1 || true
     fi ;;
-  s3://*)                             # Backblaze B2 / будь-який S3 через rclone
-    command -v rclone >/dev/null || { echo "нема rclone" >&2; exit 1; }
-    # rclone адресує як remote:path, не голим s3:// (то AWS CLI). BACKUP_TARGET
-    # інтуїтивний (s3://bucket/prefix), а ім'я rclone-remote з env (default 'b2').
-    dest="${RCLONE_REMOTE:-b2}:${BACKUP_TARGET#s3://}"
-    rclone copy "$DUMP" "$dest"
-    # ретенція за віком: дампи старші за KEEP днів геть (rclone вміє це сам)
-    rclone delete "$dest" --min-age "${KEEP}d" --include "hapay-*.dump" 2>/dev/null || true ;;
   *)
     echo "СТОП: не розумію BACKUP_TARGET='$BACKUP_TARGET' (треба rsync://, host:path або s3://)" >&2
     exit 1 ;;
