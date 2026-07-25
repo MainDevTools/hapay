@@ -40,20 +40,38 @@ grep -q 'price_snapshot' "$WORK/toc.txt" || {
   echo "СТОП: у дампі нема price_snapshot — це не наша база або дамп побитий." >&2; exit 1; }
 echo "    таблиць у дампі: $(grep -c 'TABLE DATA' "$WORK/toc.txt")"
 
+# Скільки дампів тримати офсайт. Ретенція, а не нескінченне накопичення: без неї
+# призначення колись переповниться й бекап почне падати — тихо втративши свіжі копії.
+# 30 щоденних = місяць глибини; дамп малий (тижні історії — сотні КБ), місця вистачає.
+KEEP="${BACKUP_KEEP:-30}"
+
 echo "==> відправка → $BACKUP_TARGET"
 case "$BACKUP_TARGET" in
   rsync://*|*:*)                      # Hetzner Storage Box (SSH/rsync)
     rsync -avz --remove-source-files -e "ssh -o StrictHostKeyChecking=accept-new" \
-      "$DUMP" "$BACKUP_TARGET/" ;;
+      "$DUMP" "$BACKUP_TARGET/"
+    # ретенція через sftp (Storage Box дозволяє sftp, не довільний ssh): лишити
+    # найновіші KEEP. best-effort — збій прибирання НЕ валить бекап (|| true), але
+    # видно в журналі. host:path → окремо host і каталог.
+    host="${BACKUP_TARGET%%:*}"; dir="${BACKUP_TARGET#*:}"
+    old="$(printf 'ls -1t %s\n' "$dir" | sftp -o StrictHostKeyChecking=accept-new "$host" 2>/dev/null \
+           | grep 'hapay-.*\.dump' | tail -n +"$((KEEP+1))" || true)"
+    if [[ -n "$old" ]]; then
+      echo "    ретенція: прибираю $(wc -l <<<"$old") старих дампів"
+      while IFS= read -r f; do [[ -n "$f" ]] && printf 'rm %s/%s\n' "$dir" "$f"; done <<<"$old" \
+        | sftp -o StrictHostKeyChecking=accept-new "$host" >/dev/null 2>&1 || true
+    fi ;;
   s3://*)                             # Backblaze B2 / будь-який S3
     command -v rclone >/dev/null || { echo "нема rclone" >&2; exit 1; }
-    rclone copy "$DUMP" "$BACKUP_TARGET" --s3-no-check-bucket ;;
+    rclone copy "$DUMP" "$BACKUP_TARGET" --s3-no-check-bucket
+    # ретенція за віком: дампи старші за KEEP днів геть (rclone надійно вміє це сам)
+    rclone delete "$BACKUP_TARGET" --min-age "${KEEP}d" --include "hapay-*.dump" 2>/dev/null || true ;;
   *)
     echo "СТОП: не розумію BACKUP_TARGET='$BACKUP_TARGET' (треба rsync://, host:path або s3://)" >&2
     exit 1 ;;
 esac
 
-echo "==> готово: hapay-$STAMP.dump"
+echo "==> готово: hapay-$STAMP.dump (тримаємо останні $KEEP)"
 echo
 echo "НАГАДУВАННЯ: раз на місяць ВІДНОВИ цей дамп у порожню базу й порахуй рядки."
 echo "Бекап без перевіреного відновлення — це не бекап."

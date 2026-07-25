@@ -169,10 +169,21 @@ cat > /etc/systemd/system/hapay-backup.service <<EOF
 [Unit]
 Description=Хапай — pg_dump бази ПОЗА цей сервер
 After=postgresql.service
+# тихий провал бекапу = «17.07 навпаки»: OnFailure кричить (журнал + TG якщо канал)
+OnFailure=hapay-backup-alert.service
 [Service]
 Type=oneshot
 EnvironmentFile=$ENV_FILE
 ExecStart=/usr/local/bin/hapay-backup
+EOF
+cat > /etc/systemd/system/hapay-backup-alert.service <<EOF
+[Unit]
+Description=Хапай — сигнал про ПРОВАЛ нічного бекапу
+[Service]
+Type=oneshot
+EnvironmentFile=$ENV_FILE
+WorkingDirectory=$REPO_DIR
+ExecStart=$VENV/bin/python scripts/alert_backup.py
 EOF
 cat > /etc/systemd/system/hapay-backup.timer <<'EOF'
 [Unit]
