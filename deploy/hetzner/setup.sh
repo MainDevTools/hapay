@@ -88,6 +88,16 @@ BACKUP_TARGET=
 
 # Опційно (Telegram Mini App):
 BOT_TOKEN=
+
+# Email (S13 verify/reset). Без цих змінних код працює через LogSender (код у журналі).
+# ⚠ ПОРТ 587, НЕ 465: Hetzner блокує вихідні 465/25 (перевірено 2026-07-25) — на 465
+# буде TimeoutError. Resend: host smtp.resend.com, user 'resend', pass = re_-ключ,
+# FROM onboarding@resend.dev (тест, лише на власний email) або noreply@<домен> (після DNS).
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=
 EOF
   chmod 600 "$ENV_FILE"
   echo "СТВОРЕНО з готовим паролем. Перевір домен і впиши BACKUP_TARGET: nano $ENV_FILE"
