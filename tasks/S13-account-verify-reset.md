@@ -58,4 +58,27 @@ account_token(token_id, user_id FK, kind 'verify'|'reset', code_hash TEXT,
 
 ---
 ## Outcome (Виконавець)
-_(заповнюється під час E1/E2)_
+
+**E1 (сервер) — ЗРОБЛЕНО 2026-07-25, у проді.** Міграція 0169 (email_verified +
+account_token з code_hash/TTL/одноразовістю). auth.py (make_code/hash_code), email.py
+(smtplib-env | LogSender, ніколи не кидає), db.py (create/consume_token,
+set_email_verified, update_password — гасить reset-токени). 4 ендпойнти + register/
+login/me правки; rate-limit email 5/год, code 10/10хв. **Живий smoke наскрізь:**
+register→verified:false, код із журналу→verify→true, /me→true, reset→новий пароль
+(**login новим 200, старим 401**), reset-код мертвий після зміни. Тести: token/email
+юніт 5/5 + test_api round-trip (одноразовість/протухання/no-enumeration/старий пароль
+мертвий) + dbguard; **CI зелений**.
+
+**E2 (MAUI) — ЗРОБЛЕНО 2026-07-25** (код + збірка 0 errors + прогін на емуляторі):
+AuthService (EmailVerified у SecureStorage + VerifyEmail/ResendVerify), ApiService
+(4 методи), профіль-банер «Email не підтверджено» (діалог коду + resend),
+ResetPasswordPage (двоетапний «забув пароль»), «Забув пароль?» на вході.
+**Візуально підтверджено:** login з «Забув пароль?», реєстрація, банер верифікації
+в профілі (бурштиновий, кнопки «Ввести код»/«Надіслати код») — усе рендериться.
+«Забув пароль?» правильно ховається в режимі реєстрації.
+
+**Лишилось (🧭 оператор, поза кодом):**
+- **SMTP-канал:** SES/Brevo креденшли в env (SMTP_HOST/PORT/USER/PASS/FROM) — доти
+  верифікація «сліпа» (код лише в journal сервера через LogSender).
+- **DKIM/SPF/DMARC** на hapay.today (DNS у HostPro) — щоб листи не в спам.
+- До підключення каналу — код повністю робочий, чекає лише env.
