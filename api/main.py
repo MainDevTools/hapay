@@ -18,6 +18,7 @@ from api import ingest as qingest
 from api import qtasks
 from api import auth as qauth
 from api import ratelimit as qrl
+from api import email as qemail
 from api.initdata import verify_init_data, check_auth_age, InitDataError
 from detection.runner import detect_pass
 
@@ -180,6 +181,16 @@ def _rate_gate(request: Request, limiter: qrl.RateLimiter, limit: int, window: i
                             headers={"Retry-After": str(retry)})
 
 
+def _send_code(conn, user_id: int, email: str, kind: str):
+    """Згенерувати одноразовий код, зберегти його ХЕШ, надіслати лист. Код у пошті —
+    єдине місце plaintext. Збій листа не валить потік (email.send не кидає)."""
+    code = qauth.make_code()
+    ttl = qauth.VERIFY_TTL_S if kind == "verify" else qauth.RESET_TTL_S
+    qdb.create_token(conn, user_id, kind, qauth.hash_code(code), ttl)
+    subject, body = (qemail.verify_body(code) if kind == "verify" else qemail.reset_body(code))
+    qemail.send(email, subject, body)
+
+
 @app.post("/api/auth/register")
 def register(body: dict, request: Request, conn=Depends(get_conn)):
     _rate_gate(request, qrl.register_limiter, qrl.REGISTER_LIMIT, qrl.REGISTER_WINDOW_S)
@@ -194,9 +205,68 @@ def register(body: dict, request: Request, conn=Depends(get_conn)):
         raise HTTPException(409, "email уже зареєстрований")
     user_id, role = row
     try:
-        return {"token": qauth.make_token(user_id, role), "role": role, "email": email}
+        token = qauth.make_token(user_id, role)     # SOFT-verify: вхід не блокуємо
     except qauth.AuthError as e:
-        raise HTTPException(500, str(e))   # JWT_SECRET не заданий на сервері
+        raise HTTPException(500, str(e))            # JWT_SECRET не заданий на сервері
+    _send_code(conn, user_id, email, "verify")      # лист підтвердження (email_verified=false)
+    return {"token": token, "role": role, "email": email, "email_verified": False}
+
+
+@app.post("/api/auth/verify")
+def verify_email(body: dict, request: Request, claims=Depends(require_account),
+                 conn=Depends(get_conn)):
+    """Підтвердити email кодом із листа. Прив'язано до залогіненого юзера."""
+    _rate_gate(request, qrl.code_limiter, qrl.CODE_LIMIT, qrl.CODE_WINDOW_S)
+    code = str((body or {}).get("code") or "").strip()
+    if not code:
+        raise HTTPException(400, "потрібен код")
+    uid = int(claims["sub"])
+    if not qdb.consume_token(conn, uid, "verify", qauth.hash_code(code)):
+        raise HTTPException(400, "код невірний або протермінований")
+    qdb.set_email_verified(conn, uid)
+    return {"email_verified": True}
+
+
+@app.post("/api/auth/verify/resend")
+def verify_resend(request: Request, claims=Depends(require_account), conn=Depends(get_conn)):
+    """Надіслати новий код підтвердження (якщо email ще не підтверджено)."""
+    _rate_gate(request, qrl.email_limiter, qrl.EMAIL_LIMIT, qrl.EMAIL_WINDOW_S)
+    u = qdb.get_user(conn, int(claims["sub"]))
+    if u is None:
+        raise HTTPException(401, "акаунт не існує")
+    if u["email_verified"]:
+        return {"email_verified": True}            # уже підтверджено — нема що слати
+    _send_code(conn, u["user_id"], u["email"], "verify")
+    return {"sent": True}
+
+
+@app.post("/api/auth/reset/request")
+def reset_request(body: dict, request: Request, conn=Depends(get_conn)):
+    """«Забув пароль»: надіслати код на email. ЗАВЖДИ 200 — не розкриваємо, чи такий
+    email зареєстрований (проти enumeration)."""
+    _rate_gate(request, qrl.email_limiter, qrl.EMAIL_LIMIT, qrl.EMAIL_WINDOW_S)
+    email = (body.get("email") or "").strip().lower()
+    u = qdb.get_user_by_email(conn, email) if _EMAIL_RE.match(email) else None
+    if u is not None:
+        _send_code(conn, u["user_id"], u["email"], "reset")
+    return {"ok": True}                             # однакова відповідь у будь-якому разі
+
+
+@app.post("/api/auth/reset/confirm")
+def reset_confirm(body: dict, request: Request, conn=Depends(get_conn)):
+    """Змінити пароль за кодом із листа. Код прив'язаний до email; успіх гасить усі
+    reset-токени юзера (update_password)."""
+    _rate_gate(request, qrl.code_limiter, qrl.CODE_LIMIT, qrl.CODE_WINDOW_S)
+    email = (body.get("email") or "").strip().lower()
+    code = str(body.get("code") or "").strip()
+    new_password = body.get("new_password") or ""
+    if len(new_password) < qauth.MIN_PASSWORD:
+        raise HTTPException(400, f"пароль ≥ {qauth.MIN_PASSWORD} символів")
+    u = qdb.get_user_by_email(conn, email) if _EMAIL_RE.match(email) else None
+    if u is None or not qdb.consume_token(conn, u["user_id"], "reset", qauth.hash_code(code)):
+        raise HTTPException(400, "код невірний або протермінований")
+    qdb.update_password(conn, u["user_id"], qauth.hash_password(new_password))
+    return {"ok": True}
 
 
 @app.post("/api/auth/login")
@@ -212,7 +282,8 @@ def login(body: dict, request: Request, conn=Depends(get_conn)):
     qdb.touch_login(conn, u["user_id"])
     try:
         return {"token": qauth.make_token(u["user_id"], u["role"]),
-                "role": u["role"], "email": u["email"]}
+                "role": u["role"], "email": u["email"],
+                "email_verified": u["email_verified"]}
     except qauth.AuthError as e:
         raise HTTPException(500, str(e))
 

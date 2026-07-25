@@ -548,7 +548,7 @@ def create_user(conn, email: str, password_hash: str):
 def get_user_by_email(conn, email: str):
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(
-            "SELECT user_id, email, password_hash, role FROM app_user "
+            "SELECT user_id, email, password_hash, role, email_verified FROM app_user "
             "WHERE lower(email) = lower(%s)", (email,)).fetchone()
 
 
@@ -559,8 +559,49 @@ def touch_login(conn, user_id: int):
 def get_user(conn, user_id: int):
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(
-            "SELECT user_id, email, role, created_at FROM app_user WHERE user_id = %s",
-            (user_id,)).fetchone()
+            "SELECT user_id, email, role, created_at, email_verified FROM app_user "
+            "WHERE user_id = %s", (user_id,)).fetchone()
+
+
+# ── коди підтвердження / скидання пароля (S13) ────────────────────────────────────
+def create_token(conn, user_id: int, kind: str, code_hash: str, ttl_s: int) -> None:
+    """Новий одноразовий код. Старі невикористані токени ТОГО САМОГО виду гасимо
+    (used_at=now): свіжий запит робить попередній код недійсним — інакше в пошті
+    гуляло б кілька живих кодів на один акаунт."""
+    conn.execute(
+        "UPDATE account_token SET used_at = now() "
+        "WHERE user_id = %s AND kind = %s AND used_at IS NULL", (user_id, kind))
+    conn.execute(
+        "INSERT INTO account_token (user_id, kind, code_hash, expires_at) "
+        "VALUES (%s,%s,%s, now() + make_interval(secs => %s))",
+        (user_id, kind, code_hash, ttl_s))
+
+
+def consume_token(conn, user_id: int, kind: str, code_hash: str) -> bool:
+    """Атомарно спожити код: активний (не-used, не-expired, збіг хешу) → позначити
+    used, повернути True. Інакше False. RETURNING гарантує, що два паралельні запити
+    не спожиють той самий код двічі."""
+    row = conn.execute(
+        "UPDATE account_token SET used_at = now() "
+        "WHERE token_id = (SELECT token_id FROM account_token "
+        "                  WHERE user_id = %s AND kind = %s AND code_hash = %s "
+        "                    AND used_at IS NULL AND expires_at > now() "
+        "                  ORDER BY created_at DESC LIMIT 1) "
+        "RETURNING token_id", (user_id, kind, code_hash)).fetchone()
+    return row is not None
+
+
+def set_email_verified(conn, user_id: int) -> None:
+    conn.execute("UPDATE app_user SET email_verified = true WHERE user_id = %s", (user_id,))
+
+
+def update_password(conn, user_id: int, password_hash: str) -> None:
+    """Змінити пароль. Заодно гасимо всі невикористані reset-токени юзера — після
+    зміни жоден старий код скидання не має лишитись живим."""
+    conn.execute("UPDATE app_user SET password_hash = %s WHERE user_id = %s",
+                 (password_hash, user_id))
+    conn.execute("UPDATE account_token SET used_at = now() "
+                 "WHERE user_id = %s AND kind = 'reset' AND used_at IS NULL", (user_id,))
 
 
 # watchlist на app-юзера (окремо від Telegram-версії вище)

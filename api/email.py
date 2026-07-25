@@ -1,0 +1,70 @@
+"""Надсилання транзакційних листів (S13) — stdlib smtplib, без зовнішніх пакетів.
+
+Канал через env (працює з SES/Brevo/будь-яким SMTP-релеєм):
+  SMTP_HOST, SMTP_PORT (default 587), SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_TLS (default "1").
+
+БЕЗ SMTP_HOST → LogSender: код падає в journal сервера (dev / канал ще не підключено).
+Той самий принцип, що alert_collect: фіча працює вже сьогодні, реальний канал = лише
+env, без зміни коду. `send` НІКОЛИ не кидає — збій листа не має валити реєстрацію
+(користувач перезапросить код; логіка акаунта не заручник пошти).
+
+⚠ Deliverability (щоб листи не в спам) вимагає SPF/DKIM/DMARC на домені FROM — це
+робота в DNS, не в коді (🧭 оператор).
+"""
+from __future__ import annotations
+
+import os
+import smtplib
+import sys
+from email.message import EmailMessage
+
+
+def _smtp_configured() -> bool:
+    return bool(os.environ.get("SMTP_HOST"))
+
+
+def send(to: str, subject: str, body: str) -> bool:
+    """Надіслати текстовий лист. True — прийнято релеєм; False — не надіслано (немає
+    каналу або збій). Ніколи не кидає."""
+    if not _smtp_configured():
+        # LogSender: код у журналі сервера — розробка/канал ще не підключено.
+        print(f"[email:LOG] до={to} тема={subject!r}\n{body}", file=sys.stderr)
+        return False
+    host = os.environ["SMTP_HOST"]
+    port = int(os.environ.get("SMTP_PORT", "587"))
+    user = os.environ.get("SMTP_USER", "")
+    pw = os.environ.get("SMTP_PASS", "")
+    sender = os.environ.get("SMTP_FROM", user)
+    use_tls = os.environ.get("SMTP_TLS", "1") != "0"
+
+    msg = EmailMessage()
+    msg["From"] = sender
+    msg["To"] = to
+    msg["Subject"] = subject
+    msg.set_content(body)
+    try:
+        with smtplib.SMTP(host, port, timeout=20) as s:
+            if use_tls:
+                s.starttls()
+            if user:
+                s.login(user, pw)
+            s.send_message(msg)
+        return True
+    except Exception as e:                       # мережа/авторизація/релей — не валимо потік
+        print(f"[email] збій надсилання до {to}: {type(e).__name__}: {e}", file=sys.stderr)
+        return False
+
+
+# ── тексти листів (фактологічні, українською; бренд «Хапай») ──────────────────────
+def verify_body(code: str) -> tuple[str, str]:
+    return ("Хапай — підтвердження email",
+            f"Твій код підтвердження: {code}\n\n"
+            "Введи його в застосунку, щоб підтвердити email. Код діє 24 години.\n"
+            "Якщо ти не реєструвався в Хапай — просто зігноруй цей лист.")
+
+
+def reset_body(code: str) -> tuple[str, str]:
+    return ("Хапай — скидання пароля",
+            f"Код для зміни пароля: {code}\n\n"
+            "Введи його в застосунку разом із новим паролем. Код діє 1 годину.\n"
+            "Якщо ти не просив зміну пароля — зігноруй цей лист, пароль лишиться тим самим.")

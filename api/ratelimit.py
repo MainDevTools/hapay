@@ -70,6 +70,10 @@ def client_ip(request) -> str:
 # автоматичному перебору — ні.
 login_limiter = RateLimiter()
 register_limiter = RateLimiter()
+email_limiter = RateLimiter()                # надсилання (resend/reset-request) — дороге
+code_limiter = RateLimiter()                 # перебір коду (verify/reset-confirm) — brute-force
 
 LOGIN_LIMIT, LOGIN_WINDOW_S = 10, 300        # 10 спроб / 5 хв / IP
 REGISTER_LIMIT, REGISTER_WINDOW_S = 5, 3600  # 5 реєстрацій / год / IP
+EMAIL_LIMIT, EMAIL_WINDOW_S = 5, 3600        # 5 листів / год / IP (проти mail-bombing)
+CODE_LIMIT, CODE_WINDOW_S = 10, 600          # 10 спроб коду / 10 хв / IP (проти перебору)

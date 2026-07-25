@@ -132,6 +132,11 @@ def main():
                                headers=ing_tok).status_code == 400, None))
 
     # ── акаунти (S11): реєстрація / логін / профіль / watchlist ───────────────────
+    # rate-лімітери — module-level singletons, а TestClient шле все з одного IP;
+    # скидаємо стан, щоб численні auth-запити тесту не впіймали 429 (S13)
+    from api import ratelimit as _rl
+    for _lim in (_rl.login_limiter, _rl.register_limiter, _rl.email_limiter, _rl.code_limiter):
+        _lim._hits.clear()
     reg = client.post("/api/auth/register", json={"email": "Test@Hapay.today", "password": "supersecret"})
     checks.append(("register 200 + token", reg.status_code == 200 and "token" in reg.json(), reg.status_code))
     tok = reg.json().get("token", "")
@@ -154,6 +159,71 @@ def main():
     mer = client.get("/api/me", headers=ahdr).json()
     checks.append(("/api/me повертає email+role=user",
                    mer.get("email") == "test@hapay.today" and mer.get("role") == "user", mer))
+
+    # ── S13: верифікація email + скидання пароля ─────────────────────────────────
+    from api import auth as _qa
+    checks.append(("новий акаунт: email_verified=false",
+                   mer.get("email_verified") is False, mer.get("email_verified")))
+    uid = int(mer["user_id"])
+    # код іде в лист (у БД лише хеш) — тест вставляє ВІДОМИЙ код прямо, щоб перевірити
+    # consume-логіку ендпойнтів, не заглядаючи в пошту
+    def _put_code(kind, code, secs=600):
+        with psycopg.connect(URL, autocommit=True) as c:
+            c.execute("UPDATE account_token SET used_at=now() WHERE user_id=%s AND kind=%s "
+                      "AND used_at IS NULL", (uid, kind))
+            c.execute("INSERT INTO account_token (user_id,kind,code_hash,expires_at) "
+                      "VALUES (%s,%s,%s, now()+make_interval(secs=>%s))",
+                      (uid, kind, _qa.hash_code(code), secs))
+
+    checks.append(("verify без коду → 400",
+                   client.post("/api/auth/verify", json={}, headers=ahdr).status_code == 400, None))
+    checks.append(("verify з чужим кодом → 400",
+                   client.post("/api/auth/verify", json={"code": "000000"},
+                               headers=ahdr).status_code == 400, None))
+    _put_code("verify", "424242")
+    vr = client.post("/api/auth/verify", json={"code": "424242"}, headers=ahdr)
+    checks.append(("verify правильним кодом → email_verified=true",
+                   vr.status_code == 200 and vr.json().get("email_verified") is True, vr.json()))
+    checks.append(("/api/me тепер verified", client.get("/api/me", headers=ahdr).json()
+                   .get("email_verified") is True, None))
+    checks.append(("той самий код вдруге → 400 (одноразовий)",
+                   client.post("/api/auth/verify", json={"code": "424242"},
+                               headers=ahdr).status_code == 400, None))
+    # протухлий код
+    _put_code("verify", "111111", secs=-10)
+    checks.append(("протермінований код → 400",
+                   client.post("/api/auth/verify", json={"code": "111111"},
+                               headers=ahdr).status_code == 400, None))
+
+    # reset: no-enumeration (неіснуючий email — теж 200) + повний цикл
+    checks.append(("reset/request неіснуючого email → 200 (не розкриваємо)",
+                   client.post("/api/auth/reset/request",
+                               json={"email": "nobody@hapay.today"}).status_code == 200, None))
+    rr = client.post("/api/auth/reset/request", json={"email": "test@hapay.today"})
+    checks.append(("reset/request існуючого → 200", rr.status_code == 200, rr.status_code))
+    _put_code("reset", "775533")
+    checks.append(("reset/confirm короткий пароль → 400",
+                   client.post("/api/auth/reset/confirm",
+                               json={"email": "test@hapay.today", "code": "775533",
+                                     "new_password": "short"}).status_code == 400, None))
+    rc = client.post("/api/auth/reset/confirm",
+                     json={"email": "test@hapay.today", "code": "775533",
+                           "new_password": "brandnewpass"})
+    checks.append(("reset/confirm правильним кодом → 200", rc.status_code == 200, rc.json()))
+    checks.append(("вхід НОВИМ паролем → 200",
+                   client.post("/api/auth/login",
+                               json={"email": "test@hapay.today",
+                                     "password": "brandnewpass"}).status_code == 200, None))
+    checks.append(("вхід СТАРИМ паролем → 401",
+                   client.post("/api/auth/login",
+                               json={"email": "test@hapay.today",
+                                     "password": "supersecret"}).status_code == 401, None))
+    checks.append(("reset-код після зміни пароля мертвий → 400",
+                   client.post("/api/auth/reset/confirm",
+                               json={"email": "test@hapay.today", "code": "775533",
+                                     "new_password": "yetanother1"}).status_code == 400, None))
+    # відновлюємо пароль для решти тесту (нижче login під supersecret не потрібен, але
+    # ahdr-токен лишається валідним — JWT не залежить від пароля)
 
     wa = client.post("/api/me/watchlist", json={"kind": "query", "query_text": "iphone"}, headers=ahdr)
     checks.append(("POST /api/me/watchlist → 200", wa.status_code == 200, wa.status_code))
