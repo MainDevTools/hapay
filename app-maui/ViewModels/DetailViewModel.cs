@@ -319,7 +319,6 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
             OnPropertyChanged(nameof(PriceRangeText));       // діапазон рахується з оферів
             OnPropertyChanged(nameof(ShowSingleDiscount));
             OnPropertyChanged(nameof(PageTitle));            // група → «Порівняння цін»
-            if (HasOffers) await LoadChoice(choiceTask);     // S9: вибір — поверх оферів
         }
         catch
         {
@@ -329,9 +328,13 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
             OnPropertyChanged(nameof(PageTitle));
         }
         LoadingOffers = false;
+        // choice/specs таски стартували ПАРАЛЕЛЬНО вгорі — awaited ЗАВЖДИ (обидва
+        // null-safe, свій try всередині), інакше їхній HTTP-виняток лишався б
+        // unobserved у гілці «1 крамниця»/збій оферів (bug-review 2026-07-25).
+        await LoadChoice(choiceTask);       // S9: null для <2 крамниць — просто не рендерить
         OnPropertyChanged(nameof(ShowBuyCta));
         OnPropertyChanged(nameof(BuyCtaText));
-        await LoadSpecs(specsTask);         // S12: і для груп, і соло (свій try всередині)
+        await LoadSpecs(specsTask);         // S12: і для груп, і соло
     }
 
     /// Головна CTA (UX-пакет 2026-07-24): «Купити в {переможець 🏆} — {ціна}» —
