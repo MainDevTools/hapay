@@ -35,7 +35,10 @@ def send(to: str, subject: str, body: str) -> bool:
     user = os.environ.get("SMTP_USER", "")
     pw = os.environ.get("SMTP_PASS", "")
     sender = os.environ.get("SMTP_FROM", user)
-    use_tls = os.environ.get("SMTP_TLS", "1") != "0"
+    # Порт 465 — неявний SSL (SMTP_SSL); 587/2525 — STARTTLS. SendPulse дає всі три;
+    # автовибір за портом прибирає найтиповішу плутанину налаштування.
+    use_ssl = os.environ.get("SMTP_SSL", "1" if port == 465 else "0") != "0"
+    use_starttls = not use_ssl and os.environ.get("SMTP_TLS", "1") != "0"
 
     msg = EmailMessage()
     msg["From"] = sender
@@ -43,8 +46,9 @@ def send(to: str, subject: str, body: str) -> bool:
     msg["Subject"] = subject
     msg.set_content(body)
     try:
-        with smtplib.SMTP(host, port, timeout=20) as s:
-            if use_tls:
+        cls = smtplib.SMTP_SSL if use_ssl else smtplib.SMTP
+        with cls(host, port, timeout=20) as s:
+            if use_starttls:
                 s.starttls()
             if user:
                 s.login(user, pw)
