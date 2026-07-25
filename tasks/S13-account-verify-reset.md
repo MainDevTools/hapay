@@ -77,8 +77,15 @@ ResetPasswordPage (двоетапний «забув пароль»), «Забу
 в профілі (бурштиновий, кнопки «Ввести код»/«Надіслати код») — усе рендериться.
 «Забув пароль?» правильно ховається в режимі реєстрації.
 
-**Лишилось (🧭 оператор, поза кодом):**
-- **SMTP-канал:** SES/Brevo креденшли в env (SMTP_HOST/PORT/USER/PASS/FROM) — доти
-  верифікація «сліпа» (код лише в journal сервера через LogSender).
-- **DKIM/SPF/DMARC** на hapay.today (DNS у HostPro) — щоб листи не в спам.
-- До підключення каналу — код повністю робочий, чекає лише env.
+**Канал — ПІДКЛЮЧЕНО 2026-07-25 (Resend SMTP).** Живий тест: reset/request на
+maindevtools@gmail.com → лист реально прийшов у Gmail. env на сервері:
+SMTP_HOST=smtp.resend.com, **SMTP_PORT=587** (⚠ НЕ 465 — Hetzner блокує вихідні
+465/25, буде TimeoutError; 587/2465/2587 відкриті), SMTP_USER=resend, SMTP_PASS=re_-ключ,
+SMTP_FROM=onboarding@resend.dev.
+
+**Лишилось (🧭 оператор):**
+- **Домен для розсилки будь-кому:** `onboarding@resend.dev` шле ЛИШЕ на власний email
+  акаунта. Для реальних користувачів — Resend «Add domain» hapay.today + DNS (SPF/DKIM)
+  у HostPro, тоді SMTP_FROM=noreply@hapay.today. Доти реальні юзери листа не отримають.
+- **Рев'ю текстів листів** (api/email.py) — юр-дотичне, перед масовою розсилкою.
+- (Тестовий FROM часто потрапляє в спам — домен це виправить.)
