@@ -356,6 +356,58 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
         return cur.execute(sql, params).fetchall()
 
 
+def compare_products(conn, ids: list[int]) -> dict:
+    """Порівняння 2-4 товарів side-by-side (S14). Для кожного id — базові факти
+    (назва/фото/ціна/бейдж/offers_n) + об'єднана таблиця характеристик (union атрибутів
+    з product_specs S12, вирівняна по колонках; відсутнє = None). Порядок колонок =
+    порядок ids. Жодних оцінок — лише факти з провенансом (інваріант B)."""
+    ids = [int(i) for i in ids][:4]                 # UI-стеля колонок
+    if len(ids) < 2:
+        return {"products": [], "spec_rows": []}
+    sql = """
+        WITH latest AS (
+            SELECT DISTINCT ON (ps.store_product_id) ps.store_product_id, ps.price_now_kop
+            FROM price_snapshot ps WHERE ps.store_product_id = ANY(%s)
+            ORDER BY ps.store_product_id, ps.seen_at DESC
+        )
+        SELECT sp.store_product_id, sp.title, sp.image_url, l.price_now_kop AS price_kop,
+               COALESCE(de.badge_state, 'none') AS badge_state, de.declared_pct,
+               CASE WHEN sp.match_key IS NULL THEN 1
+                    ELSE (SELECT count(DISTINCT sp2.source_id) FROM store_product sp2
+                          WHERE sp2.match_key = sp.match_key)
+               END AS offers_n
+        FROM store_product sp
+        LEFT JOIN latest l USING (store_product_id)
+        LEFT JOIN discount_event de ON de.store_product_id = sp.store_product_id
+                                   AND de.ended_at IS NULL
+        WHERE sp.store_product_id = ANY(%s)"""
+    with conn.cursor(row_factory=dict_row) as cur:
+        rows = cur.execute(sql, (ids, ids)).fetchall()
+    by_id = {r["store_product_id"]: r for r in rows}
+    products = [by_id[i] for i in ids if i in by_id]   # порядок як передав клієнт
+
+    # характеристики: union назв у порядку появи, значення вирівняні по колонках
+    specs = {i: product_specs(conn, i) for i in ids if i in by_id}
+    order, seen = [], set()
+    for i in ids:
+        sp = specs.get(i)
+        if sp:
+            for a in sp["attrs"]:
+                if a["name"] not in seen:
+                    seen.add(a["name"]); order.append(a["name"])
+    spec_rows = []
+    for name in order:
+        values = []
+        for i in ids:
+            if i not in by_id:
+                continue
+            sp = specs.get(i)
+            val = next((a["value"] for a in sp["attrs"] if a["name"] == name), None) if sp else None
+            values.append(val)
+        spec_rows.append({"name": name, "values": values})
+    return {"products": products, "spec_rows": spec_rows}
+
+
 def product_offers(conn, store_product_id: int):
     """«Де купити» (T15/§17.5): ПО ОДНІЙ (найдешевшій) пропозиції на КРАМНИЦЮ з тим
     самим товаром (однаковий match_key: GTIN або артикул), сортовано від найдешевшої.

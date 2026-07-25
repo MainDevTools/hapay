@@ -105,6 +105,19 @@ def api_freshness(conn=Depends(get_conn)):
     return qdb.freshness(conn)
 
 
+@app.get("/api/compare")
+def compare(ids: str, conn=Depends(get_conn)):
+    """Порівняння 2-4 товарів side-by-side (S14): базові факти + таблиця характеристик.
+    `ids` — кома-розділені store_product_id (напр. ?ids=1,2,3)."""
+    try:
+        parsed = [int(x) for x in ids.split(",") if x.strip()]
+    except ValueError:
+        raise HTTPException(400, "ids: кома-розділені цілі")
+    if not 2 <= len(parsed) <= 4:
+        raise HTTPException(400, "порівняння — від 2 до 4 товарів")
+    return qdb.compare_products(conn, parsed)
+
+
 @app.get("/api/product/{store_product_id}/history")
 def history(store_product_id: int, conn=Depends(get_conn)):
     return qdb.product_history(conn, store_product_id)

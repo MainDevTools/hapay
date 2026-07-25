@@ -55,6 +55,25 @@ def main():
     hist = client.get(f"/api/product/{spid}/history").json()
     checks.append(("історія товару ≥1 доба", len(hist) >= 1 and "min_kop" in hist[0], hist))
 
+    # ── S14: порівняння side-by-side ─────────────────────────────────────────────
+    spid2 = disc[1]["store_product_id"]
+    checks.append(("compare <2 → 400",
+                   client.get(f"/api/compare?ids={spid}").status_code == 400, None))
+    checks.append(("compare >4 → 400",
+                   client.get("/api/compare?ids=1,2,3,4,5").status_code == 400, None))
+    checks.append(("compare не-int → 400",
+                   client.get("/api/compare?ids=1,abc").status_code == 400, None))
+    cmp = client.get(f"/api/compare?ids={spid},{spid2}").json()
+    checks.append(("compare: 2 товари в порядку ids",
+                   len(cmp["products"]) == 2
+                   and [p["store_product_id"] for p in cmp["products"]] == [spid, spid2],
+                   [p["store_product_id"] for p in cmp["products"]]))
+    checks.append(("compare: базові факти (title/ціна/бейдж/offers_n)",
+                   all(k in cmp["products"][0] for k in
+                       ("title", "price_kop", "badge_state", "offers_n")), cmp["products"][0]))
+    checks.append(("compare: spec_rows вирівняні по колонках (2)",
+                   all(len(r["values"]) == 2 for r in cmp["spec_rows"]), None))
+
     cats = client.get("/api/categories").json()
     checks.append(("категорії з активними знижками (koty-suhyi-korm)",
                    any(c["slug"] == "koty-suhyi-korm" and c["n"] > 0 for c in cats), cats))
