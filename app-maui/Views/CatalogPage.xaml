@@ -68,25 +68,43 @@
                                             <DataTemplate x:DataType="vm:BannerTile">
                                                 <Border StrokeThickness="0" BackgroundColor="{Binding Bg}"
                                                         StrokeShape="RoundRectangle 18"
-                                                        FlexLayout.Basis="49%" HeightRequest="142">
+                                                        FlexLayout.Basis="49%" HeightRequest="150">
                                                     <Border.GestureRecognizers>
                                                         <TapGestureRecognizer
                                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenCategoryCommand}"
                                                             CommandParameter="{Binding Cat}" />
                                                     </Border.GestureRecognizers>
-                                                    <Grid RowDefinitions="Auto,*" Padding="12,10,8,6">
-                                                        <VerticalStackLayout Grid.Row="0" Spacing="1">
-                                                            <Label Text="{Binding Cat.Name}"
-                                                                   TextColor="{Binding Fg}" FontSize="13"
-                                                                   FontAttributes="Bold" MaxLines="2"
-                                                                   LineBreakMode="TailTruncation" />
-                                                            <Label Text="{Binding Cat.CountText}"
-                                                                   TextColor="{Binding Fg}" Opacity="0.55"
-                                                                   FontSize="11" />
-                                                        </VerticalStackLayout>
-                                                        <Image Grid.Row="1" Source="{Binding Cat.ImageUrl}"
-                                                               HeightRequest="84" Aspect="AspectFit"
-                                                               HorizontalOptions="End" VerticalOptions="End" />
+                                                    <!-- текст ЛІВОРУЧ, фото у власній БІЛІЙ заокругленій
+                                                         картці праворуч: фото з білим фоном (ТВ/пилосос —
+                                                         JPG) зливаються з нею, прозорі PNG (смартфон/
+                                                         холодильник) сідають чисто — жодних білих наліпок
+                                                         на пастелі, вигляд уніфікований (як «Популярні
+                                                         розділи»). Впіймано прогоном 2026-07-25. -->
+                                                    <Grid ColumnDefinitions="1.6*,1*" Padding="12,10,8,10"
+                                                          ColumnSpacing="5">
+                                                        <!-- Ширша текстова колонка + шрифт 12: односкладові
+                                                             довгі назви («Кондиціонери», «Холодильники»)
+                                                             WordWrap НЕ переносить (нема пробілу), тож мусять
+                                                             уміститись у рядок. HorizontalOptions=Fill —
+                                                             інакше Label бере мінімальну ширину й ріже
+                                                             (регресія v5). Лічильник прибрано (вітрина). -->
+                                                        <!-- Label ПРЯМО в комірці Grid (не в StackLayout):
+                                                             StackLayout вимірює дітей нескінченною шириною →
+                                                             WordWrap «думає», що все в рядок, і Grid ріже
+                                                             горизонтально. Комірка Grid дає обмежену ширину →
+                                                             перенос працює (прогін 2026-07-25, 8 ітерацій). -->
+                                                        <Label Grid.Column="0" Text="{Binding Cat.Name}"
+                                                               TextColor="{Binding Fg}" FontSize="12"
+                                                               FontAttributes="Bold" LineBreakMode="WordWrap"
+                                                               HorizontalOptions="Fill" VerticalOptions="Center" />
+                                                        <Border Grid.Column="1" BackgroundColor="#FFFFFF"
+                                                                StrokeThickness="0" Padding="5" Margin="0,2"
+                                                                VerticalOptions="Fill"
+                                                                StrokeShape="RoundRectangle 12">
+                                                            <Image Source="{Binding Cat.ImageUrl}"
+                                                                   Aspect="AspectFit"
+                                                                   AutomationProperties.IsInAccessibleTree="False" />
+                                                        </Border>
                                                     </Grid>
                                                 </Border>
                                             </DataTemplate>
