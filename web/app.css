@@ -84,8 +84,12 @@
   .thumb{position:relative;width:78px;height:78px;flex:0 0 78px}
   .thumb img{width:100%;height:100%;border-radius:var(--radius-s);object-fit:contain;
     background:#fff;border:1px solid var(--line)}
+  /* ⚠ opacity стояла на ВСІЙ плитці, тож біле тло ставало мутно-сірим — прозорість
+     мала стосуватись лише значка. Тепер плитка біла, як у товарів із фото, а
+     приглушений тільки значок. */
   .thumb .ph{width:100%;height:100%;border-radius:var(--radius-s);background:#fff;
-    display:flex;align-items:center;justify-content:center;font-size:var(--f6);opacity:.4}
+    border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
+  .ph svg{width:34%;height:34%;color:#b9bfc7}
   .off{position:absolute;top:-7px;left:-7px;background:var(--sale);color:var(--sale-fg);
     font-size:var(--f1);font-weight:750;padding:3px 7px;border-radius:8px;letter-spacing:-.01em;
     box-shadow:0 2px 6px rgba(226,59,59,.35)}

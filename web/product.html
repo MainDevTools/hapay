@@ -12,6 +12,8 @@
      прозорістю; на темній плитці перші світились білими дірами, другі тонули */
   .phead .pic{width:100%;max-width:280px;aspect-ratio:1;border-radius:var(--radius);
     background:#fff;border:1px solid var(--line);object-fit:contain;padding:10px}
+  /* коли фото немає, .pic — це <div> зі значком: центруємо його */
+  .phead .pic.ph{display:flex;align-items:center;justify-content:center}
   .phead h2{margin:0 0 6px;font-size:var(--f5);line-height:1.25;letter-spacing:-.02em}
   .pbuy{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:12px 0 4px}
   .pbuy .now{font-size:var(--f6)}
@@ -68,7 +70,7 @@ async function load(){
     ]);
   } catch(e){
     document.getElementById('head').innerHTML =
-      `<div class="empty"><div class="ic">🐾</div><div class="t">Товар не знайдено</div>
+      `<div class="empty"><div class="ic">🏷</div><div class="t">Товар не знайдено</div>
        <div>Можливо, він зник із продажу.</div></div>`;
     return;
   }
@@ -88,7 +90,7 @@ async function load(){
   const bt = BADGE_TEXT[me.badge_state] || '';   // порожньо = мітки нема
   document.getElementById('head').innerHTML = `
     ${me.image_url ? `<img class="pic" src="${esc(me.image_url)}" alt="${esc(me.title)}">`
-                   : `<div class="pic ph" style="display:flex;align-items:center;justify-content:center;font-size:44px;opacity:.4">🐾</div>`}
+                   : `<div class="pic ph">${PH_SVG}</div>`}
     <div>
       <h2>${esc(me.title)}</h2>
       <div class="meta"><b>${esc(me.store||'')}</b>${me.variant_note?' · '+esc(me.variant_note):''}</div>

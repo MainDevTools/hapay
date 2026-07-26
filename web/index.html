@@ -91,7 +91,7 @@ async function loadTop(){
     list.innerHTML = '';
     data.slice(0, 6).forEach(d => list.appendChild(topCard(d)));
     if(!data.length) list.innerHTML =
-      `<div class="empty"><div class="ic">🐾</div><div class="t">Поки порожньо</div>
+      `<div class="empty"><div class="ic">🏷</div><div class="t">Поки порожньо</div>
        <div>Збір ще накопичує знижки.</div></div>`;
   }catch(e){
     list.innerHTML = `<div class="empty"><div class="ic">⚠️</div>
@@ -105,7 +105,7 @@ function topCard(d){
   const bt = BADGE_TEXT[d.badge_state];   // undefined = мітки нема
   const c = el(`<div class="card">
     <div class="thumb">
-      ${d.image_url?`<img src="${esc(d.image_url)}" loading="lazy" alt="${esc(d.title)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'ph',textContent:'🐾'}))">`:`<div class="ph">🐾</div>`}
+      ${d.image_url?`<img src="${esc(d.image_url)}" loading="lazy" alt="${esc(d.title)}" onerror="this.outerHTML=PH_HTML">`:PH_HTML}
       ${off?`<span class="off">−${off}%</span>`:''}
     </div>
     <div class="body">

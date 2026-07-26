@@ -43,6 +43,15 @@ const grn = k => k==null ? '—'
   : (k/100).toLocaleString('uk-UA', k%100===0
       ? {maximumFractionDigits:0}
       : {minimumFractionDigits:2,maximumFractionDigits:2}) + ' ₴';
+/* Плейсхолдер фото. Лапки лишались із часів, коли каталог був суто зоо; тепер там
+   ноутбуки й тонометри. Значок нейтральний і векторний — емодзі малюються по-різному
+   на кожній платформі, а це елемент, який видно на ТРЕТИНІ стрічки: KTC (2405 з 2405)
+   і Eldorado (923 з 923) не віддають фото взагалі. */
+const PH_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+  stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/>
+  <circle cx="8.5" cy="9.5" r="1.6"/><path d="M21 15.5l-5-5-5 5-3-3-5 5"/></svg>`;
+const PH_HTML = `<div class="ph">${PH_SVG}</div>`;
+
 const el = h => { const d=document.createElement('div'); d.innerHTML=h.trim(); return d.firstElementChild; };
 const esc = s => (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function pct(d){ if(d.old_declared_kop && d.current_kop < d.old_declared_kop)

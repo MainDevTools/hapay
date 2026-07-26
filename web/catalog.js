@@ -12,7 +12,7 @@ function card(d){
   const bt = BADGE_TEXT[d.badge_state];   // undefined = мітки нема (як у застосунку)
   const c = el(`<div class="card">
     <div class="thumb">
-      ${d.image_url?`<img src="${esc(d.image_url)}" loading="lazy" alt="${esc(d.title)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'ph',textContent:'🐾'}))">`:`<div class="ph">🐾</div>`}
+      ${d.image_url?`<img src="${esc(d.image_url)}" loading="lazy" alt="${esc(d.title)}" onerror="this.outerHTML=PH_HTML">`:PH_HTML}
       ${off?`<span class="off">−${off}%</span>`:''}
     </div>
     <div class="body">
@@ -57,7 +57,7 @@ async function load(reset=true){
     const data=await api('/api/discounts?'+p.toString());
     if(reset) list.innerHTML='';
     if(!data.length){
-      if(reset) list.innerHTML=`<div class="empty"><div class="ic">${query?'🔍':'🐾'}</div>
+      if(reset) list.innerHTML=`<div class="empty"><div class="ic">${query?'🔍':'🏷'}</div>
         <div class="t">${query?'Нічого не знайдено':'Поки порожньо'}</div>
         <div>${query?'Спробуй іншу назву.':'Колектор ще накопичує знижки.'}</div></div>`;
       setMore(false); return;
