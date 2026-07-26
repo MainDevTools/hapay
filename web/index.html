@@ -201,18 +201,19 @@
     .buy:hover{filter:brightness(1.07)}
     .badge{margin-top:4px}
     .morewrap{padding:8px 0 48px}
+    /* підвал лише на десктопі: у Mini App унизу вже є навігація Telegram */
+    .foot{display:block;border-top:1px solid var(--line);margin-top:20px;padding:22px 0 40px;
+      color:var(--faint);font-size:13px}
+    .foot a{color:var(--muted);text-decoration:none;margin-right:18px}
+    .foot a:hover{color:var(--fg)}
     .sheet{max-width:640px;border-radius:20px;bottom:auto;top:50%;left:50%;right:auto;
       transform:translate(-50%,-46%) scale(.98);opacity:0;max-height:82vh;
       transition:opacity .2s, transform .2s}
     .sheet.on{transform:translate(-50%,-50%);opacity:1}
     .grip{display:none}
-    .foot{display:block}
   }
 
-  .foot{display:none;border-top:1px solid var(--line);margin-top:20px;padding:22px 0 40px;
-    color:var(--faint);font-size:13px}
-  .foot a{color:var(--muted);text-decoration:none;margin-right:18px}
-  .foot a:hover{color:var(--fg)}
+  .foot{display:none}
 </style>
 </head>
 <body>
@@ -279,7 +280,12 @@ const BADGE_TEXT = {
 };
 let badge='', sort='verified', cat='', query='', page=0;
 
-const grn = k => (k==null?'—':(k/100).toLocaleString('uk-UA',{minimumFractionDigits:2,maximumFractionDigits:2})+' ₴');
+// Цілі гривні — без «,00» (так само, як у застосунку: Money.Grn). З копійками —
+// два знаки. Інакше «19 999,00 ₴» з'їдає ширину й читається важче за «19 999 ₴».
+const grn = k => k==null ? '—'
+  : (k/100).toLocaleString('uk-UA', k%100===0
+      ? {maximumFractionDigits:0}
+      : {minimumFractionDigits:2,maximumFractionDigits:2}) + ' ₴';
 const el = h => { const d=document.createElement('div'); d.innerHTML=h.trim(); return d.firstElementChild; };
 const esc = s => (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function pct(d){ if(d.old_declared_kop && d.current_kop < d.old_declared_kop)
