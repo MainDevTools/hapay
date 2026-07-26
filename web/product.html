@@ -85,7 +85,7 @@ async function load(){
     {label: me.title},
   ]);
   const off = pct(me);
-  const bt = BADGE_TEXT[me.badge_state] || me.badge_state || '';
+  const bt = BADGE_TEXT[me.badge_state] || '';   // порожньо = мітки нема
   document.getElementById('head').innerHTML = `
     ${me.image_url ? `<img class="pic" src="${esc(me.image_url)}" alt="${esc(me.title)}">`
                    : `<div class="pic ph" style="display:flex;align-items:center;justify-content:center;font-size:44px;opacity:.4">🐾</div>`}

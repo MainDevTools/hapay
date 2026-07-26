@@ -19,7 +19,7 @@
        оголошує знижку, ми звіряємо «стару» ціну з тим, що бачили самі за 30 днів.</p>
     <div class="acts">
       <a class="btn btn-main" href="/catalog">Дивитись знижки</a>
-      <a class="btn btn-ghost" href="/catalog?b=pumped">Де «стара» ціна не нижча</a>
+      <a class="btn btn-ghost" href="/catalog?b=pumped">⚠ Завищена стара ціна</a>
     </div>
   </div>
   <!-- живий приклад: справжній товар зі справжнім графіком, не мальована ілюстрація -->
@@ -34,9 +34,9 @@
   <div class="step"><div class="num">2</div><h3>Рахуємо мінімум за 30 днів</h3>
     <p>Коли з'являється знижка, шукаємо найнижчу ціну, яку самі зафіксували за
        попередні 30 днів — це база для порівняння.</p></div>
-  <div class="step"><div class="num">3</div><h3>Показуємо виміряне</h3>
-    <p>Кажемо рівно те, що виміряли: нижча ціна за наш мінімум чи ні. Де історії
-       ще мало — так і пишемо, а не вдаємо впевненість.</p></div>
+  <div class="step"><div class="num">3</div><h3>Кажемо, лише коли є що</h3>
+    <p>Мітку ставимо тільки там, де історії вистачило: знижка перевірена або «стара»
+       ціна завищена. Де даних мало — мовчимо, а не вдаємо впевненість.</p></div>
 </div>
 
 <section class="sec">
@@ -102,7 +102,7 @@ async function loadTop(){
 // Та сама розкладка, що в каталозі (.card), — щоб головна не була «іншим сайтом».
 function topCard(d){
   const off = pct(d);
-  const bt = BADGE_TEXT[d.badge_state] || d.badge_state;
+  const bt = BADGE_TEXT[d.badge_state];   // undefined = мітки нема
   const c = el(`<div class="card">
     <div class="thumb">
       ${d.image_url?`<img src="${esc(d.image_url)}" loading="lazy" alt="${esc(d.title)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'ph',textContent:'🐾'}))">`:`<div class="ph">🐾</div>`}
@@ -111,7 +111,7 @@ function topCard(d){
     <div class="body">
       <p class="title">${esc(d.title)}</p>
       <div class="meta"><b>${esc(d.store||'')}</b></div>
-      <span class="badge"><span class="dot"></span>${bt}</span>
+      ${bt?`<span class="badge"><span class="dot"></span>${bt}</span>`:''}
     </div>
     <div class="pricebox">
       <div class="prices"><span class="now">${grn(d.current_kop)}</span>

@@ -9,7 +9,7 @@ function renderChips(){
 
 function card(d){
   const off = pct(d);
-  const bt = BADGE_TEXT[d.badge_state]||d.badge_state;
+  const bt = BADGE_TEXT[d.badge_state];   // undefined = мітки нема (як у застосунку)
   const c = el(`<div class="card">
     <div class="thumb">
       ${d.image_url?`<img src="${esc(d.image_url)}" loading="lazy" alt="${esc(d.title)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'ph',textContent:'🐾'}))">`:`<div class="ph">🐾</div>`}
@@ -18,7 +18,7 @@ function card(d){
     <div class="body">
       <p class="title">${esc(d.title)}</p>
       <div class="meta"><b>${esc(d.store||'')}</b>${d.variant_note?' · '+esc(d.variant_note):''}</div>
-      <span class="badge"><span class="dot"></span>${bt}</span>
+      ${bt?`<span class="badge"><span class="dot"></span>${bt}</span>`:''}
     </div>
     <div class="pricebox">
       <div class="prices">
