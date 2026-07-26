@@ -301,7 +301,9 @@ def lease_tasks(conn, worker: str, limit: int = 3,
                  AND not_before <= now()
                  AND (leased_until IS NULL OR leased_until < now())
                RETURNING task_id, source, url, kind""",
-            (worker, LEASE_TTL_MIN, sources, sources, VALUE_ESCAPE_DAYS, limit)).fetchall()
+            # порядок ЗА ТЕКСТОМ запиту: worker, TTL, дні-запобіжника, sources×2, limit
+            (worker, LEASE_TTL_MIN, VALUE_ESCAPE_DAYS,
+             sources, sources, limit)).fetchall()
     if leased:
         conn.execute(
             "UPDATE collect_task "
