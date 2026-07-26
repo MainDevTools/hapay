@@ -8,8 +8,10 @@
 <link rel="stylesheet" href="/s/app.css">
 <style>
   .phead{display:grid;gap:18px;margin:20px 0 0}
+  /* біла плитка в ОБОХ темах: фото крамниць — це або JPEG із білим тлом, або PNG із
+     прозорістю; на темній плитці перші світились білими дірами, другі тонули */
   .phead .pic{width:100%;max-width:280px;aspect-ratio:1;border-radius:var(--radius);
-    background:var(--surface);border:1px solid var(--line);object-fit:contain;padding:10px}
+    background:#fff;border:1px solid var(--line);object-fit:contain;padding:10px}
   .phead h2{margin:0 0 6px;font-size:var(--f5);line-height:1.25;letter-spacing:-.02em}
   .pbuy{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:12px 0 4px}
   .pbuy .now{font-size:var(--f6)}

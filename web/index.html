@@ -13,15 +13,19 @@
 <header id="hdr"></header>
 
 <section class="hero">
-  <h2>Знижка справжня чи просто гучна?</h2>
-  <p>Ми щодня записуємо ціни українських крамниць і зберігаємо історію. Коли крамниця
-     оголошує знижку, ми звіряємо «стару» ціну з тим, що бачили самі за 30 днів.</p>
-  <div class="acts">
-    <a class="btn btn-main" href="/catalog">Дивитись знижки</a>
-    <a class="btn btn-ghost" href="/catalog?b=pumped">Де «стара» ціна не нижча</a>
+  <div class="hero-copy">
+    <h2>Знижка справжня чи просто гучна?</h2>
+    <p>Ми щодня записуємо ціни українських крамниць і зберігаємо історію. Коли крамниця
+       оголошує знижку, ми звіряємо «стару» ціну з тим, що бачили самі за 30 днів.</p>
+    <div class="acts">
+      <a class="btn btn-main" href="/catalog">Дивитись знижки</a>
+      <a class="btn btn-ghost" href="/catalog?b=pumped">Де «стара» ціна не нижча</a>
+    </div>
   </div>
-  <div class="stats" id="stats"></div>
+  <!-- живий приклад: справжній товар зі справжнім графіком, не мальована ілюстрація -->
+  <div class="heroex" id="heroex"></div>
 </section>
+<div class="stats" id="stats"></div>
 
 <div class="how">
   <div class="step"><div class="num">1</div><h3>Записуємо ціни</h3>
@@ -132,7 +136,40 @@ async function loadSections(){
   }catch(e){}
 }
 
-if (!IN_TG) { loadStats(); loadTop(); loadSections(); }
+/* Живий приклад у hero. Беремо СПРАВЖНІЙ товар, у якого є 30-денна база
+   (`reference_kop`) — саме на ній тримається твердження продукту; без неї графік
+   показував би просто лінію цін і нічого не доводив. Формулювання — те саме, що на
+   сторінці товару: власні спостереження, без вердикту (T12/§5.4.1). */
+async function loadHeroExample(){
+  const box = document.getElementById('heroex');
+  try{
+    const data = await api('/api/discounts?sort=verified&page=0');
+    const d = data.find(x => x.reference_kop != null && x.image_url)
+           || data.find(x => x.reference_kop != null);
+    if (!d) { box.remove(); return; }
+    const hist = await api(`/api/product/${d.store_product_id}/history`);
+    if (hist.length < 2) { box.remove(); return; }
+    const W = Math.max(280, box.clientWidth - 34);
+    const off = pct(d);
+    box.innerHTML = `<a class="ex" href="/product/${d.store_product_id}">
+      <div class="top">
+        ${d.image_url ? `<img src="${esc(d.image_url)}" alt="" loading="lazy">` : ''}
+        <div style="min-width:0">
+          <div class="t">${esc(d.title)}</div>
+          <div class="p"><span class="now">${grn(d.current_kop)}</span>
+            ${d.old_declared_kop ? `<span class="old">${grn(d.old_declared_kop)}</span>` : ''}
+            ${off ? `<span class="off" style="position:static;box-shadow:none">−${off}%</span>` : ''}
+          </div>
+        </div>
+      </div>
+      ${sparkline(hist, d.reference_kop, W)}
+      <div class="cap">За нашими спостереженнями ціна за 30 днів
+        <b>не була нижчою за ${grn(d.reference_kop)}</b> — сірий пунктир.</div>
+    </a>`;
+  }catch(e){ box.remove(); }
+}
+
+if (!IN_TG) { loadStats(); loadTop(); loadSections(); loadHeroExample(); }
 </script>
 </body>
 </html>
