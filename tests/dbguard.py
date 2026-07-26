@@ -26,7 +26,7 @@ _TABLES = ("alert_log", "ops_alert", "watchlist", "discount_event", "price_snaps
            "scan_run", "http_cache", "canary", "spec_attr", "product_spec",
            "store_product", "source_category_map", "category",
            "delivery_rule", "store_network", "choice_weights", "source",
-           "detection_config", "app_config", "account_token", "app_user",
+           "detection_config", "app_config", "account_token", "admin_audit", "app_user",
            "collect_task", "schema_migration")
 
 

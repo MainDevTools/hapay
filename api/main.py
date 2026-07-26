@@ -186,6 +186,20 @@ def require_account(authorization: str | None = Header(default=None)):
     return claims
 
 
+def require_moderator(claims=Depends(require_account)):
+    """Гейт адмін-панелі (S15): role ∈ {moderator, admin}. Керування акаунтами + метрики."""
+    if claims.get("role") not in ("moderator", "admin"):
+        raise HTTPException(403, "потрібні права модератора")
+    return claims
+
+
+def require_admin(claims=Depends(require_account)):
+    """Гейт зміни ролей (S15): лише admin. Найвищий рівень — роздача прав."""
+    if claims.get("role") != "admin":
+        raise HTTPException(403, "потрібні права адміністратора")
+    return claims
+
+
 def _rate_gate(request: Request, limiter: qrl.RateLimiter, limit: int, window: int):
     """429 із Retry-After, коли IP перевищив ліміт дорогого auth-ендпойнта."""
     ok, retry = limiter.check(qrl.client_ip(request), limit, window)
@@ -292,6 +306,8 @@ def login(body: dict, request: Request, conn=Depends(get_conn)):
     ok = u is not None and qauth.verify_password(password, u["password_hash"])
     if not ok:
         raise HTTPException(401, "невірний email або пароль")
+    if not u.get("is_active", True):                 # забанений акаунт (S15)
+        raise HTTPException(403, "акаунт заблоковано")
     qdb.touch_login(conn, u["user_id"])
     try:
         return {"token": qauth.make_token(u["user_id"], u["role"]),
@@ -366,6 +382,46 @@ def my_watchlist_remove(watchlist_id: int, claims=Depends(require_account),
     if not qdb.remove_watchlist_user(conn, int(claims["sub"]), watchlist_id):
         raise HTTPException(404, "нема такого запису")
     return {"ok": True}
+
+
+# ── адмін-панель (S15): керування акаунтами / ролі / метрики ──────────────────────
+@app.get("/api/admin/users")
+def admin_users(claims=Depends(require_moderator), conn=Depends(get_conn)):
+    """Список акаунтів (moderator+): email, роль, стан, verified, watchlist-лічильник."""
+    return qdb.list_users(conn)
+
+
+@app.get("/api/admin/metrics")
+def admin_metrics(claims=Depends(require_moderator), conn=Depends(get_conn)):
+    """Зведення для панелі (moderator+): акаунти по ролях + verified + стан збору."""
+    return qdb.admin_metrics(conn)
+
+
+@app.post("/api/admin/users/{target_id}/role")
+def admin_set_role(target_id: int, body: dict, claims=Depends(require_admin),
+                   conn=Depends(get_conn)):
+    """Змінити роль акаунта (ЛИШЕ admin). Захисти в qdb.set_user_role (не власна роль,
+    не лишити систему без admin). Кожна зміна → admin_audit."""
+    role = (body or {}).get("role")
+    try:
+        return qdb.set_user_role(conn, int(claims["sub"]), target_id, role)
+    except qdb.AdminError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/admin/users/{target_id}/ban")
+def admin_set_active(target_id: int, body: dict, claims=Depends(require_moderator),
+                     conn=Depends(get_conn)):
+    """Бан/розбан акаунта (moderator+). moderator не чіпає admin/moderator; не себе;
+    не останнього admin (захисти в qdb.set_user_active). → admin_audit."""
+    active = (body or {}).get("active")
+    if not isinstance(active, bool):
+        raise HTTPException(400, "active: bool")
+    try:
+        return qdb.set_user_active(conn, int(claims["sub"]), claims.get("role"),
+                                   target_id, active)
+    except qdb.AdminError as e:
+        raise HTTPException(400, str(e))
 
 
 @app.post("/api/ingest")

@@ -1089,6 +1089,108 @@ def main():
     checks.append(("sort=cheaper не відрізає решту каталогу",
                    len(srt) > len(with_ch), (len(srt), len(with_ch))))
 
+    # ── S15: адмін-панель (ролі / керування акаунтами / метрики) ─────────────────
+    # ролі роздає власник напряму в БД (trusted-people) — робимо акаунти admin/moderator
+    from api import db as _qdb
+    for _lim in (_rl.login_limiter, _rl.register_limiter):     # burst логінів нижче
+        _lim._hits.clear()
+    for em, pw in (("admin1@hapay.today", "adminpass1"), ("mod@hapay.today", "modpass12"),
+                   ("victim@hapay.today", "victimpass"), ("victim2@hapay.today", "victim2pass")):
+        client.post("/api/auth/register", json={"email": em, "password": pw})
+    with psycopg.connect(URL, autocommit=True) as c:
+        c.execute("UPDATE app_user SET role='admin' WHERE lower(email)='admin1@hapay.today'")
+        c.execute("UPDATE app_user SET role='moderator' WHERE lower(email)='mod@hapay.today'")
+        uids = dict(c.execute(
+            "SELECT lower(email), user_id FROM app_user WHERE lower(email) = ANY(%s)",
+            (["admin1@hapay.today", "mod@hapay.today", "victim@hapay.today",
+              "victim2@hapay.today", "collector@hapay.today"],)).fetchall())
+    admtok = client.post("/api/auth/login",
+                         json={"email": "admin1@hapay.today", "password": "adminpass1"}).json()
+    checks.append(("login admin1 → role=admin", admtok.get("role") == "admin", admtok.get("role")))
+    admhdr = {"Authorization": f"Bearer {admtok.get('token', '')}"}
+    modtok = client.post("/api/auth/login",
+                         json={"email": "mod@hapay.today", "password": "modpass12"}).json()
+    modhdr = {"Authorization": f"Bearer {modtok.get('token', '')}"}
+
+    # гейти списку/метрик: user → 403, moderator/admin → 200
+    checks.append(("admin/users простому юзеру → 403",
+                   client.get("/api/admin/users", headers=ahdr).status_code == 403, None))
+    checks.append(("admin/users без токена → 401",
+                   client.get("/api/admin/users").status_code == 401, None))
+    au = client.get("/api/admin/users", headers=modhdr)
+    checks.append(("admin/users модератору → 200 + список акаунтів",
+                   au.status_code == 200 and any(u["email"] == "victim@hapay.today"
+                                                 for u in au.json()), au.status_code))
+    am = client.get("/api/admin/metrics", headers=admhdr)
+    checks.append(("admin/metrics → by_role містить admin≥1 + total",
+                   am.status_code == 200 and am.json().get("by_role", {}).get("admin", 0) >= 1
+                   and am.json().get("total", 0) >= 4, am.json().get("by_role")))
+
+    # зміна ролі — ЛИШЕ admin (moderator не може)
+    checks.append(("set_role модератором → 403 (лише admin)",
+                   client.post(f"/api/admin/users/{uids['victim@hapay.today']}/role",
+                               json={"role": "moderator"}, headers=modhdr).status_code == 403, None))
+    sr = client.post(f"/api/admin/users/{uids['victim@hapay.today']}/role",
+                     json={"role": "moderator"}, headers=admhdr)
+    checks.append(("set_role адміном victim→moderator → 200",
+                   sr.status_code == 200 and sr.json().get("role") == "moderator", sr.json()))
+    checks.append(("зміна відображена у списку",
+                   any(u["email"] == "victim@hapay.today" and u["role"] == "moderator"
+                       for u in client.get("/api/admin/users", headers=admhdr).json()), None))
+    # анти-self-lockout: адмін не змінює ВЛАСНУ роль
+    checks.append(("set_role над собою → 400 (анти-self-lockout)",
+                   client.post(f"/api/admin/users/{uids['admin1@hapay.today']}/role",
+                               json={"role": "user"}, headers=admhdr).status_code == 400, None))
+    checks.append(("set_role невідома роль → 400",
+                   client.post(f"/api/admin/users/{uids['victim@hapay.today']}/role",
+                               json={"role": "superking"}, headers=admhdr).status_code == 400, None))
+
+    # бан: moderator не чіпає admin/moderator; user банить; забанений не входить
+    checks.append(("moderator банить admin → 403",
+                   client.post(f"/api/admin/users/{uids['admin1@hapay.today']}/ban",
+                               json={"active": False}, headers=modhdr).status_code == 403, None))
+    checks.append(("admin банить сам себе → 400",
+                   client.post(f"/api/admin/users/{uids['admin1@hapay.today']}/ban",
+                               json={"active": False}, headers=admhdr).status_code == 400, None))
+    checks.append(("ban без active:bool → 400",
+                   client.post(f"/api/admin/users/{uids['victim2@hapay.today']}/ban",
+                               json={}, headers=admhdr).status_code == 400, None))
+    bn = client.post(f"/api/admin/users/{uids['victim2@hapay.today']}/ban",
+                     json={"active": False}, headers=modhdr)
+    checks.append(("moderator банить простого user → 200", bn.status_code == 200, bn.json()))
+    checks.append(("забанений user не входить → 403",
+                   client.post("/api/auth/login",
+                               json={"email": "victim2@hapay.today",
+                                     "password": "victim2pass"}).status_code == 403, None))
+    checks.append(("розбан адміном → 200 + вхід відновлено",
+                   client.post(f"/api/admin/users/{uids['victim2@hapay.today']}/ban",
+                               json={"active": True}, headers=admhdr).status_code == 200
+                   and client.post("/api/auth/login",
+                                   json={"email": "victim2@hapay.today",
+                                         "password": "victim2pass"}).status_code == 200, None))
+    # політика зама (рішення оператора 2026-07-26): moderator керує user + collector
+    checks.append(("moderator банить collector → 200 (політика Users+collectors)",
+                   client.post(f"/api/admin/users/{uids['collector@hapay.today']}/ban",
+                               json={"active": False}, headers=modhdr).status_code == 200, None))
+    client.post(f"/api/admin/users/{uids['collector@hapay.today']}/ban",   # розбан назад
+                json={"active": True}, headers=admhdr)
+
+    # last-admin guard (рівень db): демоут ЄДИНОГО активного admin забороняється, навіть
+    # якщо викликано в обхід self-check (актор ≠ ціль). admin1 — єдиний admin.
+    try:
+        with psycopg.connect(URL, autocommit=True) as c:
+            _qdb.set_user_role(c, uids["mod@hapay.today"], uids["admin1@hapay.today"], "user")
+        checks.append(("демоут останнього admin → AdminError", False, "не кинуло"))
+    except _qdb.AdminError:
+        checks.append(("демоут останнього admin → AdminError", True, None))
+
+    # аудит: кожна мутація лишила слід (set_role + ban/unban ≥ 3 записи)
+    with psycopg.connect(URL) as c:
+        naudit = c.execute("SELECT count(*) FROM admin_audit").fetchone()[0]
+        acts = set(r[0] for r in c.execute("SELECT DISTINCT action FROM admin_audit").fetchall())
+    checks.append(("admin_audit пише слід (set_role+set_active)",
+                   naudit >= 3 and {"set_role", "set_active"} <= acts, (naudit, acts)))
+
     for name, ok, val in checks:
         print(f"{'PASS' if ok else 'FAIL'}  {name}" + ("" if ok else f"  -> {val!r}"))
         failed += 0 if ok else 1

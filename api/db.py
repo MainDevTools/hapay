@@ -600,8 +600,8 @@ def create_user(conn, email: str, password_hash: str):
 def get_user_by_email(conn, email: str):
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(
-            "SELECT user_id, email, password_hash, role, email_verified FROM app_user "
-            "WHERE lower(email) = lower(%s)", (email,)).fetchone()
+            "SELECT user_id, email, password_hash, role, email_verified, is_active "
+            "FROM app_user WHERE lower(email) = lower(%s)", (email,)).fetchone()
 
 
 def touch_login(conn, user_id: int):
@@ -645,6 +645,85 @@ def consume_token(conn, user_id: int, kind: str, code_hash: str) -> bool:
 
 def set_email_verified(conn, user_id: int) -> None:
     conn.execute("UPDATE app_user SET email_verified = true WHERE user_id = %s", (user_id,))
+
+
+# ── адмін-функції під ролями (S15) ────────────────────────────────────────────────
+_ROLES = ("user", "collector", "moderator", "admin")
+
+
+class AdminError(Exception):
+    """Порушення правила безпеки адмін-дії (self-lockout, останній admin тощо)."""
+
+
+def _audit(conn, actor_id: int, action: str, target_id: int, detail: str) -> None:
+    conn.execute(
+        "INSERT INTO admin_audit (actor_id, action, target_id, detail) VALUES (%s,%s,%s,%s)",
+        (actor_id, action, target_id, detail))
+
+
+def list_users(conn):
+    """Список акаунтів для адмін-панелі (moderator+). Watchlist-лічильник — контекст."""
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(
+            "SELECT u.user_id, u.email, u.role, u.is_active, u.email_verified, u.created_at, "
+            "       (SELECT count(*) FROM watchlist w WHERE w.user_id = u.user_id) AS watchlist_n "
+            "FROM app_user u ORDER BY u.created_at DESC").fetchall()
+
+
+def admin_metrics(conn) -> dict:
+    """Зведення для адмін-панелі: акаунти по ролях + verified-частка + свіжість збору."""
+    with conn.cursor(row_factory=dict_row) as cur:
+        by_role = {r["role"]: r["n"] for r in cur.execute(
+            "SELECT role, count(*) AS n FROM app_user GROUP BY role").fetchall()}
+        row = cur.execute(
+            "SELECT count(*) AS total, count(*) FILTER (WHERE email_verified) AS verified, "
+            "       count(*) FILTER (WHERE NOT is_active) AS banned FROM app_user").fetchone()
+    return {"by_role": by_role, "total": row["total"], "verified": row["verified"],
+            "banned": row["banned"], "collect": freshness(conn)}
+
+
+def _active_admin_count(conn, exclude_id: int | None = None) -> int:
+    return conn.execute(
+        "SELECT count(*) FROM app_user WHERE role='admin' AND is_active "
+        "AND (%s::bigint IS NULL OR user_id <> %s)", (exclude_id, exclude_id)).fetchone()[0]
+
+
+def set_user_role(conn, actor_id: int, target_id: int, new_role: str) -> dict:
+    """Змінити роль (ЛИШЕ admin). Захисти: валідна роль; НЕ власна роль (анти-lockout);
+    не знизити останнього активного admin. Пише аудит. Кидає AdminError на порушення."""
+    if new_role not in _ROLES:
+        raise AdminError(f"невідома роль (дозволені: {', '.join(_ROLES)})")
+    if actor_id == target_id:
+        raise AdminError("не можна змінювати власну роль")
+    with conn.cursor(row_factory=dict_row) as cur:
+        t = cur.execute("SELECT user_id, role, is_active FROM app_user WHERE user_id=%s",
+                        (target_id,)).fetchone()
+    if t is None:
+        raise AdminError("акаунт не існує")
+    if t["role"] == "admin" and new_role != "admin" and _active_admin_count(conn, target_id) == 0:
+        raise AdminError("не можна лишити систему без активного адміна")
+    conn.execute("UPDATE app_user SET role=%s WHERE user_id=%s", (new_role, target_id))
+    _audit(conn, actor_id, "set_role", target_id, f"{t['role']}→{new_role}")
+    return {"user_id": target_id, "role": new_role}
+
+
+def set_user_active(conn, actor_id: int, actor_role: str, target_id: int, active: bool) -> dict:
+    """Бан/розбан (moderator+). Захисти: не себе; moderator НЕ чіпає admin/moderator;
+    не забанити останнього активного admin. Аудит."""
+    if actor_id == target_id:
+        raise AdminError("не можна банити себе")
+    with conn.cursor(row_factory=dict_row) as cur:
+        t = cur.execute("SELECT user_id, role, is_active FROM app_user WHERE user_id=%s",
+                        (target_id,)).fetchone()
+    if t is None:
+        raise AdminError("акаунт не існує")
+    if actor_role == "moderator" and t["role"] in ("admin", "moderator"):
+        raise AdminError("модератор не може банити адмінів/модераторів")
+    if not active and t["role"] == "admin" and _active_admin_count(conn, target_id) == 0:
+        raise AdminError("не можна забанити останнього активного адміна")
+    conn.execute("UPDATE app_user SET is_active=%s WHERE user_id=%s", (active, target_id))
+    _audit(conn, actor_id, "set_active", target_id, f"active={active}")
+    return {"user_id": target_id, "is_active": active}
 
 
 def update_password(conn, user_id: int, password_hash: str) -> None:
