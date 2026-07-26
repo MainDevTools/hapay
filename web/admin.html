@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Хапай — адмін-панель</title>
+<style>
+  :root {
+    --bg: #f4f6f8; --card: #fff; --line: #e2e6ea; --text: #1b2430; --muted: #6b7785;
+    --brand: #0f7b8a; --warn: #b3541e; --bad: #b3261e; --ok: #1e7d44;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#12171d; --card:#1a212a; --line:#2b343f; --text:#e6ebf0; --muted:#93a1b0; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+         font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  header { background:var(--brand); color:#fff; padding:12px 20px;
+           display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  header h1 { font-size:18px; margin:0; font-weight:600; }
+  header .who { margin-left:auto; font-size:13px; opacity:.9; }
+  header button { background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.3); }
+  main { max-width:1180px; margin:0 auto; padding:20px; }
+  .tabs { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .tabs button { background:var(--card); border:1px solid var(--line); color:var(--text); }
+  .tabs button.on { background:var(--brand); color:#fff; border-color:var(--brand); }
+  button, select, input { font:inherit; padding:7px 12px; border-radius:8px;
+                          border:1px solid var(--line); background:var(--card); color:var(--text); }
+  button { cursor:pointer; }
+  button:hover { filter:brightness(.96); }
+  button.danger { color:var(--bad); border-color:var(--bad); }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .card .n { font-size:26px; font-weight:600; }
+  .card .l { color:var(--muted); font-size:13px; }
+  .card .d { color:var(--brand); font-size:12px; margin-top:4px; }
+  section.block { background:var(--card); border:1px solid var(--line);
+                  border-radius:12px; padding:14px; margin-top:16px; overflow-x:auto; }
+  section.block h2 { font-size:15px; margin:0 0 10px; }
+  table { border-collapse:collapse; width:100%; font-size:14px; }
+  th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--line);
+           white-space:nowrap; }
+  th { color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase;
+       letter-spacing:.03em; }
+  tr.off { opacity:.5; }
+  .bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+  .muted { color:var(--muted); }
+  .warn { color:var(--warn); }
+  .bad  { color:var(--bad); }
+  .msg { padding:10px 12px; border-radius:8px; margin:12px 0; display:none; }
+  .msg.err { display:block; background:#fdecea; color:#7a1c14; }
+  .msg.ok  { display:block; background:#e9f6ec; color:#14532d; }
+  @media (prefers-color-scheme: dark) {
+    .msg.err { background:#3a1a17; color:#f5b7b1; }
+    .msg.ok  { background:#16301f; color:#a9dcbb; }
+  }
+  #login { max-width:340px; margin:12vh auto; background:var(--card);
+           border:1px solid var(--line); border-radius:14px; padding:22px; }
+  #login h1 { font-size:19px; margin:0 0 4px; }
+  #login input { width:100%; margin-top:10px; }
+  #login button { width:100%; margin-top:14px; background:var(--brand);
+                  color:#fff; border-color:var(--brand); }
+  .acts { display:flex; gap:6px; flex-wrap:wrap; }
+  .acts button, .acts select { padding:4px 8px; font-size:13px; }
+  .pager { display:flex; gap:8px; align-items:center; margin-top:12px; }
+</style>
+</head>
+<body>
+
+<!-- Вхід. Токен кладемо в sessionStorage: гине разом із вкладкою, на відміну від
+     localStorage, який пережив би закриття браузера на чужій машині. -->
+<div id="login">
+  <h1>Хапай — адмін</h1>
+  <div class="muted" style="font-size:13px">Потрібні права модератора або адміністратора.</div>
+  <input id="lg-email" type="email" placeholder="email" autocomplete="username">
+  <input id="lg-pass" type="password" placeholder="пароль" autocomplete="current-password">
+  <button id="lg-go">Увійти</button>
+  <div id="lg-err" class="msg"></div>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <h1>Хапай — адмін-панель</h1>
+    <span class="who" id="who"></span>
+    <button id="logout">Вийти</button>
+  </header>
+  <main>
+    <div class="tabs">
+      <button data-tab="dash" class="on">Дашборд</button>
+      <button data-tab="users">Акаунти</button>
+      <button data-tab="audit">Журнал</button>
+    </div>
+    <div id="msg" class="msg"></div>
+
+    <div id="tab-dash"></div>
+
+    <div id="tab-users" hidden>
+      <div class="bar">
+        <input id="u-q" placeholder="пошук за email" style="min-width:220px">
+        <select id="u-role">
+          <option value="">усі ролі</option>
+          <option value="user">юзер</option>
+          <option value="collector">колектор</option>
+          <option value="moderator">зам адміна</option>
+          <option value="admin">адмін</option>
+        </select>
+        <select id="u-active">
+          <option value="">усі стани</option>
+          <option value="true">активні</option>
+          <option value="false">заблоковані</option>
+        </select>
+        <span class="muted" id="u-count"></span>
+      </div>
+      <section class="block"><div id="u-table"></div></section>
+      <div class="pager" id="u-pager"></div>
+    </div>
+
+    <div id="tab-audit" hidden>
+      <div class="bar">
+        <select id="a-action">
+          <option value="">усі дії</option>
+          <option value="set_role">зміна ролі</option>
+          <option value="set_active">бан / розбан</option>
+          <option value="verify_email">підтвердження email</option>
+          <option value="send_reset">скидання пароля</option>
+          <option value="delete_user">видалення акаунта</option>
+        </select>
+        <span class="muted" id="a-count"></span>
+      </div>
+      <section class="block"><div id="a-table"></div></section>
+      <div class="pager" id="a-pager"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const KEY = "hapay_admin";           // sessionStorage: гине з вкладкою
+
+// Екранування ОБОВ'ЯЗКОВЕ: у таблиці потрапляють email і деталі журналу, тобто дані,
+// які ввів користувач. Без цього панель була б збереженим XSS проти адміністратора —
+// саме того, хто має найбільше прав.
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g,
+  (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+
+let token = sessionStorage.getItem(KEY + "_t") || "";
+let myRole = sessionStorage.getItem(KEY + "_r") || "";
+let myEmail = sessionStorage.getItem(KEY + "_e") || "";
+
+const ROLE_LABEL = { user:"юзер", collector:"колектор", moderator:"зам адміна", admin:"адмін" };
+const ACTION_LABEL = { set_role:"зміна ролі", set_active:"бан / розбан",
+                       verify_email:"підтвердження email", send_reset:"скидання пароля",
+                       delete_user:"видалення акаунта" };
+const BADGE_LABEL = { verified:"перевірено", verified_provisional:"перевірено попередньо",
+                      pumped:"накачано", declared:"заявлено",
+                      insufficient_history:"замало історії" };
+
+function say(text, kind) {
+  const el = $("#msg");
+  el.className = "msg " + (kind || "ok");
+  el.textContent = text;
+  if (!text) el.className = "msg";
+}
+
+async function api(path, opts) {
+  const o = Object.assign({ headers: {} }, opts || {});
+  o.headers["Authorization"] = "Bearer " + token;
+  if (o.body) o.headers["Content-Type"] = "application/json";
+  const r = await fetch("/api" + path, o);
+  if (r.status === 401) { logout(); throw new Error("Сесія завершилась — увійди знову."); }
+  if (!r.ok) {
+    let detail = "Помилка " + r.status;
+    try { const j = await r.json(); if (j.detail) detail = j.detail; } catch (e) {}
+    throw new Error(detail);
+  }
+  return r.status === 204 ? null : r.json();
+}
+
+function fmtDate(s) {
+  if (!s) return "—";
+  const d = new Date(s);
+  return d.toLocaleString("uk-UA", { year:"2-digit", month:"2-digit", day:"2-digit",
+                                     hour:"2-digit", minute:"2-digit" });
+}
+function fmtAgo(min) {
+  if (min === null || min === undefined) return "—";
+  if (min < 90) return min + " хв";
+  if (min < 2880) return Math.round(min / 60) + " год";
+  return Math.round(min / 1440) + " дн";
+}
+const nfmt = (n) => (n === null || n === undefined) ? "—" : Number(n).toLocaleString("uk-UA");
+
+// ── вхід ───────────────────────────────────────────────────────────────────────
+async function login() {
+  const email = $("#lg-email").value.trim(), password = $("#lg-pass").value;
+  const box = $("#lg-err");
+  box.className = "msg";
+  try {
+    const r = await fetch("/api/auth/login", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.detail || "Не вдалось увійти");
+    // Гейт усе одно на сервері; тут лише не пускаємо в панель того, кому вона нічого
+    // не покаже — інакше людина бачила б суцільні 403 і не розуміла чому.
+    if (j.role !== "admin" && j.role !== "moderator")
+      throw new Error("Цей акаунт не має прав модератора.");
+    token = j.token; myRole = j.role; myEmail = j.email;
+    sessionStorage.setItem(KEY + "_t", token);
+    sessionStorage.setItem(KEY + "_r", myRole);
+    sessionStorage.setItem(KEY + "_e", myEmail);
+    start();
+  } catch (e) {
+    box.className = "msg err";
+    box.textContent = e.message;
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem(KEY + "_t");
+  sessionStorage.removeItem(KEY + "_r");
+  sessionStorage.removeItem(KEY + "_e");
+  token = ""; myRole = ""; myEmail = "";
+  $("#app").hidden = true;
+  $("#login").style.display = "";
+}
+
+// ── дашборд ────────────────────────────────────────────────────────────────────
+async function loadDash() {
+  const m = await api("/admin/metrics");
+  const d = m.data, a = m.accounts, h = (m.collect && m.collect.health) || {};
+  const card = (n, l, extra) =>
+    `<div class="card"><div class="n">${esc(nfmt(n))}</div><div class="l">${esc(l)}</div>` +
+    (extra ? `<div class="d">${esc(extra)}</div>` : "") + `</div>`;
+
+  const badges = (m.detection.badges || []).map((b) =>
+    `<tr><td>${esc(BADGE_LABEL[b.state] || b.state)}</td>` +
+    `<td>${esc(nfmt(b.total))}</td><td>${esc(nfmt(b.d7))}</td></tr>`).join("");
+
+  const stores = (m.collect.stores || []).map((s) => {
+    // «мовчить» — не оцінка, а факт: скільки хвилин від ОСТАННЬОГО УСПІШНОГО збору
+    const cls = s.ok_min === null ? "bad" : (s.ok_min > 1440 ? "warn" : "");
+    return `<tr><td>${esc(s.source)}</td><td>${esc(nfmt(s.tasks))}</td>` +
+      `<td>${esc(nfmt(s.ok))}</td><td class="${s.fail ? "warn" : ""}">${esc(nfmt(s.fail))}</td>` +
+      `<td class="${cls}">${esc(s.ok_min === null ? "не збирав" : fmtAgo(s.ok_min))}</td></tr>`;
+  }).join("");
+
+  $("#tab-dash").innerHTML =
+    `<div class="cards">
+       ${card(d.products, "товарів", "+" + nfmt(d.products_1d) + " за добу")}
+       ${card(d.snapshots, "снапшотів цін", "+" + nfmt(d.snapshots_1d) + " за добу")}
+       ${card(d.events, "подій знижок")}
+       ${card(d.categories, "категорій")}
+       ${card(d.sources, "джерел")}
+     </div>
+     <section class="block">
+       <h2>Детекція — що показала перевірка знижок</h2>
+       <table><thead><tr><th>стан</th><th>усього</th><th>за 7 днів</th></tr></thead>
+       <tbody>${badges}</tbody></table>
+     </section>
+     <section class="block">
+       <h2>Збір</h2>
+       <div class="${h.ok ? "" : "warn"}" style="margin-bottom:10px">${esc(h.note || "—")}</div>
+       <table><thead><tr><th>крамниця</th><th>задач</th><th>успішних</th><th>збоїв</th>
+       <th>останній успіх</th></tr></thead><tbody>${stores}</tbody></table>
+     </section>
+     <section class="block">
+       <h2>Акаунти</h2>
+       <div class="cards">
+         ${card(a.total, "усього")}
+         ${card(a.verified, "підтверджених")}
+         ${card(a.banned, "заблокованих")}
+         ${card(a.reg_7d, "реєстрацій за 7 дн", "за 30 дн: " + nfmt(a.reg_30d))}
+         ${card(a.active_7d, "входили за 7 дн", "за 30 дн: " + nfmt(a.active_30d))}
+       </div>
+       <div class="muted" style="margin-top:10px">
+         ${esc(Object.keys(a.by_role || {}).map((r) =>
+              (ROLE_LABEL[r] || r) + ": " + a.by_role[r]).join(" · "))}
+       </div>
+     </section>`;
+}
+
+// ── акаунти ────────────────────────────────────────────────────────────────────
+let uPage = 0;
+async function loadUsers() {
+  const p = new URLSearchParams();
+  if ($("#u-q").value.trim()) p.set("q", $("#u-q").value.trim());
+  if ($("#u-role").value) p.set("role", $("#u-role").value);
+  if ($("#u-active").value) p.set("active", $("#u-active").value);
+  p.set("page", uPage);
+  const r = await api("/admin/users?" + p.toString());
+  $("#u-count").textContent = `знайдено ${r.total}`;
+
+  const canRole = myRole === "admin";
+  const rows = r.users.map((u) => {
+    const roleSel = canRole
+      ? `<select data-act="role" data-id="${u.user_id}" data-email="${esc(u.email)}">` +
+        ["user", "collector", "moderator", "admin"].map((x) =>
+          `<option value="${x}"${x === u.role ? " selected" : ""}>${ROLE_LABEL[x]}</option>`
+        ).join("") + `</select>`
+      : esc(ROLE_LABEL[u.role] || u.role);
+    const del = canRole
+      ? `<button class="danger" data-act="del" data-id="${u.user_id}" data-email="${esc(u.email)}">Видалити</button>`
+      : "";
+    return `<tr class="${u.is_active ? "" : "off"}">
+      <td>${esc(u.email)}</td>
+      <td>${roleSel}</td>
+      <td>${u.is_active ? "активний" : "<span class='bad'>заблокований</span>"}</td>
+      <td>${u.email_verified ? "✓" : "—"}</td>
+      <td>${esc(nfmt(u.watchlist_n))}</td>
+      <td class="muted">${esc(fmtDate(u.created_at))}</td>
+      <td class="muted">${esc(fmtDate(u.last_login_at))}</td>
+      <td><div class="acts">
+        <button data-act="ban" data-id="${u.user_id}" data-email="${esc(u.email)}"
+                data-active="${u.is_active}">${u.is_active ? "Заблокувати" : "Розблокувати"}</button>
+        ${u.email_verified ? "" :
+          `<button data-act="verify" data-id="${u.user_id}" data-email="${esc(u.email)}">Підтвердити email</button>`}
+        <button data-act="reset" data-id="${u.user_id}" data-email="${esc(u.email)}">Скинути пароль</button>
+        ${del}
+      </div></td></tr>`;
+  }).join("");
+
+  $("#u-table").innerHTML =
+    `<table><thead><tr><th>email</th><th>роль</th><th>стан</th><th>email✓</th>
+     <th>стежень</th><th>реєстрація</th><th>останній вхід</th><th>дії</th></tr></thead>
+     <tbody>${rows || "<tr><td colspan='8' class='muted'>нічого не знайдено</td></tr>"}</tbody></table>`;
+  pager("#u-pager", r, (n) => { uPage = n; loadUsers(); });
+}
+
+function pager(sel, r, go) {
+  const el = $(sel);
+  if (r.pages <= 1) { el.innerHTML = ""; return; }
+  el.innerHTML = `<button id="pp">←</button>
+    <span class="muted">сторінка ${r.page + 1} з ${r.pages}</span>
+    <button id="pn">→</button>`;
+  $(sel + " #pp").disabled = r.page <= 0;
+  $(sel + " #pn").disabled = r.page + 1 >= r.pages;
+  $(sel + " #pp").onclick = () => go(r.page - 1);
+  $(sel + " #pn").onclick = () => go(r.page + 1);
+}
+
+// Дії підтверджуємо явно: усі вони змінюють чужий доступ, а видалення незворотне.
+async function userAction(el) {
+  const id = el.dataset.id, email = el.dataset.email, act = el.dataset.act;
+  try {
+    if (act === "role") {
+      const role = el.value;
+      if (!confirm(`Змінити роль ${email} → ${ROLE_LABEL[role]}?`)) { loadUsers(); return; }
+      await api(`/admin/users/${id}/role`, { method:"POST", body: JSON.stringify({ role }) });
+      say(`${email}: роль → ${ROLE_LABEL[role]}`);
+    } else if (act === "ban") {
+      const active = el.dataset.active !== "true";
+      if (!confirm(active ? `Повернути доступ ${email}?`
+                          : `${email} більше не зможе увійти. Заблокувати?`)) return;
+      await api(`/admin/users/${id}/ban`, { method:"POST", body: JSON.stringify({ active }) });
+      say(`${email}: ${active ? "розблоковано" : "заблоковано"}`);
+    } else if (act === "verify") {
+      if (!confirm(`Підтвердити email ${email} вручну?`)) return;
+      await api(`/admin/users/${id}/verify`, { method:"POST" });
+      say(`${email}: email підтверджено`);
+    } else if (act === "reset") {
+      if (!confirm(`Надіслати ${email} код скидання пароля?`)) return;
+      await api(`/admin/users/${id}/send-reset`, { method:"POST" });
+      say(`${email}: код скидання надіслано`);
+    } else if (act === "del") {
+      if (!confirm(`ВИДАЛИТИ акаунт ${email}? Це незворотно.`)) return;
+      if (!confirm(`Ще раз: видалити ${email} назавжди?`)) return;
+      await api(`/admin/users/${id}`, { method:"DELETE" });
+      say(`${email}: акаунт видалено`);
+    }
+    loadUsers();
+  } catch (e) {
+    say(e.message, "err");
+    loadUsers();          // повертаємо таблицю до ФАКТИЧНОГО стану сервера
+  }
+}
+
+// ── журнал ─────────────────────────────────────────────────────────────────────
+let aPage = 0;
+async function loadAudit() {
+  const p = new URLSearchParams();
+  if ($("#a-action").value) p.set("action", $("#a-action").value);
+  p.set("page", aPage);
+  const r = await api("/admin/audit?" + p.toString());
+  $("#a-count").textContent = `записів: ${r.total}`;
+  const rows = r.entries.map((e) =>
+    `<tr><td class="muted">${esc(fmtDate(e.created_at))}</td>
+     <td>${esc(e.actor_email || "—")}</td>
+     <td>${esc(ACTION_LABEL[e.action] || e.action)}</td>
+     <td>${esc(e.target_email || "—")}${e.target_id === null && e.target_email
+          ? " <span class='muted'>(акаунт видалено)</span>" : ""}</td>
+     <td class="muted">${esc(e.detail || "")}</td></tr>`).join("");
+  $("#a-table").innerHTML =
+    `<table><thead><tr><th>коли</th><th>хто</th><th>дія</th><th>кому</th><th>деталь</th>
+     </tr></thead><tbody>${rows ||
+       "<tr><td colspan='5' class='muted'>журнал порожній</td></tr>"}</tbody></table>`;
+  pager("#a-pager", r, (n) => { aPage = n; loadAudit(); });
+}
+
+// ── каркас ─────────────────────────────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll(".tabs button").forEach((b) =>
+    b.classList.toggle("on", b.dataset.tab === name));
+  ["dash", "users", "audit"].forEach((t) => { $("#tab-" + t).hidden = (t !== name); });
+  say("");
+  if (name === "dash") loadDash().catch((e) => say(e.message, "err"));
+  if (name === "users") loadUsers().catch((e) => say(e.message, "err"));
+  if (name === "audit") loadAudit().catch((e) => say(e.message, "err"));
+}
+
+function start() {
+  $("#login").style.display = "none";
+  $("#app").hidden = false;
+  $("#who").textContent = myEmail + " · " + (ROLE_LABEL[myRole] || myRole);
+  showTab("dash");
+}
+
+$("#lg-go").onclick = login;
+$("#lg-pass").addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
+$("#logout").onclick = logout;
+document.querySelectorAll(".tabs button").forEach((b) =>
+  b.onclick = () => showTab(b.dataset.tab));
+
+let t = null;
+$("#u-q").addEventListener("input", () => {           // не бити сервер на кожну літеру
+  clearTimeout(t); t = setTimeout(() => { uPage = 0; loadUsers().catch((e) => say(e.message, "err")); }, 300);
+});
+$("#u-role").onchange = () => { uPage = 0; loadUsers().catch((e) => say(e.message, "err")); };
+$("#u-active").onchange = () => { uPage = 0; loadUsers().catch((e) => say(e.message, "err")); };
+$("#a-action").onchange = () => { aPage = 0; loadAudit().catch((e) => say(e.message, "err")); };
+
+// делегування: рядки перемальовуються, тож слухаємо контейнер, а не кнопки
+$("#u-table").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-act]");
+  if (b) userAction(b);
+});
+$("#u-table").addEventListener("change", (e) => {
+  const s = e.target.closest("select[data-act]");
+  if (s) userAction(s);
+});
+
+if (token && (myRole === "admin" || myRole === "moderator")) start();
+</script>
+</body>
+</html>

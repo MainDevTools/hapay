@@ -56,6 +56,14 @@ def index():
     return FileResponse(WEB_INDEX)
 
 
+@app.get("/admin")
+def admin_page():
+    """Веб-панель (S16). Реєструється ДО catch-all `/{page}` — інакше той перехопив би
+    шлях і віддав 404. Сторінка статична й без секретів: усі дані тягне через ті самі
+    гейтовані /api/admin/*, токен бере з логіну й тримає в sessionStorage."""
+    return FileResponse(os.path.join(WEB_DIR, "admin.html"), media_type="text/html")
+
+
 @app.get("/{page}")
 def legal(page: str):
     """Юр-сторінки /privacy, /terms, /support (для App Store / Google Play)."""
