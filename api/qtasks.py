@@ -253,8 +253,14 @@ def refresh_task_value(conn, force: bool = False) -> int:
     return n
 
 
-def lease_tasks(conn, worker: str, limit: int = 3) -> list[dict]:
+def lease_tasks(conn, worker: str, limit: int = 3,
+                sources: list[str] | None = None) -> list[dict]:
     """Атомарно видати ≤limit дозрілих задач — ПО ОДНІЙ на крамницю (розліт).
+
+    `sources` — колектор оголошує, що він УМІЄ. Різні колектори різні: телефон має
+    WebView (render) і резидентний IP; сервер не має ні того, ні того, зате завжди
+    ввімкнений. Без цього фільтра серверний колектор брав би задачі, які гарантовано
+    провалить, і псував би їм лічильник збоїв замість того, щоб лишити телефону.
 
     Конкурентна безпека: у READ COMMITTED другий UPDATE перечитує WHERE на вже
     оновленому рядку → умова «вільна» хибна → рядок мовчки випадає. Два телефони
@@ -283,6 +289,7 @@ def lease_tasks(conn, worker: str, limit: int = 3) -> list[dict]:
                            FROM collect_task
                            WHERE not_before <= now()
                              AND (leased_until IS NULL OR leased_until < now())
+                             AND (%s::text[] IS NULL OR source = ANY(%s))
                        ) ready
                        ORDER BY source, priority, vkey, not_before   -- 1 задача/крамницю
                    ) pick
@@ -292,7 +299,7 @@ def lease_tasks(conn, worker: str, limit: int = 3) -> list[dict]:
                  AND not_before <= now()
                  AND (leased_until IS NULL OR leased_until < now())
                RETURNING task_id, source, url, kind""",
-            (worker, LEASE_TTL_MIN, VALUE_ESCAPE_DAYS, limit)).fetchall()
+            (worker, LEASE_TTL_MIN, sources, sources, VALUE_ESCAPE_DAYS, limit)).fetchall()
     if leased:
         conn.execute(
             "UPDATE collect_task "

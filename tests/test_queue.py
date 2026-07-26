@@ -203,6 +203,25 @@ def main():
         checks.append(("enqueue оновлює repeat наявної задачі (політика)",
                        rp == qtasks.SITEMAP_REPEAT_MIN, rp))
 
+        # ── колектор оголошує, що ВМІЄ (S23) ──────────────────────────────────────
+        # Серверний колектор без WebView і з ДЦ-адресою не має брати задачі, які
+        # гарантовано провалить: збій зіпсував би їм лічильник замість лишити телефону.
+        got_any = qtasks.lease_tasks(conn, "t-src", 40)
+        srcs = sorted({t["source"] for t in got_any})
+        checks.append(("оренда без фільтра віддає різні крамниці", len(srcs) > 1, srcs[:4]))
+        conn.execute("UPDATE collect_task SET leased_until = NULL, "
+                     "not_before = now() - interval '1 hour'")
+        pick = srcs[0]
+        only = qtasks.lease_tasks(conn, "t-src2", 40, sources=[pick])
+        checks.append((f"фільтр sources=[{pick}] віддає ЛИШЕ його",
+                       bool(only) and {t["source"] for t in only} == {pick},
+                       sorted({t["source"] for t in only})))
+        conn.execute("UPDATE collect_task SET leased_until = NULL, "
+                     "not_before = now() - interval '1 hour'")
+        checks.append(("невідома крамниця у sources → порожньо, не помилка",
+                       qtasks.lease_tasks(conn, "t-src3", 5, sources=["Нема-такої"]) == [],
+                       None))
+
         # ── пріоритезація за цінністю (0172) ──────────────────────────────────────
         # Ємність збору вдесятеро менша за чергу (заміряно: оберт ≈26 днів), тож
         # порядок вирішує, чи набере хоч щось придатної для 30-денного вікна історії.

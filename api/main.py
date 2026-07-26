@@ -622,14 +622,24 @@ def collect_plan(collector=Depends(require_collector)):
 def collect_lease(body: dict | None = None, collector=Depends(require_collector),
                   conn=Depends(get_conn)):
     """Видати ≤limit дозрілих задач (по 1 на крамницю — розліт 15 хв/крамниця).
-    Порожньо = все зібрано нещодавно; телефон засинає до наступного опитування."""
+    Порожньо = все зібрано нещодавно; телефон засинає до наступного опитування.
+
+    `sources` — колектор оголошує, що ВМІЄ (S23). Колектори різні: телефон має WebView
+    і резидентний IP; серверний завжди ввімкнений, але без WebView і з ДЦ-адресою,
+    яку частина крамниць блокує. Без фільтра сервер брав би приречені задачі й псував
+    би їм лічильник збоїв замість лишити телефону."""
     qtasks.seed_tasks(conn)                 # ледачий сів: нове в HTML_SOURCES → у черзі
     qtasks.seed_card_tasks(conn)            # дозований бекфіл специфікацій (S12); дешевий guard усередині
     qtasks.refresh_task_value(conn)         # цінність сторінок (0172); guard — раз на 6 год
     limit = (body or {}).get("limit", 3)
     if not isinstance(limit, int):
         raise HTTPException(400, "limit має бути int")
-    return {"tasks": qtasks.lease_tasks(conn, collector, limit), "collector": collector}
+    sources = (body or {}).get("sources")
+    if sources is not None and not (isinstance(sources, list)
+                                    and all(isinstance(s, str) for s in sources)):
+        raise HTTPException(400, "sources: список рядків або відсутній")
+    return {"tasks": qtasks.lease_tasks(conn, collector, limit, sources=sources),
+            "collector": collector}
 
 
 @app.post("/api/collect/fail")

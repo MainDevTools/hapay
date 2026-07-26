@@ -173,6 +173,33 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
+# ── серверний колектор (S23) ──────────────────────────────────────────────────────
+# Сервер бере з черги ті крамниці, які пускають ДЦ-адресу (16 із 28 — заміряно
+# серійно 2026-07-26; це 37% черги). Ходить у ВЛАСНЕ API рівно як телефон, тож
+# шлях розбору/детекції один. Раз на 20 хв: сервер завжди ввімкнений, а розліт
+# 15 хв/крамницю тримає сама черга — частіший тик просто впирався б у неї.
+cat > /etc/systemd/system/hapay-collect-server.service <<EOF
+[Unit]
+Description=Хапай — серверний колектор (крамниці, що пускають ДЦ)
+After=hapay-api.service
+[Service]
+Type=oneshot
+User=$APP_USER
+WorkingDirectory=$REPO_DIR
+EnvironmentFile=$ENV_FILE
+ExecStart=$VENV/bin/python collect_server.py --limit 16 --passes 3
+EOF
+cat > /etc/systemd/system/hapay-collect-server.timer <<'EOF'
+[Unit]
+Description=Хапай — серверний збір раз на 20 хв
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=20min
+Persistent=true
+[Install]
+WantedBy=timers.target
+EOF
+
 # бекап щоночі (pg_dump напряму — база локальна)
 install -m 0755 "$REPO_DIR/deploy/hetzner/backup.sh" /usr/local/bin/hapay-backup
 cat > /etc/systemd/system/hapay-backup.service <<EOF
@@ -207,6 +234,7 @@ EOF
 
 systemctl daemon-reload
 systemctl enable --now hapay-api.service
+systemctl enable --now hapay-collect-server.timer
 systemctl enable hapay-collect.timer hapay-backup.timer
 
 log "9/9 Caddy (TLS + зворотний проксі на 127.0.0.1:8080)"
