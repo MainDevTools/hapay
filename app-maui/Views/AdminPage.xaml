@@ -105,9 +105,13 @@
                                             HeightRequest="32" Margin="0,0,6,4"
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.SendResetCommand}"
                                             CommandParameter="{Binding .}" />
+                                    <!-- незворотна дія: контурна, не залита — щоб не стояла
+                                         врівень зі звичайними й не тиснулась навмання -->
                                     <Button Text="Видалити" FontSize="12" Padding="10,2"
                                             HeightRequest="32" Margin="0,0,6,4"
+                                            BackgroundColor="Transparent" BorderWidth="1"
                                             TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}"
+                                            BorderColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}"
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.DeleteUserCommand}"
                                             CommandParameter="{Binding .}"
                                             IsVisible="{Binding Source={x:Reference Page}, Path=BindingContext.CanChangeRoles}" />

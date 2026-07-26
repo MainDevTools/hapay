@@ -14,6 +14,10 @@ public static class Money
         NumberDecimalSeparator = ",",
     };
 
+    /// Кількість у тому ж українському форматі: «49 406», а не «49,406» з en-US локалі
+    /// (та сама пастка, що й із цінами — просто в іншому місці; S16).
+    public static string N(long n) => n.ToString("N0", _uk);
+
     public static string Grn(int? kop)
     {
         if (kop is null) return "—";
@@ -594,9 +598,9 @@ public class MetricData
     [JsonPropertyName("products_1d")] public int Products1d { get; set; }
     [JsonPropertyName("snapshots_1d")] public int Snapshots1d { get; set; }
 
-    [JsonIgnore] public string ProductsText => $"{Products:N0} товарів  (+{Products1d:N0} за добу)";
-    [JsonIgnore] public string SnapshotsText => $"{Snapshots:N0} снапшотів  (+{Snapshots1d:N0} за добу)";
-    [JsonIgnore] public string EventsText => $"{Events:N0} подій знижок";
+    [JsonIgnore] public string ProductsText => $"{Money.N(Products)} товарів  (+{Money.N(Products1d)} за добу)";
+    [JsonIgnore] public string SnapshotsText => $"{Money.N(Snapshots)} снапшотів  (+{Money.N(Snapshots1d)} за добу)";
+    [JsonIgnore] public string EventsText => $"{Money.N(Events)} подій знижок";
     [JsonIgnore] public string ScopeText => $"{Categories} категорій · {Sources} джерел";
 }
 
@@ -619,7 +623,7 @@ public class BadgeRow
         "declared" => "заявлено",
         _ => "замало історії",
     };
-    [JsonIgnore] public string CountText => $"{Total:N0}  (за 7 дн: {D7:N0})";
+    [JsonIgnore] public string CountText => $"{Money.N(Total)}  (за 7 дн: {Money.N(D7)})";
 }
 
 public class MetricAccounts
