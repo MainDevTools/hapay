@@ -46,6 +46,8 @@ public static class MauiProgram
         builder.Services.AddTransient<OnboardingPage>();
         builder.Services.AddTransient<SearchViewModel>();
         builder.Services.AddTransient<SearchPage>();
+        builder.Services.AddTransient<CompareViewModel>();
+        builder.Services.AddTransient<ComparePage>();
         builder.Services.AddTransient<DetailViewModel>();
         builder.Services.AddTransient<DetailPage>();
         builder.Services.AddTransient<LoginViewModel>();

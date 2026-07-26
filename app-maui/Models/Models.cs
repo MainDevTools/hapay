@@ -55,6 +55,9 @@ public class Discount
     /// (модель без INPC — той самий патерн, що IsOurChoice в Offer).
     [JsonIgnore] public bool IsWatched { get; set; }
     [JsonIgnore] public string HeartGlyph => IsWatched ? "♥" : "♡";
+    /// Обрано для порівняння (S14) — чекбокс на картці; стан у HomeViewModel.
+    [JsonIgnore] public bool IsCompareSelected { get; set; }
+    [JsonIgnore] public string CompareGlyph => IsCompareSelected ? "☑" : "☐";
 
     [JsonIgnore] public bool HasMultiStores => OffersN > 1;
     [JsonIgnore] public bool ShowStoreLine => OffersN <= 1;              // одна крамниця → її й показуємо
@@ -156,6 +159,47 @@ public class Category
 }
 
 /// Розділ сітки-каталогу (E-Katalog, §17): заголовок + категорії розділу.
+// ── Порівняння товарів side-by-side (S14) ─────────────────────────────────────────
+public class CompareResult
+{
+    [JsonPropertyName("products")] public List<CompareProduct> Products { get; set; } = new();
+    [JsonPropertyName("spec_rows")] public List<SpecRow> SpecRows { get; set; } = new();
+
+    [JsonIgnore] public bool HasSpecs => SpecRows.Count > 0;
+}
+
+public class CompareProduct
+{
+    [JsonPropertyName("store_product_id")] public int StoreProductId { get; set; }
+    [JsonPropertyName("title")] public string Title { get; set; } = "";
+    [JsonPropertyName("image_url")] public string? ImageUrl { get; set; }
+    [JsonPropertyName("price_kop")] public int? PriceKop { get; set; }
+    [JsonPropertyName("badge_state")] public string BadgeState { get; set; } = "none";
+    [JsonPropertyName("declared_pct")] public int? DeclaredPct { get; set; }
+    [JsonPropertyName("offers_n")] public int OffersN { get; set; } = 1;
+
+    [JsonIgnore] public string PriceGrn => Money.Grn(PriceKop);
+    [JsonIgnore] public string OffersText => OffersN > 1 ? $"у {OffersN} крамницях" : "1 крамниця";
+    // бейдж перевірки знижки — фактологічний (як у «Наш вибір»)
+    [JsonIgnore] public string? BadgeText => BadgeState switch
+    {
+        "verified" or "verified_provisional" => "🛡 знижка перевірена",
+        "pumped" => "⚠ «стара» ціна завищена",
+        _ => null,
+    };
+    [JsonIgnore] public bool HasBadge => BadgeText is not null;
+}
+
+/// Рядок таблиці характеристик: назва + значення по колонках (null = «—» у цього товару).
+public class SpecRow
+{
+    [JsonPropertyName("name")] public string Name { get; set; } = "";
+    [JsonPropertyName("values")] public List<string?> Values { get; set; } = new();
+
+    /// Для UI: значення з підстановкою «—» замість null.
+    [JsonIgnore] public List<string> Display => Values.Select(v => v ?? "—").ToList();
+}
+
 /// Нові знижки у відстежуваній категорії (одне згруповане сповіщення на категорію).
 public class CategoryNews
 {

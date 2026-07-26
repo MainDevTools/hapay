@@ -78,6 +78,11 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
     // slug категорії → watchlist_id: дзвіночок «Стежити за категорією»
     private readonly Dictionary<string, int> _watchCatIds = new();
 
+    // порівняння (S14): обрані store_product_id, у порядку вибору, макс 4
+    private readonly List<int> _compareIds = new();
+    [ObservableProperty] private bool _canCompare;         // ≥2 обрано → показати кнопку
+    public string CompareButtonText => $"Порівняти ({_compareIds.Count})";
+
     [ObservableProperty] private bool _isCategoryWatched;
     [ObservableProperty] private string? _freshnessText;   // «Ціни оновлено N хв тому»
 
@@ -358,6 +363,9 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
         _searchWidened = false;        // новий запит — знову поважаємо обрану категорію
         SearchNote = null;
         ErrorMessage = null;
+        _compareIds.Clear();           // новий вид → чисте порівняння (не при LoadMore)
+        CanCompare = false;
+        OnPropertyChanged(nameof(CompareButtonText));
         if (keepCache && Items.Count > 0)
         {
             _pendingCacheSwap = true;  // кеш лишається на екрані; свіже його замінить
@@ -450,6 +458,52 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
 
     /// Серденько на картці: додати/зняти стеження одним тапом, без відкриття картки.
     /// Оновлення рядка — заміною елемента (Discount без INPC, патерн IsOurChoice).
+    /// Чекбокс «порівняти» на картці: додати/зняти (макс 4). Оновлення рядка — заміною
+    /// елемента (Discount без INPC, патерн IsWatched).
+    [RelayCommand]
+    private void ToggleCompare(Discount? d)
+    {
+        if (d is null) return;
+        if (_compareIds.Contains(d.StoreProductId))
+        {
+            _compareIds.Remove(d.StoreProductId);
+            d.IsCompareSelected = false;
+        }
+        else
+        {
+            if (_compareIds.Count >= 4)      // стеля колонок — тихо ігноруємо 5-й
+            {
+                ErrorMessage = "Порівняти можна до 4 товарів";
+                return;
+            }
+            _compareIds.Add(d.StoreProductId);
+            d.IsCompareSelected = true;
+            Haptic.Tap();
+        }
+        var i = Items.IndexOf(d);
+        if (i >= 0) Items[i] = d;            // Replace → рядок перечитує CompareGlyph
+        CanCompare = _compareIds.Count >= 2;
+        OnPropertyChanged(nameof(CompareButtonText));
+    }
+
+    [RelayCommand]
+    private async Task OpenCompare()
+    {
+        if (_compareIds.Count < 2) return;
+        await Shell.Current.GoToAsync(nameof(ComparePage),
+            new Dictionary<string, object> { ["Ids"] = string.Join(",", _compareIds) });
+    }
+
+    [RelayCommand]
+    private void ClearCompare()
+    {
+        foreach (var d in Items.ToList())
+            if (d.IsCompareSelected) { d.IsCompareSelected = false; var i = Items.IndexOf(d); if (i >= 0) Items[i] = d; }
+        _compareIds.Clear();
+        CanCompare = false;
+        OnPropertyChanged(nameof(CompareButtonText));
+    }
+
     [RelayCommand]
     private async Task ToggleWatch(Discount? d)
     {
@@ -540,6 +594,7 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
             foreach (var d in batch)
             {
                 d.IsWatched = _watchIds.ContainsKey(d.StoreProductId);   // серденька
+                d.IsCompareSelected = _compareIds.Contains(d.StoreProductId);   // чекбокс порівняння
                 Items.Add(d);
             }
             _more = batch.Count >= 50;

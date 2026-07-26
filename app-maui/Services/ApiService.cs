@@ -60,6 +60,11 @@ public class ApiService
         return await _http.GetFromJsonAsync<List<Discount>>(url, _json, ct) ?? new();
     }
 
+    /// Порівняння 2-4 товарів side-by-side (S14): базові факти + таблиця характеристик.
+    public async Task<CompareResult?> CompareAsync(IEnumerable<int> ids, CancellationToken ct = default) =>
+        await _http.GetFromJsonAsync<CompareResult>(
+            $"{Base}/api/compare?ids={string.Join(",", ids)}", _json, ct);
+
     /// Хвилини від останнього успішного збору (чесна свіжість у шапці стрічки).
     public async Task<int?> FreshnessAsync(CancellationToken ct = default)
     {

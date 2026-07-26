@@ -202,18 +202,31 @@
                                         <Image Source="{Binding ImageUrl}" Aspect="AspectFit"
                                                AutomationProperties.IsInAccessibleTree="False" />
                                     </Border>
-                                    <!-- серденько: стежити одним тапом, не відкриваючи картку -->
-                                    <Label Grid.Column="2" Text="{Binding HeartGlyph}" FontSize="22"
-                                           Padding="6,0,2,0" VerticalOptions="Start"
-                                           SemanticProperties.Description="Стежити за ціною"
-                                           SemanticProperties.Hint="Додає або прибирає товар зі стеження"
-                                           TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}">
-                                        <Label.GestureRecognizers>
-                                            <TapGestureRecognizer
-                                                Command="{Binding Source={x:Reference Page}, Path=BindingContext.ToggleWatchCommand}"
-                                                CommandParameter="{Binding .}" />
-                                        </Label.GestureRecognizers>
-                                    </Label>
+                                    <!-- дії картки: серденько (стежити) + чекбокс (порівняти) -->
+                                    <VerticalStackLayout Grid.Column="2" Spacing="6" VerticalOptions="Start">
+                                        <Label Text="{Binding HeartGlyph}" FontSize="22" Padding="6,0,2,0"
+                                               HorizontalOptions="End"
+                                               SemanticProperties.Description="Стежити за ціною"
+                                               SemanticProperties.Hint="Додає або прибирає товар зі стеження"
+                                               TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}">
+                                            <Label.GestureRecognizers>
+                                                <TapGestureRecognizer
+                                                    Command="{Binding Source={x:Reference Page}, Path=BindingContext.ToggleWatchCommand}"
+                                                    CommandParameter="{Binding .}" />
+                                            </Label.GestureRecognizers>
+                                        </Label>
+                                        <Label Text="{Binding CompareGlyph}" FontSize="20" Padding="6,0,2,0"
+                                               HorizontalOptions="End"
+                                               SemanticProperties.Description="Порівняти товар"
+                                               SemanticProperties.Hint="Додає товар до порівняння"
+                                               TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}">
+                                            <Label.GestureRecognizers>
+                                                <TapGestureRecognizer
+                                                    Command="{Binding Source={x:Reference Page}, Path=BindingContext.ToggleCompareCommand}"
+                                                    CommandParameter="{Binding .}" />
+                                            </Label.GestureRecognizers>
+                                        </Label>
+                                    </VerticalStackLayout>
                                     <VerticalStackLayout Grid.Column="1" Spacing="3">
                                         <Label Text="{Binding Title}" MaxLines="2" LineBreakMode="TailTruncation"
                                                Style="{StaticResource Body}" FontAttributes="Bold" />
@@ -306,6 +319,23 @@
                 </DataTemplate>
             </BindableLayout.ItemTemplate>
         </VerticalStackLayout>
+
+        <!-- плаваюча панель порівняння: зʼявляється коли обрано ≥2 товари (S14) -->
+        <Border Grid.Row="1" IsVisible="{Binding CanCompare}" VerticalOptions="End"
+                Margin="12" Padding="6,4,6,4" StrokeThickness="0" StrokeShape="RoundRectangle 14"
+                BackgroundColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="4">
+                <Label Grid.Column="0" Text="✕" FontSize="18" TextColor="White" Padding="10,0"
+                       VerticalOptions="Center" SemanticProperties.Description="Очистити порівняння">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding ClearCompareCommand}" />
+                    </Label.GestureRecognizers>
+                </Label>
+                <Button Grid.Column="2" Text="{Binding CompareButtonText}" Command="{Binding OpenCompareCommand}"
+                        FontAttributes="Bold" FontSize="14" BackgroundColor="Transparent"
+                        TextColor="White" MinimumHeightRequest="44" />
+            </Grid>
+        </Border>
 
     </Grid>
 </ContentPage>
