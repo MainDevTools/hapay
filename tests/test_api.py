@@ -23,6 +23,7 @@ from db import migrate                                  # noqa: E402
 from collect import collect, SOURCES                    # noqa: E402
 from api.main import app                                # noqa: E402
 from api import ingest as qingest                       # noqa: E402  (к-сть HTML_SOURCES)
+from api import db as _qdb                              # noqa: E402  (константи + db-рівневі перевірки)
 from api.initdata import build_init_data                # noqa: E402
 
 
@@ -1183,7 +1184,6 @@ def main():
 
     # ── S15: адмін-панель (ролі / керування акаунтами / метрики) ─────────────────
     # ролі роздає власник напряму в БД (trusted-people) — робимо акаунти admin/moderator
-    from api import db as _qdb
     for _lim in (_rl.login_limiter, _rl.register_limiter):     # burst логінів нижче
         _lim._hits.clear()
     for em, pw in (("admin1@hapay.today", "adminpass1"), ("mod@hapay.today", "modpass12"),
