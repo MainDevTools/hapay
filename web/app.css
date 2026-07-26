@@ -338,7 +338,12 @@ a.brand{text-decoration:none;color:inherit}
 
 @media (min-width:1000px){
   .nav{display:flex}
-  .hero{padding:60px 0 34px}
+  .hero{display:grid;grid-template-columns:1fr 400px;gap:52px;align-items:center;
+    padding:52px 0 24px}
+  .hero-copy{text-align:left}
+  .hero-copy p{margin-left:0}
+  .hero .acts{justify-content:flex-start}
+  .heroex{margin-top:0}
   .how{grid-template-columns:repeat(3,1fr);gap:20px}
   .sec{margin-top:48px}
 }
