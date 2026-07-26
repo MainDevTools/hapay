@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Hapay.Services;
 using Hapay.ViewModels;
 using Hapay.Views;
@@ -48,6 +48,8 @@ public static class MauiProgram
         builder.Services.AddTransient<SearchPage>();
         builder.Services.AddTransient<CompareViewModel>();
         builder.Services.AddTransient<ComparePage>();
+        builder.Services.AddTransient<AdminViewModel>();
+        builder.Services.AddTransient<AdminPage>();
         builder.Services.AddTransient<DetailViewModel>();
         builder.Services.AddTransient<DetailPage>();
         builder.Services.AddTransient<LoginViewModel>();

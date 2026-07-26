@@ -96,6 +96,14 @@
                 BorderColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
                 BorderWidth="1" MinimumHeightRequest="48" />
 
+        <!-- адмін-панель (S15): лише moderator+; сервер гейтить незалежно від UI -->
+        <Button Text="Адмін-панель" Command="{Binding AdminCommand}"
+                IsVisible="{Binding IsModerator}"
+                BackgroundColor="Transparent"
+                TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
+                BorderColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
+                BorderWidth="1" MinimumHeightRequest="48" />
+
         <!-- та сама перевірка, що й фонова, але зараз — не чекати годину -->
         <Button Text="Перевірити зниження цін" Command="{Binding CheckDropsCommand}"
                 IsEnabled="{Binding CheckingDrops, Converter={StaticResource Invert}}"

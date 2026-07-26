@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Hapay.Views.AdminPage"
+    x:Name="Page"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:Hapay.ViewModels"
+    xmlns:models="clr-namespace:Hapay.Models"
+    xmlns:conv="clr-namespace:Hapay.Converters"
+    x:DataType="vm:AdminViewModel"
+    Title="Адмін-панель">
+
+    <ContentPage.Resources>
+        <conv:StringNotEmptyConverter x:Key="NotEmpty" />
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- шапка: метрики + результат/помилка останньої дії -->
+        <VerticalStackLayout Grid.Row="0" Padding="16,12" Spacing="6">
+            <Border Style="{StaticResource Card}" Padding="12" StrokeShape="RoundRectangle 12">
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="{Binding Metrics.AccountsText}" Style="{StaticResource Body}" />
+                    <Label Text="{Binding Metrics.RolesText}" Style="{StaticResource Caption}" />
+                    <Label Text="{Binding Metrics.CollectText}" Style="{StaticResource Caption}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- відмову сервера показуємо ТЕКСТОМ як є (напр. «не можна лишити систему
+                 без активного адміна») — клієнт не переказує правил своїми словами -->
+            <Label Text="{Binding Error}"
+                   IsVisible="{Binding Error, Converter={StaticResource NotEmpty}}"
+                   TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}" />
+            <Label Text="{Binding Notice}" Style="{StaticResource Caption}"
+                   IsVisible="{Binding Notice, Converter={StaticResource NotEmpty}}" />
+        </VerticalStackLayout>
+
+        <RefreshView Grid.Row="1" Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsLoading}">
+            <CollectionView ItemsSource="{Binding Users}">
+                <CollectionView.EmptyView>
+                    <Label Text="Акаунтів ще немає" Margin="16" Style="{StaticResource Caption}"
+                           HorizontalOptions="Center" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:AdminUser">
+                        <Border Style="{StaticResource Card}" Margin="12,4" Padding="12"
+                                StrokeShape="RoundRectangle 12" Opacity="{Binding RowOpacity}">
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="2">
+
+                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding Email}"
+                                       Style="{StaticResource Body}" LineBreakMode="TailTruncation" />
+
+                                <!-- роль + стан: людськими словами, не машинними мітками -->
+                                <Label Grid.Row="1" Grid.Column="0" Style="{StaticResource Caption}"
+                                       Text="{Binding RoleLabel, StringFormat='роль: {0}'}" />
+                                <Label Grid.Row="2" Grid.Column="0" Style="{StaticResource Caption}">
+                                    <Label.Text>
+                                        <MultiBinding StringFormat="{}{0} · email {1} · стежень {2}">
+                                            <Binding Path="StatusText" />
+                                            <Binding Path="VerifiedGlyph" />
+                                            <Binding Path="WatchlistN" />
+                                        </MultiBinding>
+                                    </Label.Text>
+                                </Label>
+
+                                <!-- дії: «Роль» лише повному адміну (сервер підтверджує гейтом) -->
+                                <HorizontalStackLayout Grid.Row="0" Grid.Column="1" Grid.RowSpan="3"
+                                                       Spacing="6" VerticalOptions="Center">
+                                    <Button Text="Роль" FontSize="12" Padding="10,4" HeightRequest="34"
+                                            Command="{Binding Source={x:Reference Page}, Path=BindingContext.ChangeRoleCommand}"
+                                            CommandParameter="{Binding .}"
+                                            IsVisible="{Binding Source={x:Reference Page}, Path=BindingContext.CanChangeRoles}" />
+                                    <Button Text="{Binding BanActionText}" FontSize="12" Padding="10,4"
+                                            HeightRequest="34"
+                                            Command="{Binding Source={x:Reference Page}, Path=BindingContext.ToggleBanCommand}"
+                                            CommandParameter="{Binding .}" />
+                                </HorizontalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+</ContentPage>

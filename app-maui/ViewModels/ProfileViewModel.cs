@@ -31,6 +31,9 @@ public partial class ProfileViewModel : ObservableObject
     public string Email => _auth.Email ?? "";
     public string Role => _auth.Role;
     public bool IsCollector => _auth.IsCollector;
+    /// Вхід в адмін-панель (S15) — лише moderator+. Сервер усе одно гейтить: тут ховаємо,
+    /// щоб не показувати кнопку, яка гарантовано впаде в 403.
+    public bool IsModerator => _auth.IsModerator;
     /// Банер «email не підтверджено» — лише коли залогінений і ще не verified (S13).
     public bool ShowVerifyBanner => _auth.IsLoggedIn && !_auth.EmailVerified;
     [ObservableProperty] private string? _verifyStatus;
@@ -129,6 +132,7 @@ public partial class ProfileViewModel : ObservableObject
         OnPropertyChanged(nameof(Role));
         OnPropertyChanged(nameof(RoleLabel));
         OnPropertyChanged(nameof(IsCollector));
+        OnPropertyChanged(nameof(IsModerator));
         OnPropertyChanged(nameof(AutoCollectSupported));
         OnPropertyChanged(nameof(TodayText));
         OnPropertyChanged(nameof(ShowVerifyBanner));
@@ -191,6 +195,10 @@ public partial class ProfileViewModel : ObservableObject
 
     [RelayCommand]
     private async Task Watchlist() => await Shell.Current.GoToAsync(nameof(WatchlistPage));
+
+    /// Адмін-панель (S15): акаунти + метрики. Кнопка видима лише moderator+.
+    [RelayCommand]
+    private async Task Admin() => await Shell.Current.GoToAsync(nameof(AdminPage));
 
     /// Ручний запуск ТІЄЇ САМОЇ перевірки, що й фоновий воркер: не чекати годину,
     /// і не гадати, чи вона працює. Корисна й користувачеві, не лише для тесту.

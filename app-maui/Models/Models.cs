@@ -527,3 +527,56 @@ public class SpecAttr
     [JsonPropertyName("name")] public string Name { get; set; } = "";
     [JsonPropertyName("value")] public string Value { get; set; } = "";
 }
+
+/// ── Адмін-панель (S15): акаунти + метрики ─────────────────────────────────────────
+/// Видно лише moderator+ (сервер гейтить; UI ховає вхід). Ролі роздає лише admin.
+public class AdminUser
+{
+    [JsonPropertyName("user_id")] public long UserId { get; set; }
+    [JsonPropertyName("email")] public string Email { get; set; } = "";
+    [JsonPropertyName("role")] public string Role { get; set; } = "user";
+    [JsonPropertyName("is_active")] public bool IsActive { get; set; } = true;
+    [JsonPropertyName("email_verified")] public bool EmailVerified { get; set; }
+    [JsonPropertyName("watchlist_n")] public int WatchlistN { get; set; }
+
+    /// Людська назва ролі — оператор мислить «зам», не «moderator».
+    [JsonIgnore] public string RoleLabel => Role switch
+    {
+        "admin" => "адмін",
+        "moderator" => "зам адміна",
+        "collector" => "колектор",
+        _ => "юзер",
+    };
+
+    [JsonIgnore] public string StatusText => IsActive ? "активний" : "заблокований";
+    [JsonIgnore] public string BanActionText => IsActive ? "Заблокувати" : "Розблокувати";
+    /// Заблокований рядок притлумлений — видно з першого погляду, без читання тексту.
+    [JsonIgnore] public double RowOpacity => IsActive ? 1.0 : 0.55;
+    [JsonIgnore] public string VerifiedGlyph => EmailVerified ? "✓" : "—";
+}
+
+public class AdminMetrics
+{
+    [JsonPropertyName("total")] public int Total { get; set; }
+    [JsonPropertyName("verified")] public int Verified { get; set; }
+    [JsonPropertyName("banned")] public int Banned { get; set; }
+    [JsonPropertyName("by_role")] public Dictionary<string, int> ByRole { get; set; } = new();
+    /// Стан збору (той самий вузол, що /api/freshness): хвилини від останнього снапшота.
+    [JsonPropertyName("collect")] public CollectFreshness? Collect { get; set; }
+
+    [JsonIgnore] public string RolesText =>
+        $"адмінів {ByRole.GetValueOrDefault("admin")} · замів {ByRole.GetValueOrDefault("moderator")} · "
+        + $"колекторів {ByRole.GetValueOrDefault("collector")} · юзерів {ByRole.GetValueOrDefault("user")}";
+
+    [JsonIgnore] public string AccountsText =>
+        $"акаунтів {Total} · підтверджених {Verified} · заблокованих {Banned}";
+
+    [JsonIgnore] public string CollectText => Collect?.Minutes is int m
+        ? (m < 90 ? $"збір: {m} хв тому" : $"збір: {m / 60} год тому")
+        : "збір: даних нема";
+}
+
+public class CollectFreshness
+{
+    [JsonPropertyName("minutes")] public int? Minutes { get; set; }
+}

@@ -18,12 +18,18 @@ public partial class AuthService : ObservableObject
     [ObservableProperty] private bool _isLoggedIn;
     [ObservableProperty] private string? _email;
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsCollector))]   // IsCollector залежить від Role → авто-сповіщення
+    [NotifyPropertyChangedFor(nameof(IsCollector))]   // похідні від Role → авто-сповіщення
+    [NotifyPropertyChangedFor(nameof(IsModerator))]
+    [NotifyPropertyChangedFor(nameof(IsAdmin))]
     private string _role = "user";
     /// email підтверджено (S13). Профіль показує банер, коли false.
     [ObservableProperty] private bool _emailVerified;
 
     public bool IsCollector => Role is "collector" or "moderator" or "admin";
+    /// Доступ до адмін-панелі (S15): список акаунтів, метрики, бан.
+    public bool IsModerator => Role is "moderator" or "admin";
+    /// Зміна ролей іншим — лише повний адмін (S15). UI ховає, сервер підтверджує гейтом.
+    public bool IsAdmin => Role == "admin";
 
     public AuthService(ApiService api) => _api = api;
 

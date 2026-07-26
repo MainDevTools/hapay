@@ -292,6 +292,42 @@ public class ApiService
         resp.EnsureSuccessStatusCode();
     }
 
+    // ── адмін-панель (S15): гейт на сервері, клієнт лише ховає вхід ──────────────────
+    public async Task<List<AdminUser>> AdminUsersAsync(CancellationToken ct = default)
+    {
+        var resp = await _http.GetAsync($"{Base}/api/admin/users", ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
+        return await resp.Content.ReadFromJsonAsync<List<AdminUser>>(_json, ct) ?? new();
+    }
+
+    public async Task<AdminMetrics?> AdminMetricsAsync(CancellationToken ct = default)
+    {
+        var resp = await _http.GetAsync($"{Base}/api/admin/metrics", ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
+        return await resp.Content.ReadFromJsonAsync<AdminMetrics>(_json, ct);
+    }
+
+    /// Змінити роль (лише admin). Відмови сервера («не можна лишити систему без
+    /// активного адміна» тощо) приходять текстом у detail → показуємо людині як є.
+    public async Task SetUserRoleAsync(long userId, string role, CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync($"{Base}/api/admin/users/{userId}/role",
+                                               new { role }, ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
+    }
+
+    /// Бан/розбан (moderator+). Межа прав приходить 403 із поясненням у detail.
+    public async Task SetUserActiveAsync(long userId, bool active, CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync($"{Base}/api/admin/users/{userId}/ban",
+                                               new { active }, ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
+    }
+
     private static async Task<string> SafeDetail(HttpResponseMessage resp, CancellationToken ct)
     {
         try
