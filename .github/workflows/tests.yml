@@ -68,6 +68,43 @@ jobs:
       - name: sqlsafe — блукаючий «%» у SQL (запобіжник зламу 2026-07-21)
         run: python tests/test_sqlsafe.py
 
+      # ── підключено 2026-07-26: 25 тестів існували, але в CI не значились ────────
+      # Тобто зелений CI нічого про них не казав. Усі прогнано локально перед
+      # підключенням — усі 25 зелені; test_alert дорогою отримав __main__-раннер,
+      # без якого «проходив», нічого не виконуючи.
+      - name: «Наш вибір» — скоринг і тай-брейк (S9)
+        run: python tests/test_choice.py
+      - name: пошук: транслітерація бренду й межі (§9.1)
+        run: python tests/test_search.py
+      - name: характеристики з карток — golden + нульові випадки (S12)
+        run: python tests/test_cardspec.py
+      - name: сторож збору: пороги й таймер (без БД)
+        run: python tests/test_alert.py
+      - name: sitemap-відкриття: розбір і межі (T20)
+        run: python tests/test_sitemap_discovery.py
+      - name: адаптери крамниць — golden на касетах (20 джерел)
+        run: |
+          python tests/test_addua.py
+          python tests/test_antoshka.py
+          python tests/test_apteka911.py
+          python tests/test_autopresent.py
+          python tests/test_dniprom.py
+          python tests/test_eldorado.py
+          python tests/test_epicentr.py
+          python tests/test_fotosale.py
+          python tests/test_interatletika.py
+          python tests/test_makeup.py
+          python tests/test_masterzoo.py
+          python tests/test_maudau.py
+          python tests/test_medmagazin.py
+          python tests/test_podorozhnyk.py
+          python tests/test_storgom.py
+          python tests/test_stylus.py
+          python tests/test_telemart.py
+          python tests/test_vencon.py
+          python tests/test_yabko.py
+          python tests/test_zootovary.py
+
   migration:
     # Верифікація 0001 проти живого PostgreSQL 18 (= версія прод-Neon; Timescale-фічі → 0002).
     # УВАГА: ці тести РУЙНІВНІ (reset() дропає всі таблиці) → лише TEST_DATABASE_URL.

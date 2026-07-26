@@ -40,7 +40,8 @@
 </div>
 
 <section class="sec">
-  <div class="sec-h"><h2>Найбільші знижки зараз</h2><a href="/catalog">Усі знижки →</a></div>
+  <div class="sec-h"><h2>Знижки, що пройшли перевірку</h2>
+    <a href="/catalog?b=verified">Усі перевірені →</a></div>
   <main id="list"></main>
 </section>
 
@@ -87,12 +88,18 @@ async function loadTop(){
       <div class="sk" style="height:13px;width:80%"></div><div class="sk" style="height:11px;width:45%"></div>
       <div class="sk" style="height:18px;width:55%;margin-top:6px"></div></div></div>`));
   try{
-    const data = await api('/api/discounts?sort=discount&page=0');
+    // ⚠ Було sort=discount — найгучніші ЗАЯВЛЕНІ знижки, тобто за визначенням
+    // неперевірені: заміряно 0 із 6 карток із міткою. Вітрина сайту про перевірку
+    // знижок мусить показувати те, що ми справді перевірили, інакше вона працює
+    // проти власного повідомлення. Якщо перевірених ще нема — так і кажемо.
+    const data = await api('/api/discounts?badge=verified&sort=verified&page=0');
     list.innerHTML = '';
     data.slice(0, 6).forEach(d => list.appendChild(topCard(d)));
     if(!data.length) list.innerHTML =
-      `<div class="empty"><div class="ic">🏷</div><div class="t">Поки порожньо</div>
-       <div>Збір ще накопичує знижки.</div></div>`;
+      `<div class="empty"><div class="ic">🏷</div>
+       <div class="t">Перевірених знижок поки немає</div>
+       <div>Щоб порівняти «стару» ціну з історією, потрібні 30 днів спостережень —
+         вони ще накопичуються. <a href="/catalog">Подивитись усі знижки →</a></div></div>`;
   }catch(e){
     list.innerHTML = `<div class="empty"><div class="ic">⚠️</div>
       <div class="t">Не вдалося завантажити</div><div>${esc(e.message)}</div></div>`;

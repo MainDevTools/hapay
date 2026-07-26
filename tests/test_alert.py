@@ -90,3 +90,26 @@ def test_timer_runs_oftener_than_silence_threshold():
     assert tick * 2 <= COLLECT_SILENT_MIN, (
         f"таймер тикає раз на {tick} хв при порозі тиші {COLLECT_SILENT_MIN} хв — "
         f"у вікні порогу вкладається менше двох перевірок")
+
+
+# Раннера тут не було, і в CI файл не значився: `python tests/test_alert.py` мовчки
+# нічого не робив і виходив із нулем — фальшивий зелений (той самий випадок, що з
+# test_sqlsafe; знайдено 2026-07-26 при підключенні тестів до CI).
+def _main():
+    fns = [v for k, v in sorted(globals().items())
+           if k.startswith("test_") and callable(v)
+           and getattr(v, "__module__", None) == __name__]
+    failed = 0
+    for fn in fns:
+        try:
+            fn()
+            print(f"PASS  {fn.__name__}")
+        except Exception as e:
+            failed += 1
+            print(f"FAIL  {fn.__name__}  -> {type(e).__name__}: {e}")
+    print(f"\n{len(fns) - failed}/{len(fns)} passed")
+    sys.exit(1 if failed else 0)
+
+
+if __name__ == "__main__":
+    _main()
