@@ -1,7 +1,14 @@
 /* Спільне ядро сайту (S19): хелпери, звернення до API, стан входу, шапка/підвал.
    Логіка стрічки живе в catalog.js, бо потрібна лише каталогу й товару. */
 const tg = window.Telegram && window.Telegram.WebApp;
-if (tg) { tg.ready(); tg.expand(); }
+
+/* ⚠ `tg` ІСНУЄ й у звичайному браузері: скрипт telegram-web-app.js створює
+   window.Telegram.WebApp завжди. Перевірка `if (tg)` тому НЕ означає «ми в Telegram»
+   (2026-07-26: через неї лендинг перекидало на /catalog, а шапку й підвал зрізало на
+   всіх сторінках — у браузері виміряно initData="" і platform="unknown").
+   Справжня ознака міні-застосунку — непорожній initData або відома платформа. */
+const IN_TG = !!(tg && (tg.initData || (tg.platform && tg.platform !== 'unknown')));
+if (IN_TG) { tg.ready(); tg.expand(); }
 
 /* Видимі мітки — ВИМІРИ, не вердикт (T12/§5.4.1). Внутрішній енум (`pumped`) лишається як є.
    Символи теж: ✓/⚠ оцінювали («схвалено»/«увага, погано»), ↓/≥ описують ВИМІРЯНЕ відношення.
@@ -70,7 +77,7 @@ async function api(path, opts){
 function renderHeader(active, opts){
   opts = opts || {};
   const h = document.getElementById('hdr');
-  if (!h || tg) { if (h && tg) h.remove(); return; }
+  if (!h || IN_TG) { if (h && IN_TG) h.remove(); return; }
   const nav = [['/', 'Головна'], ['/catalog', 'Знижки']];
   h.innerHTML = `<div class="hrow">
     <a class="brand" href="/"><h1>Хапай</h1><span class="sub">знижки проти історії цін</span></a>
@@ -87,7 +94,7 @@ function renderHeader(active, opts){
 
 function renderFooter(){
   const f = document.getElementById('ftr');
-  if (!f || tg) { if (f && tg) f.remove(); return; }
+  if (!f || IN_TG) { if (f && IN_TG) f.remove(); return; }
   f.className = 'foot';
   f.innerHTML = `<a href="/privacy">Конфіденційність</a><a href="/terms">Умови</a>
     <a href="/support">Підтримка</a>

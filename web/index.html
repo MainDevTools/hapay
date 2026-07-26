@@ -52,7 +52,7 @@
 <script>
 // Telegram Mini App відкриває «/» — а це тепер лендинг. Йому потрібна стрічка, тож
 // одразу перекидаємо на каталог: інакше в міні-застосунку висіла б рекламна сторінка.
-if (tg) { location.replace('/catalog'); }
+if (IN_TG) { location.replace('/catalog'); }
 
 renderHeader('/');
 renderFooter();
@@ -132,7 +132,7 @@ async function loadSections(){
   }catch(e){}
 }
 
-if (!tg) { loadStats(); loadTop(); loadSections(); }
+if (!IN_TG) { loadStats(); loadTop(); loadSections(); }
 </script>
 </body>
 </html>

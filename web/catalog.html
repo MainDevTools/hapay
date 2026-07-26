@@ -40,7 +40,7 @@ renderHeader('/catalog', {search: true, controls: `<div class="controls">
 renderFooter();
 
 // У Telegram шапки немає — але керування потрібне, тож малюємо його окремо.
-if (tg) {
+if (IN_TG) {
   document.getElementById('hdr').outerHTML = `<header><div class="controls">
       <select id="cat"><option value="">Усі категорії</option></select>
       <select id="sort">
