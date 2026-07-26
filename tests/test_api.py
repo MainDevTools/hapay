@@ -214,6 +214,33 @@ def main():
                    client.post("/api/auth/verify", json={"code": "111111"},
                                headers=ahdr).status_code == 400, None))
 
+    # ── перебір коду: промахи ВИТРАЧАЮТЬ сам код, не лише IP-квоту ───────────────
+    # Ревʼю 2026-07-26: ліміт стояв тільки на IP, тож перебір 6-значного коду
+    # масштабувався разом із числом адрес у зловмисника. Тепер код гасне після
+    # MAX_CODE_ATTEMPTS промахів — байдуже, звідки їх робили.
+    _put_code("verify", "999111")
+    for _lim in (_rl.code_limiter,):
+        _lim._hits.clear()
+    codes_wrong = [f"{i:06d}" for i in range(_qdb.MAX_CODE_ATTEMPTS)]
+    for c in codes_wrong:
+        _rl.code_limiter._hits.clear()          # знімаємо IP-квоту — перевіряємо САМЕ лічильник коду
+        client.post("/api/auth/verify", json={"code": c}, headers=ahdr)
+    _rl.code_limiter._hits.clear()
+    burned = client.post("/api/auth/verify", json={"code": "999111"}, headers=ahdr)
+    checks.append((f"код гасне після {_qdb.MAX_CODE_ATTEMPTS} промахів (правильний уже не діє)",
+                   burned.status_code == 400, burned.status_code))
+    with psycopg.connect(URL) as c:
+        used = c.execute("SELECT used_at IS NOT NULL FROM account_token "
+                         "WHERE user_id=%s AND kind='verify' "
+                         "ORDER BY created_at DESC LIMIT 1", (uid,)).fetchone()[0]
+    checks.append(("згаслий код позначено використаним у БД", used is True, used))
+    # свіжий код після цього працює — гасне КОД, а не акаунт
+    _put_code("verify", "424243")
+    _rl.code_limiter._hits.clear()
+    ok_after = client.post("/api/auth/verify", json={"code": "424243"}, headers=ahdr)
+    checks.append(("новий код після згаслого працює (блокуємо код, не людину)",
+                   ok_after.status_code == 200, ok_after.status_code))
+
     # reset: no-enumeration (неіснуючий email — теж 200) + повний цикл
     checks.append(("reset/request неіснуючого email → 200 (не розкриваємо)",
                    client.post("/api/auth/reset/request",

@@ -65,7 +65,10 @@ async function load(reset=true){
     data.forEach(d=>list.appendChild(card(d)));
     setMore(data.length===50);
   }catch(e){
-    if(reset) list.innerHTML=`<div class="empty"><div class="ic">⚠️</div><div class="t">Помилка завантаження</div><div>${e.message}</div></div>`;
+    // esc обовʼязково: текст приходить із відповіді сервера, а вставляється в innerHTML.
+    // Сьогодні сервер туди своїх даних не кладе, але покладатись на це — значить
+    // лишити міну під будь-який майбутній ендпойнт, що відлунить введене.
+    if(reset) list.innerHTML=`<div class="empty"><div class="ic">⚠️</div><div class="t">Помилка завантаження</div><div>${esc(e.message)}</div></div>`;
     setMore(false);
   }
 }

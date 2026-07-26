@@ -678,10 +678,20 @@ def create_token(conn, user_id: int, kind: str, code_hash: str, ttl_s: int) -> N
         (user_id, kind, code_hash, ttl_s))
 
 
+# Скільки невдалих спроб витримує ОДИН код, перш ніж згасне. П'ять — бо чесний
+# користувач має код перед очима; це не про зручність, а про те, щоб перебір не
+# масштабувався разом із числом IP у зловмисника (ревʼю безпеки 2026-07-26).
+MAX_CODE_ATTEMPTS = 5
+
+
 def consume_token(conn, user_id: int, kind: str, code_hash: str) -> bool:
     """Атомарно спожити код: активний (не-used, не-expired, збіг хешу) → позначити
     used, повернути True. Інакше False. RETURNING гарантує, що два паралельні запити
-    не спожиють той самий код двічі."""
+    не спожиють той самий код двічі.
+
+    ⚠ Невдала спроба ВИТРАЧАЄ спробу самого коду. Доти ліміт стояв лише на IP, тож
+    перебір 6-значного коду масштабувався разом із числом адрес. Тепер після
+    MAX_CODE_ATTEMPTS промахів код гасне незалежно від того, звідки їх робили."""
     row = conn.execute(
         "UPDATE account_token SET used_at = now() "
         "WHERE token_id = (SELECT token_id FROM account_token "
@@ -689,7 +699,22 @@ def consume_token(conn, user_id: int, kind: str, code_hash: str) -> bool:
         "                    AND used_at IS NULL AND expires_at > now() "
         "                  ORDER BY created_at DESC LIMIT 1) "
         "RETURNING token_id", (user_id, kind, code_hash)).fetchone()
-    return row is not None
+    if row is not None:
+        return True
+
+    # промах: рахуємо його НАЙСВІЖІШОМУ активному коду цього юзера й кінця, а на
+    # межі — гасимо код. Гасимо саме тут, одним запитом, щоб між перевіркою і
+    # погашенням не було вікна для паралельних спроб.
+    conn.execute(
+        "UPDATE account_token "
+        "SET attempts = attempts + 1, "
+        "    used_at = CASE WHEN attempts + 1 >= %s THEN now() ELSE used_at END "
+        "WHERE token_id = (SELECT token_id FROM account_token "
+        "                  WHERE user_id = %s AND kind = %s "
+        "                    AND used_at IS NULL AND expires_at > now() "
+        "                  ORDER BY created_at DESC LIMIT 1)",
+        (MAX_CODE_ATTEMPTS, user_id, kind))
+    return False
 
 
 def set_email_verified(conn, user_id: int) -> None:
