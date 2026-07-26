@@ -132,7 +132,8 @@ async function loadSections(){
     // найнаповненіші розділи вперед: порожній розділ на головній — обіцянка без покриття
     const top = [...by.entries()].filter(([,n]) => n > 0).sort((a,b) => b[1]-a[1]).slice(0, 12);
     document.getElementById('sects').innerHTML = top.map(([s,n]) =>
-      `<a href="/catalog"><span>${esc(s)}</span><span class="n">${nfmt(n)}</span></a>`).join('');
+      `<a href="/catalog?s=${encodeURIComponent(s)}"><span>${esc(s)}</span>` +
+      `<span class="n">${nfmt(n)}</span></a>`).join('');
   }catch(e){}
 }
 

@@ -457,6 +457,30 @@ def main():
                    client.get("/privacy").status_code == 200, None))
     checks.append(("невідомий шлях → 404", client.get("/nema-takoyi").status_code == 404, None))
 
+    # ── фільтр за РОЗДІЛОМ (набір категорій; у БД розділу нема — мапа в taxonomy) ──
+    # Знайдено оператором: посилання розділів на головній вели просто в /catalog,
+    # бо фільтра за розділом не існувало.
+    from taxonomy import slugs_in_section as _sis
+    sect_of_cat = next((s for s in ("Зоотовари", "Електроніка", "Інше")
+                        if cslug in _sis(s)), None)
+    if sect_of_cat:
+        sd = client.get(f"/api/discounts?section={sect_of_cat}")
+        checks.append((f"фільтр section={sect_of_cat} → 200 і не порожньо",
+                       sd.status_code == 200 and len(sd.json()) >= 1, len(sd.json())))
+        checks.append(("розділ ширший за категорію (містить її товари)",
+                       len(sd.json()) >= len(client.get(
+                           f"/api/discounts?category={cslug}").json()), None))
+    checks.append(("невідомий розділ → 400, не порожня видача",
+                   client.get("/api/discounts?section=Нема-такого").status_code == 400, None))
+    checks.append(("невідомий розділ і в /products → 400",
+                   client.get("/api/products?section=Нема-такого").status_code == 400, None))
+    # категорія має пріоритет над розділом: разом вони дали б перетин, якого не просили
+    both = client.get(f"/api/discounts?category={cslug}&section=Електроніка")
+    only = client.get(f"/api/discounts?category={cslug}")
+    checks.append(("категорія переважає розділ (перетину не робимо)",
+                   both.status_code == 200 and len(both.json()) == len(only.json()),
+                   (len(both.json()), len(only.json()))))
+
     # ── свіжість даних (шапка стрічки) ───────────────────────────────────────────
     fr = client.get("/api/freshness")
     checks.append(("/api/freshness публічний і віддає minutes",

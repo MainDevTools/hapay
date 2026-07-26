@@ -9,7 +9,7 @@ import math
 from psycopg import errors
 from psycopg.rows import dict_row
 from search import search_patterns
-from taxonomy import category_ui, SECTION_ORDER
+from taxonomy import category_ui, slugs_in_section, SECTION_ORDER
 
 # сортування — без de.-префікса: колонки беруться з CTE `best` (див. list_discounts)
 _SORTS = {
@@ -58,7 +58,7 @@ def product_card(conn, store_product_id: int):
 
 
 def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, offset=0, q=None,
-                   price_min=None, price_max=None):
+                   price_min=None, price_max=None, section=None):
     """Стрічка знижок — АГРЕГАТОРНА (T15/§17): одна картка на ТОВАР, не на крамницю.
 
     Товари з однаковим ключем (match_key = GTIN, інакше артикул) колапсуються в одну
@@ -71,6 +71,10 @@ def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, o
     params: list = []
     if category:
         where.append("c.slug = %s"); params.append(category)
+    elif section:
+        # Розділ = набір категорій (мапа живе в taxonomy, у БД розділу нема). Конкретна
+        # категорія має пріоритет: вона вужча, тож поєднувати їх нема сенсу.
+        where.append("c.slug = ANY(%s)"); params.append(slugs_in_section(section))
     if badge:
         # `verified` тягне за собою й provisional (див. BADGE_FILTERS); решта станів —
         # самі по собі. Раніше тут стояло `= %s` на сирому значенні, тож ?badge=verified
@@ -231,6 +235,7 @@ _HOLLOW_SAME_PRICE = 1.02  # «та сама ціна» = у межах +2%: к�
 
 
 def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=None,
+                  section=None,
                   price_min=None, price_max=None, only_discounts=False, badge=None):
     """УСІ товари (не лише знижкові), остання відома ціна кожного, MPN-дедуп як стрічка.
 
@@ -252,6 +257,8 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
     params: list = [_USED_RE]      # 1-й %s — у SELECT ev (прапорець `used`)
     if category:
         base.append("c.slug = %s"); params.append(category)
+    elif section:                      # розділ = набір категорій (мапа в taxonomy)
+        base.append("c.slug = ANY(%s)"); params.append(slugs_in_section(section))
 
     # звужувальні — лише для ВИБОРУ картки, не для пошуку дешевшої пропозиції
     narrow: list[str] = []

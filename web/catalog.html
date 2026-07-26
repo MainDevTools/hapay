@@ -68,6 +68,7 @@ const _p = new URLSearchParams(location.search);
 if (_p.get('c')) cat = _p.get('c');
 if (_p.get('q')) query = _p.get('q');
 if (_p.get('b') && BADGES.some(x => x.k === _p.get('b'))) badge = _p.get('b');
+const _sect = _p.get('s') || '';   // розділ (набір категорій); категорія має пріоритет
 // ціна в адресі — у ГРИВНЯХ (людині доводиться її читати), в API — копійки
 const _money = v => { const n = parseInt(v, 10);
   return Number.isFinite(n) && n >= 0 ? n * 100 : null; };

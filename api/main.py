@@ -21,6 +21,7 @@ from api import ratelimit as qrl
 from api import email as qemail
 from api.initdata import verify_init_data, check_auth_age, InitDataError
 from detection.runner import detect_pass
+from taxonomy import SECTION_ORDER
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -107,6 +108,13 @@ def categories(conn=Depends(get_conn)):
     return qdb.categories(conn)
 
 
+def _check_section(section: str | None):
+    """Невідомий розділ — 400, а не порожня видача: порожньо виглядало б як «товарів
+    нема», хоча насправді помилка в назві розділу."""
+    if section is not None and section not in SECTION_ORDER:
+        raise HTTPException(400, "невідомий розділ")
+
+
 def _check_badge(badge: str | None):
     """Невідомий стан — 400, а не тиша. До 2026-07-26 `?badge=pumped` мовчки
     ігнорувався: клієнт бачив повний каталог, вважаючи, що фільтр застосовано."""
@@ -115,18 +123,20 @@ def _check_badge(badge: str | None):
 
 
 @app.get("/api/discounts")
-def discounts(category: str | None = None, badge: str | None = None, q: str | None = None,
+def discounts(category: str | None = None, section: str | None = None,
+              badge: str | None = None, q: str | None = None,
               sort: str = "verified", page: int = Query(0, ge=0),
               price_min: int | None = Query(None, ge=0),   # копійки (інв. A); фільтр за поточною ціною
               price_max: int | None = Query(None, ge=0),
               conn=Depends(get_conn)):
-    _check_badge(badge)
+    _check_badge(badge); _check_section(section)
     return qdb.list_discounts(conn, category, badge, sort, limit=50, offset=page * 50, q=q,
-                              price_min=price_min, price_max=price_max)
+                              price_min=price_min, price_max=price_max, section=section)
 
 
 @app.get("/api/products")
-def products(category: str | None = None, q: str | None = None, sort: str = "discount",
+def products(category: str | None = None, section: str | None = None,
+             q: str | None = None, sort: str = "discount",
              page: int = Query(0, ge=0),
              price_min: int | None = Query(None, ge=0),
              price_max: int | None = Query(None, ge=0),
@@ -136,8 +146,9 @@ def products(category: str | None = None, q: str | None = None, sort: str = "dis
     знижкові; `badge=verified` → лише зі знижками, що пройшли перевірку 30-денним
     мінімумом (вкл. provisional на неповному вікні); `badge=pumped` → лише ті, де
     «стара» ціна вища за фактичний 30-денний мінімум."""
-    _check_badge(badge)
+    _check_badge(badge); _check_section(section)
     return qdb.list_products(conn, category, sort, limit=50, offset=page * 50, q=q,
+                             section=section,
                              price_min=price_min, price_max=price_max,
                              only_discounts=only_discounts, badge=badge)
 

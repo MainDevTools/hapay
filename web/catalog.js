@@ -52,6 +52,7 @@ async function load(reset=true){
   try{
     const p=new URLSearchParams({sort,page});
     if(badge)p.set('badge',badge); if(cat)p.set('category',cat); if(query)p.set('q',query);
+    if(!cat && SECT)p.set('section',SECT);
     if(PRICE.min!=null)p.set('price_min',PRICE.min);          // копійки (інв. A)
     if(PRICE.max!=null)p.set('price_max',PRICE.max);
     const data=await api('/api/discounts?'+p.toString());
@@ -97,6 +98,9 @@ function renderSide(cats){
 }
 
 let CATS=[];
+// Розділ — ширший за категорію (мапа живе на сервері, taxonomy). Обрана категорія
+// його скасовує: тримати обидва означало б показувати перетин, якого людина не просила.
+let SECT = (typeof _sect !== 'undefined' ? _sect : '');
 // копійки; null = межа не задана. Початкові значення приходять з адреси (розбирає
 // інлайн-скрипт catalog.html, який виконується раніше за цей файл).
 const PRICE = {
@@ -108,7 +112,7 @@ const PRICE = {
    попередній фільтр, а не той самий список. Порожні значення в адресу не пишемо. */
 function syncUrl(){
   const p = new URLSearchParams();
-  if (cat) p.set('c', cat);
+  if (cat) p.set('c', cat); else if (SECT) p.set('s', SECT);
   if (badge) p.set('b', badge);
   if (query) p.set('q', query);
   if (PRICE.min != null) p.set('pmin', Math.round(PRICE.min/100));   // в адресі — гривні
@@ -120,15 +124,22 @@ function syncUrl(){
 function crumbs(){
   const c = CATS.find(x => x.slug === cat);
   const items = [{href:'/', label:'Головна'}];
-  if (c) { items.push({href:'/catalog', label:'Знижки'});
-           if (c.section) items.push({href:'/catalog', label:c.section});
-           items.push({label:c.name}); }
-  else items.push({label:'Знижки'});
+  if (c) {
+    items.push({href:'/catalog', label:'Знижки'});
+    // розділ у крихтах — робоче посилання на сам розділ, а не мертвий підпис
+    if (c.section) items.push({href:'/catalog?s=' + encodeURIComponent(c.section),
+                               label:c.section});
+    items.push({label:c.name});
+  } else if (SECT) {
+    items.push({href:'/catalog', label:'Знижки'});
+    items.push({label:SECT});
+  } else items.push({label:'Знижки'});
   renderCrumbs(items);
 }
 
 function setCat(slug){
   cat=slug;
+  if (slug) SECT='';        // категорія вужча — розділ більше не тримаємо
   const sel=document.getElementById('cat'); if(sel) sel.value=slug;   // тримаємо select у синхроні
   renderSide(CATS);
   crumbs(); syncUrl();
