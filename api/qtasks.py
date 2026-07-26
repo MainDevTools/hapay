@@ -81,22 +81,26 @@ def seed_tasks(conn) -> int:
     wanted: list[tuple[str, str]] = []
     for source, cfg in HTML_SOURCES.items():
         rows = []
+        # хаб і sitemap — «ворота» до всього іншого, конкретної категорії не мають (slug=None)
         if cfg.get("hub"):
-            rows.append((source, cfg["hub"], "hub", HUB_REPEAT_MIN, 100))
+            rows.append((source, cfg["hub"], "hub", HUB_REPEAT_MIN, 100, None))
         if cfg.get("sitemap"):                          # sitemap-відкриття (T20): крамниця сама
             rows.append((source, cfg["sitemap"]["url"], "sitemap",
-                         SITEMAP_REPEAT_MIN, SITEMAP_PRIORITY))
-        for u, _cat, page in source_listings(cfg):      # лістинги + їхня пагінація
-            rows.append((source, u, "page", repeat_for_page(page), 100))
-        wanted += [(s, u) for s, u, _k, _r, _p in rows]
-        for source_, url, kind, rep, prio in rows:
+                         SITEMAP_REPEAT_MIN, SITEMAP_PRIORITY, None))
+        for u, cat, page in source_listings(cfg):       # лістинги + їхня пагінація
+            # slug категорії з конфігу лістинга — досі відкидався; на ньому тримається
+            # оцінка цінності сторінки (0172), бо задача не має прямого звʼязку з товарами
+            rows.append((source, u, "page", repeat_for_page(page), 100, cat))
+        wanted += [(s, u) for s, u, _k, _r, _p, _c in rows]
+        for source_, url, kind, rep, prio, slug in rows:
             got = conn.execute(
-                "INSERT INTO collect_task (source, url, kind, repeat_min, priority) "
-                "VALUES (%s,%s,%s,%s,%s) "
+                "INSERT INTO collect_task (source, url, kind, repeat_min, priority, slug) "
+                "VALUES (%s,%s,%s,%s,%s,%s) "
                 "ON CONFLICT (source, url) DO UPDATE "
-                "SET repeat_min = EXCLUDED.repeat_min, priority = EXCLUDED.priority "
+                "SET repeat_min = EXCLUDED.repeat_min, priority = EXCLUDED.priority, "
+                "    slug = EXCLUDED.slug "
                 "RETURNING (xmax = 0) AS inserted",
-                (source_, url, kind, rep, prio)).fetchone()
+                (source_, url, kind, rep, prio, slug)).fetchone()
             n += 1 if got and got[0] else 0
 
     # ── прибрати задачі, які ВИБУЛИ з конфігу ────────────────────────────────────
@@ -166,6 +170,89 @@ def seed_card_tasks(conn, target: int = CARD_PENDING_TARGET) -> int:
     return n
 
 
+# Як часто перераховувати цінність сторінок. Запит агрегує весь store_product, тож
+# на кожну оренду його ганяти не можна; цінність міняється повільно (нові групи,
+# нові стеження) — кількох годин цілком досить.
+VALUE_REFRESH_MIN = 360
+VALUE_KEY = "task_value_refreshed_at"
+# Скільки днів задача може простояти незібраною, перш ніж підніметься нагору попри
+# низьку цінність. Без цього хвіст голодував би вічно (ту саму пастку вже ловили на
+# sitemap 2026-07-22), а крамниця з одними лише «дешевими» сторінками випала б зовсім.
+VALUE_ESCAPE_DAYS = 10
+
+
+def refresh_task_value(conn, force: bool = False) -> int:
+    """Перерахувати `value_tier` сторінок за виміряною цінністю їхньої категорії.
+
+    Цінність = те, заради чого продукт існує: товари в КРОС-КРАМНИЧНИХ групах (дають
+    «Де купити», «Наш вибір», порівняння), товари з активними знижками (їх і перевіряє
+    Omnibus) і те, за чим СТЕЖАТЬ люди. Сторінка, чиї товари не дають нічого з цього,
+    йде в хвіст: при обороті черги ≈26 днів вона все одно не набере придатної для
+    30-денного вікна історії, а слот у когось відбирає.
+
+    Звʼязок «задача → товари» непрямий: задача — це URL лістинга, тож рахуємо по
+    категорії з конфігу (`slug`). Наближення свідоме — товар міг переїхати в іншу
+    категорію на `refine_category`, — але воно на порядок краще за рівномірність.
+
+    Повертає к-сть оновлених задач (0, якщо перерахунок ще не на часі)."""
+    if not force:
+        row = conn.execute(
+            "SELECT valid_from FROM app_config WHERE key = %s "
+            "ORDER BY valid_from DESC LIMIT 1", (VALUE_KEY,)).fetchone()
+        if row and row[0] and (conn.execute(
+                "SELECT now() - %s < make_interval(mins => %s)",
+                (row[0], VALUE_REFRESH_MIN)).fetchone()[0]):
+            return 0
+
+    n = conn.execute(
+        """WITH cat AS (
+               SELECT s.name AS source, c.slug,
+                      count(*) FILTER (WHERE sp.match_key IS NOT NULL) AS matched,
+                      count(*) FILTER (WHERE d.store_product_id IS NOT NULL) AS discounted,
+                      count(*) FILTER (WHERE w.watchlist_id IS NOT NULL) AS watched
+               FROM store_product sp
+               JOIN source s USING (source_id)
+               JOIN category c USING (category_id)
+               LEFT JOIN LATERAL (
+                   SELECT de.store_product_id FROM discount_event de
+                   WHERE de.store_product_id = sp.store_product_id
+                     AND de.ended_at IS NULL LIMIT 1) d ON TRUE
+               LEFT JOIN LATERAL (
+                   SELECT wl.watchlist_id FROM watchlist wl
+                   WHERE (wl.kind = 'store_product' AND wl.ref_id = sp.store_product_id)
+                      OR (wl.kind = 'category' AND wl.query_text = c.slug) LIMIT 1) w ON TRUE
+               GROUP BY 1, 2),
+           scored AS (
+               -- стеження важить найбільше: це пряма заявка людини, що товар їй потрібен
+               SELECT source, slug, matched + 2 * discounted + 20 * watched AS score
+               FROM cat),
+           tiered AS (
+               SELECT source, slug,
+                      CASE WHEN score = 0 THEN 2
+                           WHEN percent_rank() OVER (ORDER BY score) >= 0.70 THEN 0
+                           ELSE 1 END AS tier
+               FROM scored)
+           UPDATE collect_task t SET value_tier = x.tier
+           FROM tiered x
+           WHERE t.slug = x.slug AND t.source = x.source AND t.value_tier <> x.tier""",
+    ).rowcount
+
+    # Картки специфікацій (S12) звʼязані з товаром напряму (url) — там цінність точна:
+    # картка потрібна тій групі, що реально стоїть у кількох крамницях.
+    n += conn.execute(
+        """UPDATE collect_task t SET value_tier = CASE
+               WHEN sp.match_key IS NOT NULL THEN 0 ELSE 1 END
+           FROM store_product sp
+           WHERE t.kind = 'card' AND sp.url = t.url
+             AND t.value_tier <> CASE WHEN sp.match_key IS NOT NULL THEN 0 ELSE 1 END"""
+    ).rowcount
+
+    conn.execute("DELETE FROM app_config WHERE key = %s", (VALUE_KEY,))
+    conn.execute("INSERT INTO app_config (key, value, valid_from) VALUES (%s,%s, now())",
+                 (VALUE_KEY, "1"))
+    return n
+
+
 def lease_tasks(conn, worker: str, limit: int = 3) -> list[dict]:
     """Атомарно видати ≤limit дозрілих задач — ПО ОДНІЙ на крамницю (розліт).
 
@@ -182,19 +269,30 @@ def lease_tasks(conn, worker: str, limit: int = 3) -> list[dict]:
                    leased_until = now() + make_interval(mins => %s)
                WHERE task_id IN (
                    SELECT task_id FROM (
-                       SELECT DISTINCT ON (source) task_id, priority, not_before
-                       FROM collect_task
-                       WHERE not_before <= now()
-                         AND (leased_until IS NULL OR leased_until < now())
-                       ORDER BY source, priority, not_before   -- 1 задача/крамницю
+                       SELECT DISTINCT ON (source) task_id, priority, vkey, not_before
+                       FROM (
+                           SELECT task_id, source, priority, not_before,
+                                  -- цінність (0172), АЛЕ із запобіжником: задача, яку не
+                                  -- збирали VALUE_ESCAPE_DAYS, піднімається нагору попри
+                                  -- тир. Без нього дешеві сторінки голодували б вічно —
+                                  -- сувора пріоритетна черга при ємності < попиту хвіст
+                                  -- не обслуговує ніколи (та сама пастка, що зі sitemap).
+                                  CASE WHEN coalesce(last_done_at, created_at)
+                                            < now() - make_interval(days => %s)
+                                       THEN 0 ELSE value_tier END AS vkey
+                           FROM collect_task
+                           WHERE not_before <= now()
+                             AND (leased_until IS NULL OR leased_until < now())
+                       ) ready
+                       ORDER BY source, priority, vkey, not_before   -- 1 задача/крамницю
                    ) pick
-                   ORDER BY priority, not_before                -- НАЙДОВШЕ очікувані першими (не абетка)
+                   ORDER BY priority, vkey, not_before          -- цінніші й найдовше очікувані першими
                    LIMIT %s                                     -- → чесна ротація при джерелах > стелі
                )
                  AND not_before <= now()
                  AND (leased_until IS NULL OR leased_until < now())
                RETURNING task_id, source, url, kind""",
-            (worker, LEASE_TTL_MIN, limit)).fetchall()
+            (worker, LEASE_TTL_MIN, VALUE_ESCAPE_DAYS, limit)).fetchall()
     if leased:
         conn.execute(
             "UPDATE collect_task "

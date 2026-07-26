@@ -89,6 +89,11 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
     /// «✓ Підтверджені» — лише знижки, що пройшли перевірку 30-денним мінімумом.
     [ObservableProperty] private bool _onlyVerified;
 
+    /// «⚠ Завищена стара ціна» — знижки, де «стару» ціну не підтверджує 30-денний
+    /// мінімум. Це те, заради чого «Хапай» і робиться, але доти воно розчинялось у
+    /// стрічці серед 23 тисяч просто «заявлених».
+    [ObservableProperty] private bool _onlyPumped;
+
     private bool _pendingCacheSwap;   // кеш на екрані → перший свіжий батч його замінює
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private bool _isRefreshing;
@@ -134,7 +139,7 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
     /// Ключ кешу стрічки: лише «чисті» види (без пошуку/цінового фільтра/бейджа).
     private string CacheKey => $"{SelectedCategory?.Slug}|{SelectedSort?.Key}";
 
-    private bool IsCleanView => !IsSearching && !OnlyVerified
+    private bool IsCleanView => !IsSearching && !OnlyVerified && !OnlyPumped
         && SelectedPrice?.MinKop is null && SelectedPrice?.MaxKop is null;
 
     // прийшли з каталогу (§17) АБО повернулись із «Каталогу товарів» (вибір через ".."):
@@ -451,10 +456,24 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
     }
 
     partial void OnOnlyVerifiedChanged(bool value) { if (_ready) _ = ReloadAsync(); }
+    partial void OnOnlyPumpedChanged(bool value) { if (_ready) _ = ReloadAsync(); }
 
-    /// Чіп «✓ Підтверджені».
+    /// Чіп «✓ Підтверджені». Взаємовиключний із «завищеною» — разом вони дали б
+    /// порожню стрічку (жодна подія не буває в обох станах одночасно).
     [RelayCommand]
-    private void ToggleVerified() => OnlyVerified = !OnlyVerified;
+    private void ToggleVerified()
+    {
+        if (!OnlyVerified) OnlyPumped = false;
+        OnlyVerified = !OnlyVerified;
+    }
+
+    /// Чіп «⚠ Завищена стара ціна».
+    [RelayCommand]
+    private void TogglePumped()
+    {
+        if (!OnlyPumped) OnlyVerified = false;
+        OnlyPumped = !OnlyPumped;
+    }
 
     /// Серденько на картці: додати/зняти стеження одним тапом, без відкриття картки.
     /// Оновлення рядка — заміною елемента (Discount без INPC, патерн IsOurChoice).
@@ -554,7 +573,7 @@ public partial class HomeViewModel : ObservableObject, IQueryAttributable
                 // Заміряно 2026-07-21: знижкові — лише 48% зібраного (2673 товари
                 // були недосяжні пошуком).
                 onlyDiscounts: !IsSearching,
-                badge: OnlyVerified ? "verified" : null);
+                badge: OnlyVerified ? "verified" : OnlyPumped ? "pumped" : null);
             if (gen != _gen) return;   // фільтр змінився під час запиту → відповідь застаріла
 
             // Глухий кут: шукали всередині категорії й нічого. Замість «нічого не

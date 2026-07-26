@@ -82,12 +82,20 @@ def categories(conn=Depends(get_conn)):
     return qdb.categories(conn)
 
 
+def _check_badge(badge: str | None):
+    """Невідомий стан — 400, а не тиша. До 2026-07-26 `?badge=pumped` мовчки
+    ігнорувався: клієнт бачив повний каталог, вважаючи, що фільтр застосовано."""
+    if badge is not None and badge not in qdb.BADGE_FILTERS:
+        raise HTTPException(400, f"badge ∈ {', '.join(qdb.BADGE_FILTERS)}")
+
+
 @app.get("/api/discounts")
 def discounts(category: str | None = None, badge: str | None = None, q: str | None = None,
               sort: str = "verified", page: int = Query(0, ge=0),
               price_min: int | None = Query(None, ge=0),   # копійки (інв. A); фільтр за поточною ціною
               price_max: int | None = Query(None, ge=0),
               conn=Depends(get_conn)):
+    _check_badge(badge)
     return qdb.list_discounts(conn, category, badge, sort, limit=50, offset=page * 50, q=q,
                               price_min=price_min, price_max=price_max)
 
@@ -101,7 +109,9 @@ def products(category: str | None = None, q: str | None = None, sort: str = "dis
              conn=Depends(get_conn)):
     """УСІ товари (не лише знижки) — повний прайс-агрегатор. `only_discounts=1` → лише
     знижкові; `badge=verified` → лише зі знижками, що пройшли перевірку 30-денним
-    мінімумом (вкл. provisional на неповному вікні)."""
+    мінімумом (вкл. provisional на неповному вікні); `badge=pumped` → лише ті, де
+    «стара» ціна вища за фактичний 30-денний мінімум."""
+    _check_badge(badge)
     return qdb.list_products(conn, category, sort, limit=50, offset=page * 50, q=q,
                              price_min=price_min, price_max=price_max,
                              only_discounts=only_discounts, badge=badge)
@@ -569,6 +579,7 @@ def collect_lease(body: dict | None = None, collector=Depends(require_collector)
     Порожньо = все зібрано нещодавно; телефон засинає до наступного опитування."""
     qtasks.seed_tasks(conn)                 # ледачий сів: нове в HTML_SOURCES → у черзі
     qtasks.seed_card_tasks(conn)            # дозований бекфіл специфікацій (S12); дешевий guard усередині
+    qtasks.refresh_task_value(conn)         # цінність сторінок (0172); guard — раз на 6 год
     limit = (body or {}).get("limit", 3)
     if not isinstance(limit, int):
         raise HTTPException(400, "limit має бути int")

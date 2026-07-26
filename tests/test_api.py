@@ -359,6 +359,27 @@ def main():
                        r["badge_state"] in ("verified", "verified_provisional")
                        for r in vb.json()), [r.get("badge_state") for r in vb.json()[:5]]))
 
+    # ── фільтр «завищена стара ціна» + валідація бейджа ──────────────────────────
+    # ⚠ Було: `if badge == "verified"` — БУДЬ-ЯКЕ інше значення мовчки ігнорувалось,
+    # тобто ?badge=pumped віддавав повний каталог, ніби фільтр застосовано (2026-07-26).
+    pb = client.get("/api/products?badge=pumped")
+    checks.append(("badge=pumped → 200 і лише pumped (не весь каталог)",
+                   pb.status_code == 200
+                   and all(r["badge_state"] == "pumped" for r in pb.json()),
+                   [r.get("badge_state") for r in pb.json()[:5]]))
+    allp = client.get("/api/products").json()
+    checks.append(("badge=pumped справді ЗВУЖУЄ (не дорівнює нефільтрованому)",
+                   len(pb.json()) < len(allp) or len(allp) == 0, (len(pb.json()), len(allp))))
+    checks.append(("невідомий бейдж → 400, не тиша (/products)",
+                   client.get("/api/products?badge=zzz").status_code == 400, None))
+    checks.append(("невідомий бейдж → 400, не тиша (/discounts)",
+                   client.get("/api/discounts?badge=zzz").status_code == 400, None))
+    dv = client.get("/api/discounts?badge=verified")
+    checks.append(("/discounts?badge=verified тягне й provisional",
+                   dv.status_code == 200 and all(
+                       d["badge_state"] in ("verified", "verified_provisional")
+                       for d in dv.json()), [d.get("badge_state") for d in dv.json()[:5]]))
+
     # ── свіжість даних (шапка стрічки) ───────────────────────────────────────────
     fr = client.get("/api/freshness")
     checks.append(("/api/freshness публічний і віддає minutes",

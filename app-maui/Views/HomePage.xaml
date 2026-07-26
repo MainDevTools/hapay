@@ -78,6 +78,31 @@
                                 </Label.Triggers>
                             </Label>
                         </Border>
+                        <!-- «⚠ Завищена стара ціна»: знижки, де «стару» ціну не
+                             підтверджує 30-денний мінімум. Це ФАКТ про ціну (та сама
+                             мова, що на картці), не вирок крамниці — інв. B/§7.4.
+                             Взаємовиключний із «Підтверджені»: разом дали б порожньо. -->
+                        <Border Padding="10,4" StrokeShape="RoundRectangle 14" StrokeThickness="0.8"
+                                Stroke="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}"
+                                BackgroundColor="Transparent">
+                            <Border.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding OnlyPumped}" Value="True">
+                                    <Setter Property="BackgroundColor"
+                                            Value="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}" />
+                                </DataTrigger>
+                            </Border.Triggers>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding TogglePumpedCommand}" />
+                            </Border.GestureRecognizers>
+                            <Label Text="⚠ Завищена стара ціна" FontSize="12"
+                                   TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}">
+                                <Label.Triggers>
+                                    <DataTrigger TargetType="Label" Binding="{Binding OnlyPumped}" Value="True">
+                                        <Setter Property="TextColor" Value="White" />
+                                    </DataTrigger>
+                                </Label.Triggers>
+                            </Label>
+                        </Border>
                         <HorizontalStackLayout Spacing="6"
                                                BindableLayout.ItemsSource="{Binding SortChips}">
                             <BindableLayout.ItemTemplate>

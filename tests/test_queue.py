@@ -203,6 +203,53 @@ def main():
         checks.append(("enqueue оновлює repeat наявної задачі (політика)",
                        rp == qtasks.SITEMAP_REPEAT_MIN, rp))
 
+        # ── пріоритезація за цінністю (0172) ──────────────────────────────────────
+        # Ємність збору вдесятеро менша за чергу (заміряно: оберт ≈26 днів), тож
+        # порядок вирішує, чи набере хоч щось придатної для 30-денного вікна історії.
+        checks.append(("сів зберігає slug лістинга (звʼязок задача→категорія)",
+                       conn.execute("SELECT count(*) FROM collect_task "
+                                    "WHERE kind='page' AND slug IS NOT NULL").fetchone()[0] > 0,
+                       None))
+        checks.append(("хаб/sitemap без slug (категорії не мають за суттю)",
+                       conn.execute("SELECT count(*) FROM collect_task "
+                                    "WHERE kind IN ('hub','sitemap') "
+                                    "AND slug IS NOT NULL").fetchone()[0] == 0, None))
+
+        # дві задачі однієї крамниці: цінна категорія vs хвіст
+        conn.execute("DELETE FROM collect_task")
+        conn.execute("INSERT INTO collect_task (source, url, kind, priority, slug, value_tier, "
+                     "  not_before, last_done_at) VALUES "
+                     "('Allo','https://allo.ua/ua/cheap/','page',100,'tail',2, "
+                     "  now() - interval '2 days', now() - interval '2 days'), "
+                     "('Allo','https://allo.ua/ua/rich/','page',100,'gold',0, "
+                     "  now() - interval '1 hour', now() - interval '1 hour')")
+        got = qtasks.lease_tasks(conn, "t-value", 1)
+        checks.append(("цінна сторінка йде першою, хоч чекала МЕНШЕ",
+                       len(got) == 1 and got[0]["url"].endswith("/rich/"),
+                       [t["url"] for t in got]))
+
+        # запобіжник: задача, яку не збирали VALUE_ESCAPE_DAYS, підіймається попри хвіст
+        conn.execute("UPDATE collect_task SET leased_until = NULL, "
+                     "  not_before = now() - interval '1 hour'")
+        conn.execute("UPDATE collect_task SET last_done_at = now() - make_interval(days => %s) "
+                     "WHERE url LIKE %s", (qtasks.VALUE_ESCAPE_DAYS + 1, "%/cheap/"))
+        got2 = qtasks.lease_tasks(conn, "t-value2", 1)
+        checks.append((f"хвіст не голодує: {qtasks.VALUE_ESCAPE_DAYS}+ днів без збору → нагору",
+                       len(got2) == 1 and got2[0]["url"].endswith("/cheap/"),
+                       [t["url"] for t in got2]))
+
+        # перерахунок цінності: категорія з крос-групою й стеженням має бути вищою за порожню
+        conn.execute("DELETE FROM collect_task")
+        qtasks.seed_tasks(conn)
+        moved = qtasks.refresh_task_value(conn, force=True)
+        checks.append(("refresh_task_value відпрацював і розставив тири",
+                       moved >= 0 and conn.execute(
+                           "SELECT count(DISTINCT value_tier) FROM collect_task "
+                           "WHERE kind='page'").fetchone()[0] >= 1, moved))
+        # guard: одразу після перерахунку повторний виклик без force нічого не робить
+        checks.append(("перерахунок під guard (не на кожну оренду)",
+                       qtasks.refresh_task_value(conn) == 0, None))
+
     for name, ok, val in checks:
         print(f"{'PASS' if ok else 'FAIL'}  {name}" + ("" if ok else f"  -> {val!r}"))
         failed += 0 if ok else 1

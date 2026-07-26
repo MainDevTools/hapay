@@ -40,7 +40,11 @@ def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, o
     if category:
         where.append("c.slug = %s"); params.append(category)
     if badge:
-        where.append("de.badge_state = %s"); params.append(badge)
+        # `verified` тягне за собою й provisional (див. BADGE_FILTERS); решта станів —
+        # самі по собі. Раніше тут стояло `= %s` на сирому значенні, тож ?badge=verified
+        # мовчки губив provisional-картки.
+        where.append("de.badge_state = ANY(%s)")
+        params.append(BADGE_FILTERS.get(badge, [badge]))
     if q:                                   # пошук за назвою (ILIKE — прощає часткові; §9.1)
         # ILIKE ANY: оригінал + кирилиця-бренд→латиниця («айфон»→iPhone); див. search.py
         where.append("sp.title ILIKE ANY(%s)"); params.append(search_patterns(q))
@@ -137,6 +141,18 @@ def product_specs(conn, store_product_id: int):
 
 # сортування для «усіх товарів» (не лише знижок) — колонки з CTE best нижче
 # кваліфікуємо b.* — бо JOIN store_product sp0 (для promo_until) теж має first_seen_at
+# Фільтри стрічки за станом перевірки. Ключ — те, що просить клієнт; значення — стани
+# discount_event, які під нього підпадають.
+#   verified — пройшли перевірку 30-денним мінімумом; provisional теж пройшли, лише на
+#              ще неповному вікні (чесний стан молодих даних, не другий сорт);
+#   pumped   — «стара» ціна вища за фактичний 30-денний мінімум (ст. §5 / Omnibus).
+#              Показуємо ФАКТ про ціну, не вирок крамниці — формулювання в UI те саме,
+#              що на картці: «⚠ «стара» ціна завищена».
+BADGE_STATES = ("declared", "verified", "verified_provisional",
+                "pumped", "insufficient_history")
+BADGE_FILTERS = {s: [s] for s in BADGE_STATES}
+BADGE_FILTERS["verified"] = ["verified", "verified_provisional"]
+
 _PSORTS = {
     "discount":  "b.declared_pct DESC NULLS LAST, b.first_seen_at DESC",   # спочатку знижки
     "new":       "b.first_seen_at DESC",
@@ -215,11 +231,12 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
         narrow.append("current_kop <= %s"); params.append(price_max)
     if only_discounts:
         narrow.append("discount_event_id IS NOT NULL")
-    if badge == "verified":
-        # «лише підтверджені»: пройшли перевірку 30-денним мінімумом; provisional —
-        # теж пройшли, лише на ще неповному вікні (чесний стан молодих даних)
+    if badge:
+        # ⚠ Було `if badge == "verified"` — будь-яке інше значення МОВЧКИ ігнорувалось:
+        # `?badge=pumped` віддавав повний каталог, ніби фільтр застосовано (2026-07-26).
+        # Тепер невідоме значення відсікає ендпойнт (400), а тут лишається лише мапа.
         narrow.append("badge_state = ANY(%s)")
-        params.append(["verified", "verified_provisional"])
+        params.append(BADGE_FILTERS[badge])
     narrow_sql = ("WHERE " + " AND ".join(narrow)) if narrow else ""
 
     order = _PSORTS.get(sort, _PSORTS["discount"])
