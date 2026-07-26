@@ -289,7 +289,9 @@ def lease_tasks(conn, worker: str, limit: int = 3,
                            FROM collect_task
                            WHERE not_before <= now()
                              AND (leased_until IS NULL OR leased_until < now())
-                             AND (%s::text[] IS NULL OR source = ANY(%s))
+                             -- приведення потрібне В ОБОХ місцях: без нього
+                             -- Postgres не виводить тип другого параметра
+                             AND (%s::text[] IS NULL OR source = ANY(%s::text[]))
                        ) ready
                        ORDER BY source, priority, vkey, not_before   -- 1 задача/крамницю
                    ) pick
