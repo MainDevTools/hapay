@@ -74,13 +74,13 @@ jobs:
       # без якого «проходив», нічого не виконуючи.
       - name: «Наш вибір» — скоринг і тай-брейк (S9)
         run: python tests/test_choice.py
-      - name: пошук: транслітерація бренду й межі (§9.1)
+      - name: "пошук: транслітерація бренду й межі (§9.1)"
         run: python tests/test_search.py
       - name: характеристики з карток — golden + нульові випадки (S12)
         run: python tests/test_cardspec.py
-      - name: сторож збору: пороги й таймер (без БД)
+      - name: "сторож збору: пороги й таймер (без БД)"
         run: python tests/test_alert.py
-      - name: sitemap-відкриття: розбір і межі (T20)
+      - name: "sitemap-відкриття: розбір і межі (T20)"
         run: python tests/test_sitemap_discovery.py
       - name: адаптери крамниць — golden на касетах (20 джерел)
         run: |
