@@ -92,6 +92,54 @@ function renderHeader(active, opts){
   </div>${opts.controls || ''}`;
 }
 
+/* ── хлібні крихти ───────────────────────────────────────────────────────────────
+   items = [{href, label}, …]; ОСТАННІЙ елемент — поточна сторінка, без посилання
+   (посилання на себе — шум). У Telegram не малюємо: там свій хром і своя навігація. */
+function renderCrumbs(items){
+  const box = document.getElementById('crumbs');
+  if (!box || IN_TG) { if (box) box.hidden = true; return; }
+  box.hidden = false;
+  box.className = 'crumbs';
+  box.setAttribute('aria-label', 'Хлібні крихти');
+  box.innerHTML = items.map((it, i) => i === items.length - 1
+    ? `<span class="cur">${esc(it.label)}</span>`
+    : `<a href="${it.href}">${esc(it.label)}</a><span class="sep">›</span>`).join('');
+}
+
+/* ── ціновий фільтр ──────────────────────────────────────────────────────────────
+   Малюємо в контейнер (їх два: бічна колонка на десктопі й блок над списком на
+   телефоні), тому шукаємо елементи ВСЕРЕДИНІ контейнера, а не за id — інакше два
+   однакові id, і на телефоні працював би прихований десктопний. */
+function renderPrice(box, state, onApply){
+  if (!box) return;
+  const g = k => k == null ? '' : Math.round(k / 100);      // копійки → гривні на показ
+  box.className = 'pricef';
+  box.innerHTML = `<div class="ttl">Ціна</div>
+    <div class="fields">
+      <input class="pmin" inputmode="numeric" placeholder="від" value="${g(state.min)}">
+      <input class="pmax" inputmode="numeric" placeholder="до" value="${g(state.max)}">
+      <span class="cur">₴</span>
+      <button class="go" type="button">OK</button>
+    </div>
+    <button class="clr ${state.min != null || state.max != null ? 'on' : ''}">Скинути</button>`;
+
+  const num = s => {
+    const v = parseInt(String(s).replace(/[^\d]/g, ''), 10);   // «1 500 грн» → 1500
+    return Number.isFinite(v) && v >= 0 ? v * 100 : null;      // гривні → копійки (інв. A)
+  };
+  const apply = () => {
+    let lo = num(box.querySelector('.pmin').value);
+    let hi = num(box.querySelector('.pmax').value);
+    // переплутані межі — не помилка користувача, а наша: міняємо місцями мовчки
+    if (lo != null && hi != null && lo > hi) { const t = lo; lo = hi; hi = t; }
+    onApply(lo, hi);
+  };
+  box.querySelector('.go').onclick = apply;
+  box.querySelectorAll('input').forEach(i =>
+    i.addEventListener('keydown', e => { if (e.key === 'Enter') apply(); }));
+  box.querySelector('.clr').onclick = () => onApply(null, null);
+}
+
 function renderFooter(){
   const f = document.getElementById('ftr');
   if (!f || IN_TG) { if (f && IN_TG) f.remove(); return; }

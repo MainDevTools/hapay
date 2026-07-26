@@ -306,3 +306,41 @@ a.brand{text-decoration:none;color:inherit}
   .how{grid-template-columns:repeat(3,1fr);gap:20px}
   .sec{margin-top:48px}
 }
+
+/* ── хлібні крихти ──────────────────────────────────────────────────────────────
+   Показують, ДЕ людина зараз, і дають крок назад — на телефоні це часто єдиний
+   спосіб вийти з категорії, не гортаючи вгору. */
+.crumbs{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;font-size:13px;
+  color:var(--faint);padding:12px 16px 0}
+.crumbs a{color:var(--muted);text-decoration:none}
+.crumbs a:hover{color:var(--fg)}
+.crumbs .sep{opacity:.55}
+.crumbs .cur{color:var(--fg);font-weight:600;max-width:min(60vw,520px);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+
+/* ── ціновий фільтр ─────────────────────────────────────────────────────────────
+   Порядок «від / до / ₴ / OK» — з живих агрегаторів (hotline.ua). Ціни в API —
+   копійки (інв. A), тут людина вводить гривні; переведення в одному місці. */
+.pricef{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-s);
+  padding:12px 13px;margin:0 16px 10px}
+.pricef .ttl{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--faint);margin-bottom:8px}
+.pricef .fields{display:flex;align-items:center;gap:7px}
+.pricef input{flex:1;min-width:0;width:100%;background:var(--bg);color:var(--fg);
+  border:1px solid var(--line);border-radius:8px;padding:8px 9px;font-size:14px;
+  font-variant-numeric:tabular-nums}
+.pricef input:focus{outline:none;border-color:var(--accent)}
+.pricef .cur{color:var(--faint);font-size:13px}
+.pricef .go{border:1px solid var(--line);background:var(--bg);color:var(--fg);
+  border-radius:8px;padding:8px 12px;font-size:13px;font-weight:650;cursor:pointer}
+.pricef .go:hover{border-color:var(--muted)}
+.pricef .clr{display:none;margin-top:8px;font-size:12.5px;color:var(--accent);
+  background:none;border:none;padding:0;cursor:pointer;font-weight:600}
+.pricef .clr.on{display:inline-block}
+#pricef-m{display:block}
+
+@media (min-width:1000px){
+  .crumbs{padding:14px 0 0}
+  .pricef{margin:0 0 14px;padding:13px 14px}
+  #pricef-m{display:none}          /* на десктопі фільтр живе в бічній колонці */
+}

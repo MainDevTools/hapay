@@ -11,10 +11,17 @@
 <body>
 <div class="app">
 <header id="hdr"></header>
+<nav id="crumbs" hidden></nav>
 <div class="chips" id="chips"></div>
 <div class="layout">
-  <aside class="side"><div class="side-in" id="side"></div></aside>
+  <!-- Фільтр ціни — у бічній колонці (десктоп) і окремо над списком (телефон, де
+       колонка прихована). Один і той самий рендер, два контейнери. -->
+  <aside class="side"><div class="side-in">
+    <div id="pricef"></div>
+    <div id="side"></div>
+  </div></aside>
   <div>
+    <div id="pricef-m"></div>
     <main id="list"></main>
     <div id="morewrap" class="morewrap" hidden><button id="moreBtn" class="morebtn">Показати ще</button></div>
   </div>
@@ -61,6 +68,10 @@ const _p = new URLSearchParams(location.search);
 if (_p.get('c')) cat = _p.get('c');
 if (_p.get('q')) query = _p.get('q');
 if (_p.get('b') && BADGES.some(x => x.k === _p.get('b'))) badge = _p.get('b');
+// ціна в адресі — у ГРИВНЯХ (людині доводиться її читати), в API — копійки
+const _money = v => { const n = parseInt(v, 10);
+  return Number.isFinite(n) && n >= 0 ? n * 100 : null; };
+const _pmin = _money(_p.get('pmin')), _pmax = _money(_p.get('pmax'));
 </script>
 <script src="/s/catalog.js"></script>
 </body>

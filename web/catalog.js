@@ -4,7 +4,7 @@
 function renderChips(){
   const c = document.getElementById('chips'); c.innerHTML='';
   BADGES.forEach(b=>{ const chip=el(`<div class="chip ${b.k===badge?'on':''}">${b.label}</div>`);
-    chip.onclick=()=>{ badge=b.k; renderChips(); load(); }; c.appendChild(chip); });
+    chip.onclick=()=>{ badge=b.k; renderChips(); syncUrl(); load(); }; c.appendChild(chip); });
 }
 
 function card(d){
@@ -52,6 +52,8 @@ async function load(reset=true){
   try{
     const p=new URLSearchParams({sort,page});
     if(badge)p.set('badge',badge); if(cat)p.set('category',cat); if(query)p.set('q',query);
+    if(PRICE.min!=null)p.set('price_min',PRICE.min);          // копійки (інв. A)
+    if(PRICE.max!=null)p.set('price_max',PRICE.max);
     const data=await api('/api/discounts?'+p.toString());
     if(reset) list.innerHTML='';
     if(!data.length){
@@ -92,12 +94,54 @@ function renderSide(cats){
 }
 
 let CATS=[];
+// копійки; null = межа не задана. Початкові значення приходять з адреси (розбирає
+// інлайн-скрипт catalog.html, який виконується раніше за цей файл).
+const PRICE = {
+  min: (typeof _pmin !== 'undefined' ? _pmin : null),
+  max: (typeof _pmax !== 'undefined' ? _pmax : null),
+};
+
+/* Стан фільтрів живе в АДРЕСІ: сторінку можна переслати, і кнопка «назад» повертає
+   попередній фільтр, а не той самий список. Порожні значення в адресу не пишемо. */
+function syncUrl(){
+  const p = new URLSearchParams();
+  if (cat) p.set('c', cat);
+  if (badge) p.set('b', badge);
+  if (query) p.set('q', query);
+  if (PRICE.min != null) p.set('pmin', Math.round(PRICE.min/100));   // в адресі — гривні
+  if (PRICE.max != null) p.set('pmax', Math.round(PRICE.max/100));
+  const s = p.toString();
+  history.replaceState(null, '', s ? '/catalog?' + s : '/catalog');
+}
+
+function crumbs(){
+  const c = CATS.find(x => x.slug === cat);
+  const items = [{href:'/', label:'Головна'}];
+  if (c) { items.push({href:'/catalog', label:'Знижки'});
+           if (c.section) items.push({href:'/catalog', label:c.section});
+           items.push({label:c.name}); }
+  else items.push({label:'Знижки'});
+  renderCrumbs(items);
+}
+
 function setCat(slug){
   cat=slug;
   const sel=document.getElementById('cat'); if(sel) sel.value=slug;   // тримаємо select у синхроні
   renderSide(CATS);
+  crumbs(); syncUrl();
   window.scrollTo({top:0,behavior:'smooth'});
   load();
+}
+
+function setPrice(lo, hi){
+  PRICE.min = lo; PRICE.max = hi;
+  drawPrice();          // обидва блоки (бічна колонка + мобільний) перемальовуємо
+  syncUrl();
+  load();
+}
+function drawPrice(){
+  renderPrice(document.getElementById('pricef'), PRICE, setPrice);
+  renderPrice(document.getElementById('pricef-m'), PRICE, setPrice);
 }
 
 async function loadCats(){
@@ -107,13 +151,20 @@ async function loadCats(){
     const sel=document.getElementById('cat');
     cats.forEach(c=>{ const o=document.createElement('option'); o.value=c.slug;
       o.textContent=`${c.name} (${c.n})`; sel.appendChild(o); });
+    if (sel) sel.value = cat;      // категорія могла прийти з адреси — показуємо її
     renderSide(cats);
+    crumbs();                      // назву категорії знаємо лише після завантаження
   }catch(e){}
 }
-document.getElementById('cat').onchange=e=>{ setCat(e.target.value); };
+const _sel = document.getElementById('cat');
+if (_sel) _sel.onchange = e => { setCat(e.target.value); };
 document.getElementById('sort').onchange=e=>{ sort=e.target.value; load(); };
 document.getElementById('moreBtn').onclick=loadMore;
 let searchT;
-document.getElementById('search').oninput=e=>{ clearTimeout(searchT);
-  searchT=setTimeout(()=>{ query=e.target.value.trim(); load(); }, 300); };
-renderChips(); loadCats(); load();
+const _srch = document.getElementById('search');
+if (_srch) {
+  _srch.value = query;             // пошук із адреси має бути видно в полі
+  _srch.oninput = e => { clearTimeout(searchT);
+    searchT = setTimeout(() => { query = e.target.value.trim(); syncUrl(); load(); }, 300); };
+}
+crumbs(); drawPrice(); renderChips(); loadCats(); load();

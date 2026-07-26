@@ -34,6 +34,7 @@
 <body>
 <div class="app">
 <header id="hdr"></header>
+<nav id="crumbs" hidden></nav>
 <div style="max-width:900px;margin:0 auto">
   <div id="msg" class="msg"></div>
   <div id="head" class="phead"></div>
@@ -71,6 +72,16 @@ async function load(){
   }
 
   document.title = me.title + ' — Хапай';
+  // Крихти ведуть у КАТЕГОРІЮ товару, а не просто в каталог: інакше «назад» кидало б
+  // у загальний список, з якого людина сюди не приходила.
+  renderCrumbs([
+    {href:'/', label:'Головна'},
+    {href:'/catalog', label:'Знижки'},
+    ...(me.category_slug
+        ? [{href:'/catalog?c=' + encodeURIComponent(me.category_slug),
+            label: me.category || me.category_slug}] : []),
+    {label: me.title},
+  ]);
   const off = pct(me);
   const bt = BADGE_TEXT[me.badge_state] || me.badge_state || '';
   document.getElementById('head').innerHTML = `
