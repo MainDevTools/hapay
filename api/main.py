@@ -405,6 +405,8 @@ def admin_set_role(target_id: int, body: dict, claims=Depends(require_admin),
     role = (body or {}).get("role")
     try:
         return qdb.set_user_role(conn, int(claims["sub"]), target_id, role)
+    except qdb.AdminForbidden as e:
+        raise HTTPException(403, str(e))
     except qdb.AdminError as e:
         raise HTTPException(400, str(e))
 
@@ -420,6 +422,8 @@ def admin_set_active(target_id: int, body: dict, claims=Depends(require_moderato
     try:
         return qdb.set_user_active(conn, int(claims["sub"]), claims.get("role"),
                                    target_id, active)
+    except qdb.AdminForbidden as e:
+        raise HTTPException(403, str(e))
     except qdb.AdminError as e:
         raise HTTPException(400, str(e))
 

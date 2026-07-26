@@ -652,7 +652,11 @@ _ROLES = ("user", "collector", "moderator", "admin")
 
 
 class AdminError(Exception):
-    """Порушення правила безпеки адмін-дії (self-lockout, останній admin тощо)."""
+    """Порушення правила/безпеки адмін-дії (self-lockout, останній admin тощо) → 400."""
+
+
+class AdminForbidden(AdminError):
+    """Межа прав: актор пройшов гейт, але ця дія над цією ціллю йому заборонена → 403."""
 
 
 def _audit(conn, actor_id: int, action: str, target_id: int, detail: str) -> None:
@@ -718,7 +722,7 @@ def set_user_active(conn, actor_id: int, actor_role: str, target_id: int, active
     if t is None:
         raise AdminError("акаунт не існує")
     if actor_role == "moderator" and t["role"] in ("admin", "moderator"):
-        raise AdminError("модератор не може банити адмінів/модераторів")
+        raise AdminForbidden("модератор не може банити адмінів/модераторів")
     if not active and t["role"] == "admin" and _active_admin_count(conn, target_id) == 0:
         raise AdminError("не можна забанити останнього активного адміна")
     conn.execute("UPDATE app_user SET is_active=%s WHERE user_id=%s", (active, target_id))
