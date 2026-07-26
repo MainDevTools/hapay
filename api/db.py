@@ -714,6 +714,12 @@ def consume_token(conn, user_id: int, kind: str, code_hash: str) -> bool:
         "                    AND used_at IS NULL AND expires_at > now() "
         "                  ORDER BY created_at DESC LIMIT 1)",
         (MAX_CODE_ATTEMPTS, user_id, kind))
+    # ⚠ КОМІТ ОБОВʼЯЗКОВИЙ І НЕОЧЕВИДНИЙ. Викликач після False кидає HTTPException, а
+    # пул на виході з винятком робить ROLLBACK — разом із ним відкочувався б і лічильник,
+    # тобто захист від перебору мовчки не працював би зовсім. Спіймано тестом 2026-07-26:
+    # код не гаснув після п'яти промахів. Лічильник промахів — це аудит спроби, а не
+    # частина бізнес-транзакції, тож він мусить пережити її відкат.
+    conn.commit()
     return False
 
 

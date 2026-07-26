@@ -226,15 +226,20 @@ def main():
     for c in codes_wrong:
         _rl.code_limiter._hits.clear()          # знімаємо IP-квоту — перевіряємо САМЕ лічильник коду
         client.post("/api/auth/verify", json={"code": c}, headers=ahdr)
+    # Стан БД перевіряємо ДО спроби правильним кодом: успішний verify сам ставить
+    # used_at, тож після нього ця перевірка проходила б із хибної причини.
+    with psycopg.connect(URL) as c:
+        att, used = c.execute(
+            "SELECT attempts, used_at IS NOT NULL FROM account_token "
+            "WHERE user_id=%s AND kind='verify' ORDER BY created_at DESC LIMIT 1",
+            (uid,)).fetchone()
+    checks.append((f"промахи ЗЛІЧЕНО на самому коді (attempts={_qdb.MAX_CODE_ATTEMPTS})",
+                   att == _qdb.MAX_CODE_ATTEMPTS, att))
+    checks.append(("код погашено після ліміту промахів", used is True, used))
     _rl.code_limiter._hits.clear()
     burned = client.post("/api/auth/verify", json={"code": "999111"}, headers=ahdr)
     checks.append((f"код гасне після {_qdb.MAX_CODE_ATTEMPTS} промахів (правильний уже не діє)",
                    burned.status_code == 400, burned.status_code))
-    with psycopg.connect(URL) as c:
-        used = c.execute("SELECT used_at IS NOT NULL FROM account_token "
-                         "WHERE user_id=%s AND kind='verify' "
-                         "ORDER BY created_at DESC LIMIT 1", (uid,)).fetchone()[0]
-    checks.append(("згаслий код позначено використаним у БД", used is True, used))
     # свіжий код після цього працює — гасне КОД, а не акаунт
     _put_code("verify", "424243")
     _rl.code_limiter._hits.clear()
