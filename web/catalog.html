@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Знижки — Хапай</title>
+<meta name="description" content="Знижки в українських крамницях, звірені з нашою власною історією спостережень за ціною.">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="/s/app.css">
+</head>
+<body>
+<div class="app">
+<header id="hdr"></header>
+<div class="chips" id="chips"></div>
+<div class="layout">
+  <aside class="side"><div class="side-in" id="side"></div></aside>
+  <div>
+    <main id="list"></main>
+    <div id="morewrap" class="morewrap" hidden><button id="moreBtn" class="morebtn">Показати ще</button></div>
+  </div>
+</div>
+<div id="ftr"></div>
+</div><!-- /.app -->
+
+<div class="sheet-bg" id="sheetBg"></div>
+<div class="sheet" id="sheet"></div>
+
+<script src="/s/app.js"></script>
+<script>
+// Сортування й вибір категорії — під шапкою; на телефоні це єдиний спосіб обрати
+// категорію (бічна колонка там прихована).
+renderHeader('/catalog', {search: true, controls: `<div class="controls">
+    <select id="cat"><option value="">Усі категорії</option></select>
+    <select id="sort">
+      <option value="verified">Наше зниження</option>
+      <option value="discount">Заявлена знижка</option>
+      <option value="new">Найновіші</option>
+    </select>
+  </div>`});
+renderFooter();
+
+// У Telegram шапки немає — але керування потрібне, тож малюємо його окремо.
+if (tg) {
+  document.getElementById('hdr').outerHTML = `<header><div class="controls">
+      <select id="cat"><option value="">Усі категорії</option></select>
+      <select id="sort">
+        <option value="verified">Наше зниження</option>
+        <option value="discount">Заявлена знижка</option>
+        <option value="new">Найновіші</option>
+      </select></div>
+    <div class="searchwrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="search" class="search" placeholder="Пошук за назвою…" autocomplete="off">
+    </div></header>`;
+}
+
+// Стан фільтра з адреси: /catalog?c=smartfony&b=pumped&q=… — щоб на добірку можна
+// було послатись (з головної, з листа, з чату). Без цього кожне посилання вело б
+// у той самий загальний список.
+const _p = new URLSearchParams(location.search);
+if (_p.get('c')) cat = _p.get('c');
+if (_p.get('q')) query = _p.get('q');
+if (_p.get('b') && BADGES.some(x => x.k === _p.get('b'))) badge = _p.get('b');
+</script>
+<script src="/s/catalog.js"></script>
+</body>
+</html>

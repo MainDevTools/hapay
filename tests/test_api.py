@@ -380,6 +380,50 @@ def main():
                        d["badge_state"] in ("verified", "verified_provisional")
                        for d in dv.json()), [d.get("badge_state") for d in dv.json()[:5]]))
 
+    # ── S19: картка товару для сторінки /product/{id} ────────────────────────────
+    # /offers навмисно бідний (крамниця+ціна+URL) — сторінці потрібні фото, бейдж і
+    # 30-денна база, інакше головне твердження продукту на ній просто відсутнє.
+    cd = client.get(f"/api/product/{spid}/card")
+    cj = cd.json()
+    checks.append(("/card повертає повну картку (фото/бейдж/база/категорія)",
+                   cd.status_code == 200 and all(k in cj for k in
+                       ("title", "url", "image_url", "store", "current_kop",
+                        "badge_state", "reference_kop", "category_slug", "group_stores")),
+                   sorted(cj) if cd.status_code == 200 else cd.status_code))
+    checks.append(("/card: назва й крамниця не порожні",
+                   bool(cj.get("title")) and bool(cj.get("store")),
+                   (cj.get("title"), cj.get("store"))))
+    checks.append(("/card неіснуючого товару → 404",
+                   client.get("/api/product/99999999/card").status_code == 404, None))
+    # товар БЕЗ активної знижки теж має сторінку (на неї ведуть стеження) — ціну
+    # тоді беремо з останнього снапшота, а не віддаємо порожнечу
+    with psycopg.connect(URL) as c:
+        plain = c.execute(
+            "SELECT sp.store_product_id FROM store_product sp "
+            "LEFT JOIN discount_event de ON de.store_product_id = sp.store_product_id "
+            "  AND de.ended_at IS NULL WHERE de.discount_event_id IS NULL LIMIT 1").fetchone()
+    if plain:
+        pc = client.get(f"/api/product/{plain[0]}/card").json()
+        checks.append(("/card товару без знижки → ціна з останнього снапшота",
+                       pc.get("current_kop") is not None and pc.get("badge_state") is None,
+                       (pc.get("current_kop"), pc.get("badge_state"))))
+
+    # ── S19: сторінки сайту віддаються, catch-all не зламано ─────────────────────
+    for path in ("/", "/catalog", "/login", "/me", f"/product/{spid}"):
+        r = client.get(path)
+        checks.append((f"сторінка {path} → 200 html",
+                       r.status_code == 200 and "text/html" in r.headers.get("content-type", ""),
+                       r.status_code))
+    for a in ("app.css", "app.js", "catalog.js"):
+        r = client.get(f"/s/{a}")
+        checks.append((f"/s/{a} віддається",
+                       r.status_code == 200 and len(r.text) > 100, r.status_code))
+    checks.append(("/s/ поза білим списком → 404 (без обходу шляхом)",
+                   client.get("/s/../api/main.py").status_code in (404, 400), None))
+    checks.append(("юр-сторінки цілі після додавання маршрутів",
+                   client.get("/privacy").status_code == 200, None))
+    checks.append(("невідомий шлях → 404", client.get("/nema-takoyi").status_code == 404, None))
+
     # ── свіжість даних (шапка стрічки) ───────────────────────────────────────────
     fr = client.get("/api/freshness")
     checks.append(("/api/freshness публічний і віддає minutes",

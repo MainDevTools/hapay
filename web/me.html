@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Мій кабінет — Хапай</title>
+<link rel="stylesheet" href="/s/app.css">
+</head>
+<body>
+<div class="app">
+<header id="hdr"></header>
+<div style="max-width:720px;margin:24px auto 40px">
+  <div id="msg" class="msg"></div>
+  <div id="acct" class="panel"></div>
+  <div id="watch" class="panel"></div>
+  <div id="drops" class="panel" hidden></div>
+</div>
+<div id="ftr"></div>
+</div>
+
+<script src="/s/app.js"></script>
+<script>
+if (!AUTH.in) location.replace('/login');
+renderHeader('/me');
+renderFooter();
+
+function say(text, kind){
+  const m = document.getElementById('msg');
+  m.className = 'msg on ' + (kind || 'ok');
+  m.textContent = text;
+  if (!text) m.className = 'msg';
+}
+
+const KIND = {category:'Категорія', store_product:'Товар', query:'Пошук'};
+
+async function loadMe(){
+  const box = document.getElementById('acct');
+  try{
+    const u = await api('/api/me');
+    AUTH.set(AUTH.token, u.email);
+    const ver = u.email_verified
+      ? `<span class="s">email підтверджено ✓</span>`
+      : `<span class="s">email не підтверджено</span>`;
+    box.innerHTML = `
+      <h2>Акаунт</h2>
+      <div class="row"><div><div class="t">${esc(u.email)}</div>${ver}</div>
+        <button class="mini danger" id="out">Вийти</button></div>
+      ${u.email_verified ? '' : `
+      <div class="row"><div><div class="t">Підтвердження пошти</div>
+        <div class="s">Без нього не вийде відновити пароль, якщо забудеш.</div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="mini" id="resend">Надіслати код</button>
+          <button class="mini" id="entercode">Ввести код</button></div></div>
+      <div id="codebox" hidden style="padding:10px 0">
+        <input id="code" class="search" style="max-width:200px;display:inline-block"
+               inputmode="numeric" placeholder="код із листа" autocomplete="one-time-code">
+        <button class="mini" id="okcode" style="margin-left:8px">Підтвердити</button>
+      </div>`}`;
+
+    document.getElementById('out').onclick = () => { AUTH.out(); location.href = '/'; };
+    const rs = document.getElementById('resend');
+    if (rs) rs.onclick = async () => {
+      try{ await api('/api/auth/verify/resend', {method:'POST'});
+           say('Код надіслано — перевір пошту.', 'ok'); }
+      catch(e){ say(e.message, 'err'); }
+    };
+    const ec = document.getElementById('entercode');
+    if (ec) ec.onclick = () => { document.getElementById('codebox').hidden = false; };
+    const ok = document.getElementById('okcode');
+    if (ok) ok.onclick = async () => {
+      try{
+        await api('/api/auth/verify', {method:'POST',
+          body: JSON.stringify({code: document.getElementById('code').value.trim()})});
+        say('Email підтверджено.', 'ok');
+        loadMe();
+      }catch(e){ say(e.message, 'err'); }
+    };
+  }catch(e){
+    if (!AUTH.in) { location.replace('/login'); return; }
+    box.innerHTML = `<h2>Акаунт</h2><div class="sub">${esc(e.message)}</div>`;
+  }
+}
+
+async function loadWatch(){
+  const box = document.getElementById('watch');
+  try{
+    const items = await api('/api/me/watchlist');
+    if (!items.length){
+      box.innerHTML = `<h2>Стеження</h2>
+        <div class="sub">Поки порожньо. Відкрий товар і натисни «Стежити за ціною» —
+          повідомимо, коли подешевшає.</div>
+        <div style="margin-top:14px"><a class="mini" href="/catalog">До знижок</a></div>`;
+      return;
+    }
+    box.innerHTML = `<h2>Стеження</h2><div class="sub">${plu(items.length,'запис','записи','записів')}</div>`
+      + items.map(w => {
+        const name = esc(w.title || w.query_text || ('#' + (w.ref_id ?? '')));
+        const price = w.current_kop != null ? grn(w.current_kop) : '';
+        const delta = w.delta_kop ? (w.delta_kop < 0
+          ? `<span class="s" style="color:var(--accent)">↓ ${grn(-w.delta_kop)} від додавання</span>`
+          : `<span class="s">↑ ${grn(w.delta_kop)} від додавання</span>`) : '';
+        const link = w.kind === 'store_product' && w.ref_id
+          ? `<a class="mini" href="/product/${w.ref_id}">Відкрити</a>` : '';
+        return `<div class="row"><div>
+            <div class="t">${name}</div>
+            <div class="s">${KIND[w.kind] || w.kind}${price ? ' · ' + price : ''}</div>${delta}
+          </div><div style="display:flex;gap:8px">
+            ${link}<button class="mini danger" data-del="${w.watchlist_id}">Прибрати</button>
+          </div></div>`;
+      }).join('');
+    box.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+      if (!confirm('Прибрати зі стеження?')) return;
+      try{ await api('/api/me/watchlist/' + b.dataset.del, {method:'DELETE'});
+           loadWatch(); }
+      catch(e){ say(e.message, 'err'); }
+    });
+  }catch(e){
+    box.innerHTML = `<h2>Стеження</h2><div class="sub">${esc(e.message)}</div>`;
+  }
+}
+
+/* Зниження цін: сервер віддає лише те, про що ще не повідомляли. Показуємо й одразу
+   НЕ квитуємо — квитанція піде, коли людина це побачила (кнопкою), інакше запис
+   зникне мовчки, а людина його не прочитає. */
+async function loadDrops(){
+  const box = document.getElementById('drops');
+  try{
+    const d = await api('/api/me/watchlist/drops');
+    if (!d.length) return;
+    box.hidden = false;
+    box.innerHTML = `<h2>Подешевшало</h2>` + d.map(x =>
+      `<div class="row"><div><div class="t">${esc(x.title || '')}</div>
+        <div class="s">${grn(x.current_kop)} · дешевше на ${grn(x.drop_kop)}</div></div>
+        ${x.store_product_id ? `<a class="mini" href="/product/${x.store_product_id}">Відкрити</a>` : ''}
+      </div>`).join('')
+      + `<div style="margin-top:12px"><button class="mini" id="ackall">Зрозуміло</button></div>`;
+    document.getElementById('ackall').onclick = async () => {
+      try{
+        await api('/api/me/watchlist/drops/ack', {method:'POST',
+          body: JSON.stringify({watchlist_ids: d.map(x => x.watchlist_id)})});
+        box.hidden = true;
+      }catch(e){ say(e.message, 'err'); }
+    };
+  }catch(e){}
+}
+
+loadMe(); loadWatch(); loadDrops();
+</script>
+</body>
+</html>

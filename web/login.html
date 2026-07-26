@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Вхід — Хапай</title>
+<link rel="stylesheet" href="/s/app.css">
+</head>
+<body>
+<div class="app">
+<header id="hdr"></header>
+
+<div class="form" id="form"></div>
+
+<div id="ftr"></div>
+</div>
+
+<script src="/s/app.js"></script>
+<script>
+renderHeader('/login');
+renderFooter();
+
+const F = document.getElementById('form');
+let mode = new URLSearchParams(location.search).get('m') || 'login';
+
+function say(text, kind){
+  const m = document.getElementById('msg');
+  if (!m) return;
+  m.className = 'msg on ' + (kind || 'ok');
+  m.textContent = text;
+}
+
+function draw(){
+  if (mode === 'login') F.innerHTML = `
+    <h2>Вхід</h2>
+    <p class="lead">Акаунт потрібен, щоб стежити за ціною товару й отримувати сповіщення
+      про зниження.</p>
+    <label for="e">Email</label><input id="e" type="email" autocomplete="username">
+    <label for="p">Пароль</label><input id="p" type="password" autocomplete="current-password">
+    <button class="btn btn-main" id="go">Увійти</button>
+    <div id="msg" class="msg"></div>
+    <div class="alt">Немає акаунта? <a href="?m=register">Зареєструватись</a></div>
+    <div class="alt"><a href="?m=forgot">Забув пароль</a></div>`;
+
+  else if (mode === 'register') F.innerHTML = `
+    <h2>Реєстрація</h2>
+    <p class="lead">Потрібні лише email і пароль. Підтвердження надішлемо листом.</p>
+    <label for="e">Email</label><input id="e" type="email" autocomplete="username">
+    <label for="p">Пароль</label><input id="p" type="password" autocomplete="new-password"
+      placeholder="щонайменше 8 символів">
+    <button class="btn btn-main" id="go">Створити акаунт</button>
+    <div id="msg" class="msg"></div>
+    <div class="alt">Вже є акаунт? <a href="?m=login">Увійти</a></div>`;
+
+  else if (mode === 'forgot') F.innerHTML = `
+    <h2>Відновлення пароля</h2>
+    <p class="lead">Надішлемо код на пошту. Введи його разом із новим паролем.</p>
+    <label for="e">Email</label><input id="e" type="email" autocomplete="username">
+    <button class="btn btn-main" id="go">Надіслати код</button>
+    <div id="msg" class="msg"></div>
+    <div class="alt"><a href="?m=reset">Код уже маю</a> · <a href="?m=login">Увійти</a></div>`;
+
+  else if (mode === 'reset') F.innerHTML = `
+    <h2>Новий пароль</h2>
+    <p class="lead">Введи email, код із листа та новий пароль.</p>
+    <label for="e">Email</label><input id="e" type="email" autocomplete="username">
+    <label for="c">Код із листа</label><input id="c" inputmode="numeric" autocomplete="one-time-code">
+    <label for="p">Новий пароль</label><input id="p" type="password" autocomplete="new-password">
+    <button class="btn btn-main" id="go">Змінити пароль</button>
+    <div id="msg" class="msg"></div>
+    <div class="alt"><a href="?m=login">Повернутись до входу</a></div>`;
+
+  const go = document.getElementById('go');
+  go.onclick = submit;
+  F.querySelectorAll('input').forEach(i =>
+    i.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); }));
+}
+
+async function submit(){
+  const v = id => { const e = document.getElementById(id); return e ? e.value.trim() : ''; };
+  const btn = document.getElementById('go');
+  btn.disabled = true;
+  try{
+    if (mode === 'login'){
+      const r = await api('/api/auth/login', {method:'POST',
+        body: JSON.stringify({email: v('e'), password: document.getElementById('p').value})});
+      AUTH.set(r.token, r.email);
+      location.href = '/me';
+      return;
+    }
+    if (mode === 'register'){
+      const r = await api('/api/auth/register', {method:'POST',
+        body: JSON.stringify({email: v('e'), password: document.getElementById('p').value})});
+      AUTH.set(r.token, r.email);
+      location.href = '/me';
+      return;
+    }
+    if (mode === 'forgot'){
+      // Сервер ЗАВЖДИ відповідає 200 — щоб не можна було перебором дізнатись, які
+      // адреси зареєстровані. Тому й повідомлення тут однакове в обох випадках.
+      await api('/api/auth/reset/request', {method:'POST', body: JSON.stringify({email: v('e')})});
+      say('Якщо така адреса в нас є — лист із кодом уже в дорозі.', 'ok');
+      setTimeout(() => { mode = 'reset'; history.replaceState(null,'','?m=reset'); draw();
+        document.getElementById('e').value = v('e'); }, 1600);
+      return;
+    }
+    if (mode === 'reset'){
+      await api('/api/auth/reset/confirm', {method:'POST', body: JSON.stringify({
+        email: v('e'), code: v('c'), new_password: document.getElementById('p').value})});
+      say('Пароль змінено. Тепер увійди з новим.', 'ok');
+      setTimeout(() => { mode = 'login'; history.replaceState(null,'','?m=login'); draw(); }, 1500);
+      return;
+    }
+  } catch(err){
+    say(err.message, 'err');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+if (AUTH.in) location.replace('/me');   // уже увійшов — форма ні до чого
+else draw();
+</script>
+</body>
+</html>

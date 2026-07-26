@@ -1,0 +1,308 @@
+/* Спільні стилі hapay.today. Витягнуто з index.html 2026-07-26 (S19), коли сайт
+   став багатосторінковим: інлайнити той самий блок у пʼять файлів = пʼять копій,
+   що розʼїдуться. Мобільна частина — та, якою живе Telegram Mini App. */
+  :root{
+    --bg:#f4f5f7; --surface:#fff; --fg:#14161a; --muted:#6b7280; --faint:#9aa0a6;
+    --line:#e6e8ec; --shadow:0 1px 2px rgba(20,22,26,.04), 0 4px 16px rgba(20,22,26,.05);
+    --accent:#1a8f3c;
+    --green:#16833a; --green-bg:#e6f6ec; --green-line:#bfe6cd;
+    --amber:#a26708; --amber-bg:#fcf1da; --amber-line:#f0d9a8;
+    --grey:#5f6672; --grey-bg:#eceef1;
+    --red:#d23b3b; --sale:#e23b3b; --sale-fg:#fff;
+    --radius:15px; --radius-s:10px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#101114; --surface:#191b1f; --fg:#f0f2f5; --muted:#9aa0a6; --faint:#727782;
+      --line:#2a2d33; --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.28);
+      --accent:#4ecb71;
+      --green:#57cf7a; --green-bg:#132a1d; --green-line:#1f4a30;
+      --amber:#e3ba5f; --amber-bg:#2c2410; --amber-line:#4a3d18;
+      --grey:#9aa0a6; --grey-bg:#24272c;
+      --red:#f26a6a; --sale:#e85555; --sale-fg:#fff;
+    }
+  }
+  :root[data-theme="light"]{color-scheme:light}
+  :root[data-theme="dark"]{color-scheme:dark}
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+    -webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  .app{max-width:540px;margin:0 auto;position:relative}
+
+  /* header */
+  header{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 86%,transparent);
+    backdrop-filter:saturate(1.4) blur(12px);-webkit-backdrop-filter:saturate(1.4) blur(12px);
+    padding:12px 16px 10px;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:baseline;gap:8px;margin:0 0 10px}
+  .brand h1{margin:0;font-size:19px;font-weight:750;letter-spacing:-.02em}
+  .brand .sub{color:var(--faint);font-size:12px;font-weight:500}
+  /* Підписи категорій довші за сортування (напр. «Амуніція (нашийники, повідці) (7)» ≈ 215px) і
+     не влазять у пів-рядка навіть на максимальній ширині колонки (540px → ≈209px тексту): лічильник
+     обрізало б. Стек — кожне поле на всю ширину, повний підпис видно. */
+  .controls{display:flex;flex-direction:column;gap:8px}
+  select{flex:1;min-width:0;appearance:none;background:var(--surface);color:var(--fg);
+    border:1px solid var(--line);border-radius:var(--radius-s);padding:9px 30px 9px 11px;font-size:13px;
+    font-weight:550;cursor:pointer;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239aa0a6' stroke-width='2.5'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat;background-position:right 10px center}
+  .searchwrap{position:relative;margin-top:8px}
+  .searchwrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint)}
+  .search{width:100%;background:var(--surface);color:var(--fg);border:1px solid var(--line);
+    border-radius:var(--radius-s);padding:10px 12px 10px 38px;font-size:14px}
+  .search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+
+  /* chips */
+  .chips{display:flex;gap:7px;overflow-x:auto;padding:11px 16px 3px;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{white-space:nowrap;border:1px solid var(--line);background:var(--surface);color:var(--muted);
+    border-radius:999px;padding:6px 13px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+  .chip:active{transform:scale(.96)}
+  .chip.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+
+  main{padding:8px 14px 8px}
+
+  /* card */
+  .card{display:flex;gap:12px;background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--radius);padding:12px;margin:10px 0;box-shadow:var(--shadow);
+    cursor:pointer;transition:transform .12s ease, box-shadow .12s ease}
+  .card:active{transform:scale(.985)}
+  @media (hover:hover){ .card:hover{box-shadow:0 2px 4px rgba(20,22,26,.06),0 10px 26px rgba(20,22,26,.09)} }
+  .thumb{position:relative;width:78px;height:78px;flex:0 0 78px}
+  .thumb img{width:100%;height:100%;border-radius:var(--radius-s);object-fit:contain;
+    background:var(--bg);border:1px solid var(--line)}
+  .thumb .ph{width:100%;height:100%;border-radius:var(--radius-s);background:var(--bg);
+    display:flex;align-items:center;justify-content:center;font-size:26px;opacity:.4}
+  .off{position:absolute;top:-7px;left:-7px;background:var(--sale);color:var(--sale-fg);
+    font-size:11px;font-weight:750;padding:3px 7px;border-radius:8px;letter-spacing:-.01em;
+    box-shadow:0 2px 6px rgba(226,59,59,.35)}
+  .body{flex:1;min-width:0;display:flex;flex-direction:column}
+  .title{font-weight:640;font-size:14px;line-height:1.3;margin:0 0 3px;letter-spacing:-.01em;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .meta{color:var(--faint);font-size:12px;font-weight:500;margin-bottom:auto}
+  .meta b{color:var(--muted);font-weight:600}
+  .prices{display:flex;align-items:baseline;gap:8px;margin:7px 0 8px}
+  .now{font-weight:750;font-size:18px;letter-spacing:-.02em}
+  .old{color:var(--faint);text-decoration:line-through;font-size:13px}
+  .unit{color:var(--faint);font-size:11.5px;margin-left:auto;white-space:nowrap}
+  /* Колір НЕ кодує стан (T12): зелень/бурштин були останнім вердиктом у видимому шарі —
+     «схвалено» / «увага, погано». Усі стани однаково нейтральні; розрізняють СЛОВА. */
+  .badge{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;font-size:12px;
+    font-weight:650;padding:4px 9px;border-radius:8px;border:1px solid transparent;line-height:1.3;
+    color:var(--grey);background:var(--grey-bg)}
+  .badge .dot{flex:0 0 auto}          /* мітки довші за ✓/⚠ — крапка не має стискатись при переносі */
+  .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+  /* states */
+  .skel{display:flex;gap:12px;background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--radius);padding:12px;margin:10px 0}
+  .skel .s-img{width:78px;height:78px;flex:0 0 78px;border-radius:var(--radius-s)}
+  .skel .s-body{flex:1;display:flex;flex-direction:column;gap:8px;padding-top:4px}
+  .sk{background:linear-gradient(90deg,var(--line) 25%,color-mix(in srgb,var(--line) 40%,transparent) 50%,var(--line) 75%);
+    background-size:200% 100%;animation:sh 1.3s infinite;border-radius:6px}
+  @keyframes sh{to{background-position:-200% 0}}
+  .empty{text-align:center;padding:56px 24px;color:var(--muted)}
+  .empty .ic{font-size:40px;opacity:.5;margin-bottom:10px}
+  .empty .t{font-weight:650;color:var(--fg);margin-bottom:4px}
+  .morewrap{text-align:center;padding:4px 12px 36px}
+  .morebtn{background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:var(--radius-s);
+    padding:11px 24px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:var(--shadow)}
+  .morebtn:active{transform:scale(.97)}
+
+  /* history sheet */
+  .sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;
+    transition:opacity .22s;z-index:20}
+  .sheet-bg.on{opacity:1;pointer-events:auto}
+  .sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:540px;background:var(--surface);
+    border-radius:20px 20px 0 0;padding:8px 18px calc(28px + env(safe-area-inset-bottom));z-index:21;
+    transform:translateY(101%);transition:transform .28s cubic-bezier(.22,1,.36,1);
+    max-height:86vh;overflow:auto;box-shadow:0 -8px 40px rgba(0,0,0,.25)}
+  .sheet.on{transform:none}
+  .grip{width:38px;height:4px;border-radius:2px;background:var(--line);margin:6px auto 14px}
+  .sheet .title{-webkit-line-clamp:3;font-size:16px;font-weight:700}
+  .prov{color:var(--muted);font-size:12.5px;line-height:1.5;margin-top:12px}
+  .prov b{color:var(--fg)}
+  svg.chart{width:100%;height:158px;display:block;margin-top:12px;overflow:visible}
+  .cta{display:block;text-align:center;margin-top:16px;background:var(--accent);color:#fff;
+    font-weight:650;padding:13px;border-radius:12px;text-decoration:none}
+  .cta:active{opacity:.9}
+
+  /* ─────────────────────────── розкладка картки ───────────────────────────
+     Три області (фото / тіло / ціни) замість «ціни всередині тіла»: на телефоні
+     вони складаються в ту саму двоколонку, що була, а на широкому екрані ціновий
+     блок від'їжджає праворуч — як у десктопних агрегаторів. */
+  .card{display:grid;grid-template-columns:78px 1fr;grid-template-areas:"t b" "t p";
+    gap:2px 12px;align-items:start}
+  .thumb{grid-area:t}
+  .body{grid-area:b}
+  .pricebox{grid-area:p;display:flex;flex-direction:column;gap:2px}
+  .offers{color:var(--muted);font-size:12px;font-weight:600}
+  /* Кнопка й підвал — лише на десктопі. Правила «сховати» мусять стояти ДО медіа-запиту:
+     @media не додає специфічності, тож однакове селектором правило, написане нижче,
+     перемогло б показ (саме на це я й наступив 2026-07-26 — підвал не з'являвся). */
+  .buy{display:none}
+  .foot{display:none}
+
+  /* ─────────────────────────── бічна колонка (десктоп) ───────────────────────────
+     Категорій 171 у 31 розділі — плоский список був би стіною. Розділ = заголовок,
+     категорії під ним; уся колонка липка й гортається окремо від стрічки. */
+  .side{display:none}
+  .side-in{position:sticky;top:96px;max-height:calc(100vh - 116px);overflow:auto;
+    padding-right:6px}
+  .side-in::-webkit-scrollbar{width:6px}
+  .side-in::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+  .sect{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--faint);margin:16px 0 6px;padding:0 10px}
+  .sect:first-child{margin-top:0}
+  .catlink{display:flex;justify-content:space-between;gap:8px;align-items:baseline;
+    padding:6px 10px;border-radius:8px;font-size:13.5px;cursor:pointer;color:var(--fg)}
+  .catlink:hover{background:var(--surface)}
+  .catlink.on{background:var(--fg);color:var(--bg);font-weight:650}
+  .catlink .n{font-size:11.5px;color:var(--faint);font-variant-numeric:tabular-nums}
+  .catlink.on .n{color:var(--bg);opacity:.7}
+
+  /* ─────────────────────────── десктоп ───────────────────────────
+     Пороги й пропорції зняті з двох живих агрегаторів (hotline.ua, ek.ua,
+     2026-07-26): контейнер ≈1265px при вікні 1280, бічна колонка ≈270px,
+     контент ≈935px, товар — ГОРИЗОНТАЛЬНИЙ рядок, а не картка в сітці. */
+  @media (min-width:1000px){
+    .app{max-width:1280px;padding:0 20px}
+    header{padding:14px 0 12px}
+    .hrow{display:flex;align-items:center;gap:28px}
+    .brand{margin:0;flex:0 0 auto;flex-direction:column;align-items:flex-start;gap:1px}
+    .brand h1{font-size:23px}
+    .searchwrap{margin:0;flex:1 1 auto;max-width:560px}
+    .search{padding:11px 14px 11px 40px;font-size:15px}
+    .controls{flex-direction:row;flex:0 0 auto;gap:8px;margin-left:auto}
+    select{font-size:13.5px}
+    #cat{display:none}                    /* на десктопі категорії живуть у бічній колонці */
+    .chips{padding:12px 0 4px;overflow:visible;flex-wrap:wrap}
+    .layout{display:grid;grid-template-columns:250px 1fr;gap:30px;align-items:start}
+    .side{display:block}
+    main{padding:0}
+    .card{grid-template-columns:104px 1fr 214px;grid-template-areas:"t b p";
+      align-items:center;gap:0 18px;padding:14px 16px;margin:0 0 10px}
+    .thumb{width:104px;height:104px;flex-basis:104px}
+    .title{font-size:15.5px;-webkit-line-clamp:2}
+    .body{gap:3px}
+    .meta{margin-bottom:0}
+    /* ціновий блок праворуч: ціна → стара → лічильник крамниць → кнопка (порядок
+       зчитано з hotline: спершу число, під ним «Всі пропозиції (N)», тоді CTA) */
+    .pricebox{align-items:flex-end;text-align:right;gap:3px}
+    .prices{margin:0;justify-content:flex-end;flex-wrap:wrap}
+    .now{font-size:21px}
+    .buy{display:block;margin-top:8px;background:var(--accent);color:#fff;font-weight:650;
+      font-size:13.5px;padding:9px 16px;border-radius:10px;text-decoration:none;
+      white-space:nowrap;transition:.15s}
+    .buy:hover{filter:brightness(1.07)}
+    .badge{margin-top:4px}
+    .morewrap{padding:8px 0 48px}
+    /* підвал лише на десктопі: у Mini App унизу вже є навігація Telegram */
+    .foot{display:block;border-top:1px solid var(--line);margin-top:20px;padding:22px 0 40px;
+      color:var(--faint);font-size:13px}
+    .foot a{color:var(--muted);text-decoration:none;margin-right:18px}
+    .foot a:hover{color:var(--fg)}
+    .sheet{max-width:640px;border-radius:20px;bottom:auto;top:50%;left:50%;right:auto;
+      transform:translate(-50%,-46%) scale(.98);opacity:0;max-height:82vh;
+      transition:opacity .2s, transform .2s}
+    .sheet.on{transform:translate(-50%,-50%);opacity:1}
+    .grip{display:none}
+  }
+
+/* ═══════════════════════ сторінки сайту (S19) ═══════════════════════ */
+
+/* навігація в шапці */
+a.brand{text-decoration:none;color:inherit}
+.nav{display:none;gap:20px;font-size:14.5px;font-weight:600}
+.nav a{color:var(--muted);text-decoration:none;padding:4px 0;border-bottom:2px solid transparent}
+.nav a:hover{color:var(--fg)}
+.nav a.on{color:var(--fg);border-bottom-color:var(--accent)}
+.hauth{margin-left:auto;flex:0 0 auto}
+.hauth a{text-decoration:none;font-size:14px;font-weight:600;padding:8px 15px;border-radius:10px;
+  white-space:nowrap;display:inline-block}
+.hlogin{background:var(--accent);color:#fff}
+.hme{border:1px solid var(--line);background:var(--surface);color:var(--fg)}
+
+/* ── головна ── */
+.hero{padding:44px 0 28px;text-align:center}
+.hero h2{font-size:clamp(24px,4vw,38px);line-height:1.15;margin:0 0 12px;letter-spacing:-.03em}
+.hero p{color:var(--muted);font-size:clamp(15px,1.6vw,18px);max-width:640px;margin:0 auto 22px;
+  line-height:1.5}
+.hero .acts{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-block;text-decoration:none;font-weight:650;font-size:15px;padding:12px 24px;
+  border-radius:12px;cursor:pointer;border:1px solid transparent}
+.btn-main{background:var(--accent);color:#fff}
+.btn-main:hover{filter:brightness(1.07)}
+.btn-ghost{background:var(--surface);color:var(--fg);border-color:var(--line)}
+.btn-ghost:hover{border-color:var(--muted)}
+
+.how{display:grid;gap:16px;margin:34px 0 8px}
+.how .step{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px 20px}
+.how .num{width:26px;height:26px;border-radius:50%;background:var(--fg);color:var(--bg);
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;
+  margin-bottom:10px}
+.how h3{margin:0 0 6px;font-size:15.5px}
+.how p{margin:0;color:var(--muted);font-size:14px;line-height:1.5}
+
+.sec{margin:36px 0 0}
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+.sec-h h2{margin:0;font-size:19px;letter-spacing:-.02em}
+.sec-h a{color:var(--muted);text-decoration:none;font-size:14px;font-weight:600}
+.sec-h a:hover{color:var(--fg)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;
+  margin:26px 0 0}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px 18px}
+.stat .n{font-size:24px;font-weight:750;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stat .l{color:var(--muted);font-size:13px;margin-top:2px}
+.sects{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.sects a{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-s);
+  padding:13px 15px;text-decoration:none;color:var(--fg);font-size:14.5px;font-weight:600;
+  display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.sects a:hover{border-color:var(--muted)}
+.sects .n{color:var(--faint);font-size:12px;font-weight:500}
+
+/* ── форми (вхід, реєстрація) ── */
+.form{max-width:400px;margin:6vh auto 40px;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--radius);padding:26px 26px 24px;box-shadow:var(--shadow)}
+.form h2{margin:0 0 4px;font-size:21px;letter-spacing:-.02em}
+.form .lead{color:var(--muted);font-size:14px;margin:0 0 18px;line-height:1.45}
+.form label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:14px 0 5px}
+.form input{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--line);
+  border-radius:var(--radius-s);padding:11px 13px;font-size:15px}
+.form input:focus{outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+.form .btn{width:100%;margin-top:20px;text-align:center}
+.form .alt{text-align:center;margin-top:16px;font-size:14px;color:var(--muted)}
+.form .alt a,.linkbtn{color:var(--accent);cursor:pointer;text-decoration:none;font-weight:600;
+  background:none;border:none;font-size:inherit;padding:0}
+.msg{padding:11px 13px;border-radius:var(--radius-s);font-size:14px;margin-top:16px;display:none;
+  line-height:1.45}
+.msg.on{display:block}
+.msg.err{background:color-mix(in srgb,var(--red) 12%,transparent);color:var(--red)}
+.msg.ok{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent)}
+
+/* ── кабінет ── */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px 22px;margin-bottom:16px}
+.panel h2{margin:0 0 4px;font-size:17px}
+.panel .sub{color:var(--muted);font-size:13.5px}
+.row{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap;
+  padding:11px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:none}
+.row .t{font-weight:600;font-size:14.5px}
+.row .s{color:var(--muted);font-size:13px}
+.mini{font-size:13px;font-weight:600;padding:7px 13px;border-radius:9px;cursor:pointer;
+  border:1px solid var(--line);background:var(--bg);color:var(--fg);text-decoration:none}
+.mini:hover{border-color:var(--muted)}
+.mini.danger{color:var(--red);border-color:color-mix(in srgb,var(--red) 45%,transparent)}
+
+@media (min-width:1000px){
+  .nav{display:flex}
+  .hero{padding:60px 0 34px}
+  .how{grid-template-columns:repeat(3,1fr);gap:20px}
+  .sec{margin-top:48px}
+}

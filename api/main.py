@@ -64,9 +64,34 @@ def admin_page():
     return FileResponse(os.path.join(WEB_DIR, "admin.html"), media_type="text/html")
 
 
+# Сторінки сайту (S19). Кожна — окремий файл у web/; спільні стилі й скрипти лежать
+# поруч і віддаються через /s/<файл>. УСІ ці маршрути мусять стояти ДО catch-all
+# `/{page}` — інакше він перехопить шлях і віддасть 404 (на це вже наступали з /admin).
+_PAGES = {"catalog", "login", "me"}
+_ASSETS = {"app.css", "app.js", "catalog.js"}   # білий список: жодного обходу шляхом
+
+
+@app.get("/s/{name}")
+def asset(name: str):
+    """Спільні стилі/скрипти. Список статичний — «..» чи будь-що інше просто не збігається."""
+    if name not in _ASSETS:
+        raise HTTPException(404, "не знайдено")
+    kind = "text/css" if name.endswith(".css") else "application/javascript"
+    return FileResponse(os.path.join(WEB_DIR, name), media_type=f"{kind}; charset=utf-8")
+
+
+@app.get("/product/{store_product_id}")
+def product_page(store_product_id: int):
+    """Сторінка товару окремим URL — щоб на неї можна було послатись і поділитись
+    (у шторці каталогу такої адреси не існує). Дані тягне той самий JS."""
+    return FileResponse(os.path.join(WEB_DIR, "product.html"), media_type="text/html")
+
+
 @app.get("/{page}")
 def legal(page: str):
-    """Юр-сторінки /privacy, /terms, /support (для App Store / Google Play)."""
+    """Сторінки сайту (S19) + юр-сторінки /privacy, /terms, /support (вимога сторів)."""
+    if page in _PAGES:
+        return FileResponse(os.path.join(WEB_DIR, f"{page}.html"), media_type="text/html")
     if page not in _LEGAL:
         raise HTTPException(404, "не знайдено")
     return FileResponse(os.path.join(WEB_DIR, f"{page}.html"), media_type="text/html")
@@ -134,6 +159,16 @@ def compare(ids: str, conn=Depends(get_conn)):
     if not 2 <= len(parsed) <= 4:
         raise HTTPException(400, "порівняння — від 2 до 4 товарів")
     return qdb.compare_products(conn, parsed)
+
+
+@app.get("/api/product/{store_product_id}/card")
+def product_card(store_product_id: int, conn=Depends(get_conn)):
+    """Картка одного товару (S19) — для сторінки /product/{id}: назва, фото, ціна,
+    бейдж перевірки, 30-денна база. `/offers` цього не дає й не має давати."""
+    row = qdb.product_card(conn, store_product_id)
+    if row is None:
+        raise HTTPException(404, "товар не знайдено")
+    return row
 
 
 @app.get("/api/product/{store_product_id}/history")

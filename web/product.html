@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Товар — Хапай</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="/s/app.css">
+<style>
+  .phead{display:grid;gap:18px;margin:20px 0 0}
+  .phead .pic{width:100%;max-width:280px;aspect-ratio:1;border-radius:var(--radius);
+    background:var(--surface);border:1px solid var(--line);object-fit:contain;padding:10px}
+  .phead h2{margin:0 0 6px;font-size:21px;line-height:1.25;letter-spacing:-.02em}
+  .pbuy{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:12px 0 4px}
+  .pbuy .now{font-size:28px}
+  .offer{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:12px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .offer:last-child{border-bottom:none}
+  .offer .st{font-weight:650;font-size:14.5px}
+  .offer .pr{font-weight:750;font-size:17px;margin-left:auto}
+  .win{background:color-mix(in srgb,var(--accent) 10%,transparent);border-radius:var(--radius-s);
+    padding:12px 14px;margin:0 0 4px}
+  .specs{display:grid;grid-template-columns:1fr;gap:0}
+  .specs .sr{display:flex;justify-content:space-between;gap:16px;padding:9px 0;
+    border-bottom:1px solid var(--line);font-size:14px}
+  .specs .sr:last-child{border-bottom:none}
+  .specs .k{color:var(--muted)}
+  @media (min-width:1000px){
+    .phead{grid-template-columns:280px 1fr;align-items:start;gap:30px}
+    .specs{grid-template-columns:1fr 1fr;column-gap:34px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+<header id="hdr"></header>
+<div style="max-width:900px;margin:0 auto">
+  <div id="msg" class="msg"></div>
+  <div id="head" class="phead"></div>
+  <div class="panel" id="hist" style="margin-top:22px"></div>
+  <div class="panel" id="offers"></div>
+  <div class="panel" id="specs" hidden></div>
+</div>
+<div id="ftr"></div>
+</div>
+
+<script src="/s/app.js"></script>
+<script>
+renderHeader('/catalog');
+renderFooter();
+
+const SPID = parseInt(location.pathname.split('/').pop(), 10);
+function say(t, k){ const m=document.getElementById('msg');
+  m.className='msg on '+(k||'ok'); m.textContent=t; if(!t) m.className='msg'; }
+
+/* Картку беремо з /card, а не з /offers: той навмисно бідний (крамниця+ціна+URL) і не
+   несе ні фото, ні бейджа, ні 30-денної бази — тобто саме того, заради чого сторінка. */
+async function load(){
+  if (!Number.isInteger(SPID)) { say('Невідомий товар', 'err'); return; }
+  let me = null, offers = [];
+  try {
+    [me, offers] = await Promise.all([
+      api(`/api/product/${SPID}/card`),
+      api(`/api/product/${SPID}/offers`).catch(() => []),
+    ]);
+  } catch(e){
+    document.getElementById('head').innerHTML =
+      `<div class="empty"><div class="ic">🐾</div><div class="t">Товар не знайдено</div>
+       <div>Можливо, він зник із продажу.</div></div>`;
+    return;
+  }
+
+  document.title = me.title + ' — Хапай';
+  const off = pct(me);
+  const bt = BADGE_TEXT[me.badge_state] || me.badge_state || '';
+  document.getElementById('head').innerHTML = `
+    ${me.image_url ? `<img class="pic" src="${esc(me.image_url)}" alt="${esc(me.title)}">`
+                   : `<div class="pic ph" style="display:flex;align-items:center;justify-content:center;font-size:44px;opacity:.4">🐾</div>`}
+    <div>
+      <h2>${esc(me.title)}</h2>
+      <div class="meta"><b>${esc(me.store||'')}</b>${me.variant_note?' · '+esc(me.variant_note):''}</div>
+      <div class="pbuy">
+        <span class="now">${grn(me.current_kop)}</span>
+        ${me.old_declared_kop?`<span class="old">${grn(me.old_declared_kop)}</span>`:''}
+        ${off?`<span class="off" style="position:static;box-shadow:none">−${off}%</span>`:''}
+      </div>
+      ${bt ? `<span class="badge"><span class="dot"></span>${bt}</span>` : ''}
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+        <a class="btn btn-main" href="${esc(me.url)}" target="_blank" rel="noopener">Відкрити в крамниці →</a>
+        <button class="btn btn-ghost" id="watch">Стежити за ціною</button>
+      </div>
+    </div>`;
+
+  document.getElementById('watch').onclick = async () => {
+    if (!AUTH.in){ location.href = '/login'; return; }
+    try{
+      await api('/api/me/watchlist', {method:'POST',
+        body: JSON.stringify({kind:'store_product', ref_id: SPID})});
+      say('Стежимо. Повідомимо, коли ціна знизиться — у кабінеті.', 'ok');
+    }catch(e){ say(e.message, 'err'); }
+  };
+
+  renderOffers(offers, me);
+  loadHistory(me);
+  loadSpecs();
+}
+
+function renderOffers(offers, me){
+  const box = document.getElementById('offers');
+  if (offers.length < 2){
+    box.innerHTML = `<h2>Де купити</h2>
+      <div class="sub">Поки бачимо цей товар лише в одній крамниці.</div>`;
+    loadChoice(box);
+    return;
+  }
+  box.innerHTML = `<h2>Де купити</h2><div class="sub">${plu(offers.length,'пропозиція','пропозиції','пропозицій')}</div>`
+    + offers.map(o => `<div class="offer">
+        <div><div class="st">${esc(o.store)}</div>
+          ${o.old_declared_kop?`<span class="old">${grn(o.old_declared_kop)}</span>`:''}</div>
+        <div class="pr">${grn(o.current_kop)}</div>
+        <a class="mini" href="${esc(o.url)}" target="_blank" rel="noopener">У крамницю</a>
+      </div>`).join('');
+  loadChoice(box);
+}
+
+/* «Наш вибір» (S9): не найдешевша ціна, а найвигідніший спосіб купити — з доставкою
+   й самовивозом. Сервер повертає null, коли порівнювати нема з чим. */
+async function loadChoice(box){
+  try{
+    const r = await api(`/api/product/${SPID}/choice`);
+    const c = r.choice;
+    if (!c) return;
+    box.insertAdjacentHTML('afterbegin', `<div class="win">
+      <div class="t" style="font-weight:700">🏆 ${esc(c.our_choice)}</div>
+      <div class="s">${c.savings_kop ? 'Вигідніше за наступну пропозицію на ' + grn(c.savings_kop)
+                                     : 'Найвигідніший спосіб купити за нашим підрахунком'}</div>
+    </div>`);
+  }catch(e){}
+}
+
+async function loadHistory(me){
+  const box = document.getElementById('hist');
+  box.innerHTML = `<h2>Історія ціни</h2><div class="sub">Завантаження…</div>`;
+  try{
+    const hist = await api(`/api/product/${SPID}/history`);
+    const W = Math.max(280, box.clientWidth - 44);
+    const ref = me.reference_kop != null
+      ? `За нашими спостереженнями ціна за 30 днів <b>не була нижчою за ${grn(me.reference_kop)}</b> — сірий пунктир.`
+      : 'Історія ще накопичується — статутну базу за 30 днів рахуємо з часом.';
+    const meas = hist.reduce((a,p) => a + (p.n||0), 0);
+    const days = hist.length > 1
+      ? Math.round((Date.parse(hist[hist.length-1].day) - Date.parse(hist[0].day))/86400000) + 1
+      : hist.length;
+    const basis = hist.length ? `Основа: <b>${plu(meas,'вимір','виміри','вимірів')}</b> у ${hist.length} з ${plu(days,'доби','діб','діб')}.
+      Лінія тримає останній вимір до наступного; пунктир — проміжки без вимірів.
+      <b>Між вимірами ціна могла змінюватись — ми цього не фіксували.</b>` : '';
+    box.innerHTML = `<h2>Історія ціни</h2>${sparkline(hist, me.reference_kop, W)}
+      <div class="prov">${ref} ${basis}</div>`;
+  }catch(e){
+    box.innerHTML = `<h2>Історія ціни</h2><div class="sub">Не вдалося завантажити історію.</div>`;
+  }
+}
+
+async function loadSpecs(){
+  try{
+    const r = await api(`/api/product/${SPID}/specs`);
+    const s = r.specs;
+    if (!s || !s.attrs || !s.attrs.length) return;
+    const box = document.getElementById('specs');
+    box.hidden = false;
+    box.innerHTML = `<h2>Характеристики</h2>
+      <div class="specs">${s.attrs.map(a =>
+        `<div class="sr"><span class="k">${esc(a.name)}</span><span>${esc(a.value)}</span></div>`).join('')}</div>
+      <div class="prov" style="margin-top:12px">Джерело: картка ${esc(s.store)}${
+        s.collected_day ? ', ' + esc(s.collected_day) : ''}.</div>`;
+  }catch(e){}
+}
+
+load();
+</script>
+</body>
+</html>

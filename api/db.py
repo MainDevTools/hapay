@@ -25,6 +25,38 @@ _PROMO_COL = ("CASE WHEN sp0.promo_until > CURRENT_DATE "
               "THEN to_char(sp0.promo_until, 'YYYY-MM-DD') END AS promo_until,")
 
 
+def product_card(conn, store_product_id: int):
+    """Один товар як КАРТКА — для сторінки /product/{id} на сайті (S19).
+
+    `product_offers` навмисно бідний: він відповідає на питання «де ще це продають» і
+    віддає лише крамницю+ціну+URL. Сторінці товару цього мало — потрібні фото, бейдж
+    перевірки та 30-денна база, інакше вона показує порожнє місце там, де в продукту
+    головне твердження. Тому окремий запит, а не роздування `offers`.
+
+    Ціну беремо з АКТИВНОЇ події, якщо вона є; інакше — з останнього снапшота, бо
+    товар без активної знижки теж має сторінку (на нього можна прийти зі стеження)."""
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(
+            """SELECT sp.store_product_id, sp.title, sp.url, sp.image_url, sp.variant_note,
+                      s.name AS store, c.slug AS category_slug, c.name AS category,
+                      COALESCE(de.current_kop, ps.price_now_kop) AS current_kop,
+                      COALESCE(de.old_declared_kop, ps.price_old_kop) AS old_declared_kop,
+                      de.reference_kop, de.declared_pct, de.verified_pct, de.badge_state,
+                      (SELECT count(DISTINCT g.source_id) FROM store_product g
+                        WHERE sp.match_key IS NOT NULL AND g.match_key = sp.match_key)
+                        AS group_stores
+               FROM store_product sp
+               JOIN source s USING (source_id)
+               JOIN category c ON c.category_id = sp.category_id
+               LEFT JOIN discount_event de
+                      ON de.store_product_id = sp.store_product_id AND de.ended_at IS NULL
+               LEFT JOIN LATERAL (
+                   SELECT price_now_kop, price_old_kop FROM price_snapshot
+                   WHERE store_product_id = sp.store_product_id
+                   ORDER BY seen_at DESC LIMIT 1) ps ON TRUE
+               WHERE sp.store_product_id = %s""", (store_product_id,)).fetchone()
+
+
 def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, offset=0, q=None,
                    price_min=None, price_max=None):
     """Стрічка знижок — АГРЕГАТОРНА (T15/§17): одна картка на ТОВАР, не на крамницю.

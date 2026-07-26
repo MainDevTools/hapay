@@ -89,6 +89,7 @@ def test_other_builders_no_stray_percent():
                       (db.list_discounts, (), {"q": "acer", "category": "tv"}),
                       (db.product_offers, (1,), {}),
                       (db.product_history, (1,), {}),
+                      (db.product_card, (1,), {}),
                       (db.categories, (), {})):
         _check(_sql_of(fn, *a, **kw), fn.__name__)
 
