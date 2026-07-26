@@ -1118,13 +1118,80 @@ def main():
     checks.append(("admin/users без токена → 401",
                    client.get("/api/admin/users").status_code == 401, None))
     au = client.get("/api/admin/users", headers=modhdr)
-    checks.append(("admin/users модератору → 200 + список акаунтів",
+    checks.append(("admin/users модератору → 200 + сторінка акаунтів",
                    au.status_code == 200 and any(u["email"] == "victim@hapay.today"
-                                                 for u in au.json()), au.status_code))
+                                                 for u in au.json()["users"]), au.status_code))
+    checks.append(("admin/users несе пагінацію (total/page/pages)",
+                   all(k in au.json() for k in ("total", "page", "pages", "per_page"))
+                   and au.json()["total"] >= 4, {k: au.json().get(k) for k in ("total", "pages")}))
+    checks.append(("картка акаунта несе last_login_at (був у БД, але не показувався)",
+                   "last_login_at" in au.json()["users"][0], list(au.json()["users"][0])))
+
+    # ── S16 П2: пошук / фільтри / пагінація ──────────────────────────────────────
+    sq = client.get("/api/admin/users?q=victim", headers=modhdr).json()
+    checks.append(("пошук q=victim → лише victim-акаунти",
+                   sq["total"] == 2 and all("victim" in u["email"] for u in sq["users"]),
+                   [u["email"] for u in sq["users"]]))
+    checks.append(("пошук регістронезалежний (q=VICTIM)",
+                   client.get("/api/admin/users?q=VICTIM", headers=modhdr).json()["total"] == 2,
+                   None))
+    checks.append(("пошук неіснуючого → 0, не помилка",
+                   client.get("/api/admin/users?q=zzz-нема", headers=modhdr).json()["total"] == 0,
+                   None))
+    # ILIKE-спецсимвол у запиті не має валити пошук (значення йде ПАРАМЕТРОМ)
+    checks.append(("пошук зі спецсимволом ILIKE (%) не ламає запит",
+                   client.get("/api/admin/users?q=%25", headers=modhdr).status_code == 200, None))
+    fr_ = client.get("/api/admin/users?role=admin", headers=modhdr).json()
+    checks.append(("фільтр role=admin → лише адміни",
+                   fr_["total"] >= 1 and all(u["role"] == "admin" for u in fr_["users"]),
+                   [u["role"] for u in fr_["users"]]))
+    checks.append(("фільтр невідомої ролі → 400",
+                   client.get("/api/admin/users?role=superking",
+                              headers=modhdr).status_code == 400, None))
+    checks.append(("фільтр active=false → лише заблоковані (зараз жодного)",
+                   all(not u["is_active"] for u in
+                       client.get("/api/admin/users?active=false", headers=modhdr).json()["users"]),
+                   None))
+    pg1 = client.get("/api/admin/users?page=999", headers=modhdr).json()
+    checks.append(("сторінка за межею → порожній список, total збережено",
+                   pg1["users"] == [] and pg1["total"] >= 4, pg1["total"]))
+
+    # ── S16 П1: метрики продукту (не лише акаунти) ───────────────────────────────
     am = client.get("/api/admin/metrics", headers=admhdr)
-    checks.append(("admin/metrics → by_role містить admin≥1 + total",
-                   am.status_code == 200 and am.json().get("by_role", {}).get("admin", 0) >= 1
-                   and am.json().get("total", 0) >= 4, am.json().get("by_role")))
+    mj = am.json()
+    checks.append(("metrics: акаунти по ролях + реєстрації/активні",
+                   am.status_code == 200
+                   and mj["accounts"]["by_role"].get("admin", 0) >= 1
+                   and mj["accounts"]["total"] >= 4
+                   and all(k in mj["accounts"] for k in ("reg_7d", "reg_30d", "active_7d")),
+                   mj.get("accounts")))
+    checks.append(("metrics: дані (товари/снапшоти/події + приріст за добу)",
+                   all(k in mj["data"] for k in ("products", "snapshots", "events",
+                                                 "categories", "sources",
+                                                 "products_1d", "snapshots_1d"))
+                   and mj["data"]["products"] > 0 and mj["data"]["snapshots"] > 0,
+                   mj.get("data")))
+    badges = {b["state"]: b for b in mj["detection"]["badges"]}
+    checks.append(("metrics: детекція несе ВСІ 5 бейджів, зокрема нульові",
+                   len(mj["detection"]["badges"]) == 5
+                   and "verified" in badges and "pumped" in badges
+                   and all("total" in b and "d7" in b for b in mj["detection"]["badges"]),
+                   [(b["state"], b["total"]) for b in mj["detection"]["badges"]]))
+    # тихий нуль — визнаний дефект показників: нульовий бейдж мусить БУТИ у відповіді
+    checks.append(("нульовий бейдж не зникає з відповіді (тихий нуль)",
+                   badges["verified"]["total"] == 0, badges["verified"]))
+    checks.append(("metrics: declared порахований (сід дав 8+)",
+                   badges["declared"]["total"] >= 8, badges["declared"]))
+    checks.append(("metrics: збір по крамницях (source/tasks/ok/fail)",
+                   isinstance(mj["collect"]["stores"], list)
+                   and all(k in mj["collect"]["stores"][0]
+                           for k in ("source", "tasks", "ok", "fail", "ok_min")),
+                   mj["collect"]["stores"][:2]))
+    checks.append(("metrics: стан збору з collect_health (без другого визначення)",
+                   "health" in mj["collect"] and "note" in mj["collect"]["health"],
+                   mj["collect"].get("health", {}).get("note")))
+    checks.append(("metrics простому юзеру → 403",
+                   client.get("/api/admin/metrics", headers=ahdr).status_code == 403, None))
 
     # зміна ролі — ЛИШЕ admin (moderator не може)
     checks.append(("set_role модератором → 403 (лише admin)",
@@ -1136,7 +1203,8 @@ def main():
                    sr.status_code == 200 and sr.json().get("role") == "moderator", sr.json()))
     checks.append(("зміна відображена у списку",
                    any(u["email"] == "victim@hapay.today" and u["role"] == "moderator"
-                       for u in client.get("/api/admin/users", headers=admhdr).json()), None))
+                       for u in client.get("/api/admin/users",
+                                           headers=admhdr).json()["users"]), None))
     # анти-self-lockout: адмін не змінює ВЛАСНУ роль
     checks.append(("set_role над собою → 400 (анти-self-lockout)",
                    client.post(f"/api/admin/users/{uids['admin1@hapay.today']}/role",
@@ -1190,6 +1258,99 @@ def main():
         acts = set(r[0] for r in c.execute("SELECT DISTINCT action FROM admin_audit").fetchall())
     checks.append(("admin_audit пише слід (set_role+set_active)",
                    naudit >= 3 and {"set_role", "set_active"} <= acts, (naudit, acts)))
+
+    # ── S16 П3: журнал аудиту (до S16 admin_audit була write-only) ───────────────
+    aud = client.get("/api/admin/audit", headers=modhdr)
+    aj = aud.json()
+    checks.append(("admin/audit модератору → 200 + записи з пагінацією",
+                   aud.status_code == 200 and aj["total"] >= 3
+                   and all(k in aj for k in ("entries", "page", "pages")), aj.get("total")))
+    checks.append(("запис журналу читабельний: хто/що/кому + email-знімок",
+                   all(k in aj["entries"][0] for k in
+                       ("actor_email", "action", "target_email", "detail", "created_at")),
+                   aj["entries"][0]))
+    checks.append(("журнал сортовано найновішим догори",
+                   [e["audit_id"] for e in aj["entries"]]
+                   == sorted((e["audit_id"] for e in aj["entries"]), reverse=True),
+                   [e["audit_id"] for e in aj["entries"][:5]]))
+    fa = client.get("/api/admin/audit?action=set_role", headers=modhdr).json()
+    checks.append(("фільтр журналу за дією",
+                   fa["total"] >= 1 and all(e["action"] == "set_role" for e in fa["entries"]),
+                   [e["action"] for e in fa["entries"]]))
+    checks.append(("журнал простому юзеру → 403",
+                   client.get("/api/admin/audit", headers=ahdr).status_code == 403, None))
+
+    # ── S16 П2: картка акаунта ───────────────────────────────────────────────────
+    det = client.get(f"/api/admin/users/{uids['victim@hapay.today']}", headers=modhdr)
+    dj = det.json()
+    checks.append(("картка акаунта: профіль + стеження + адмін-дії над ним",
+                   det.status_code == 200 and dj["email"] == "victim@hapay.today"
+                   and isinstance(dj["watchlist"], list) and isinstance(dj["audit"], list),
+                   {k: dj.get(k) for k in ("email", "role")}))
+    checks.append(("картка показує адмін-дії саме над цим акаунтом (зміна ролі)",
+                   any(e["action"] == "set_role" for e in dj["audit"]),
+                   [e["action"] for e in dj["audit"]]))
+    checks.append(("картка неіснуючого акаунта → 404",
+                   client.get("/api/admin/users/999999", headers=modhdr).status_code == 404, None))
+    checks.append(("картка простому юзеру → 403",
+                   client.get(f"/api/admin/users/{uids['victim@hapay.today']}",
+                              headers=ahdr).status_code == 403, None))
+
+    # ── S16 П4: дії над акаунтом ─────────────────────────────────────────────────
+    for _lim in (_rl.email_limiter,):
+        _lim._hits.clear()
+    vr2 = client.post(f"/api/admin/users/{uids['victim@hapay.today']}/verify", headers=modhdr)
+    checks.append(("ручне підтвердження email → 200 + verified",
+                   vr2.status_code == 200 and vr2.json().get("email_verified") is True, vr2.json()))
+    checks.append(("ручний verify лишив слід в аудиті",
+                   any(e["action"] == "verify_email" for e in
+                       client.get("/api/admin/audit", headers=modhdr).json()["entries"]), None))
+    checks.append(("ручний verify простому юзеру → 403",
+                   client.post(f"/api/admin/users/{uids['victim@hapay.today']}/verify",
+                               headers=ahdr).status_code == 403, None))
+    sr2 = client.post(f"/api/admin/users/{uids['victim@hapay.today']}/send-reset", headers=modhdr)
+    checks.append(("надсилання скидання пароля → 200 + слід в аудиті",
+                   sr2.status_code == 200
+                   and any(e["action"] == "send_reset" for e in
+                           client.get("/api/admin/audit", headers=modhdr).json()["entries"]),
+                   sr2.json()))
+    checks.append(("send-reset неіснуючому → 404",
+                   client.post("/api/admin/users/999999/send-reset",
+                               headers=modhdr).status_code == 404, None))
+
+    # видалення — ЛИШЕ admin, незворотне
+    checks.append(("видалення акаунта модератором → 403",
+                   client.delete(f"/api/admin/users/{uids['victim@hapay.today']}",
+                                 headers=modhdr).status_code == 403, None))
+    checks.append(("видалення СЕБЕ → 400",
+                   client.delete(f"/api/admin/users/{uids['admin1@hapay.today']}",
+                                 headers=admhdr).status_code == 400, None))
+    # останній активний admin не видаляється навіть іншим адміном (db-рівень)
+    try:
+        with psycopg.connect(URL, autocommit=True) as c:
+            _qdb.delete_user(c, uids["mod@hapay.today"], uids["admin1@hapay.today"])
+        checks.append(("видалення останнього admin → AdminError", False, "не кинуло"))
+    except _qdb.AdminError:
+        checks.append(("видалення останнього admin → AdminError", True, None))
+
+    dl = client.delete(f"/api/admin/users/{uids['victim@hapay.today']}", headers=admhdr)
+    checks.append(("видалення адміном → 200", dl.status_code == 200, dl.json()))
+    checks.append(("видалений акаунт зник зі списку",
+                   client.get("/api/admin/users?q=victim@", headers=modhdr).json()["total"] == 0,
+                   None))
+    checks.append(("видалений не входить (акаунта нема) → 401",
+                   client.post("/api/auth/login", json={"email": "victim@hapay.today",
+                                                        "password": "victimpass"}).status_code == 401,
+                   None))
+    # ГОЛОВНЕ (0171): слід у журналі пережив видалення акаунта — email лишився знімком
+    after = client.get("/api/admin/audit", headers=modhdr).json()
+    kept = [e for e in after["entries"] if e.get("target_email") == "victim@hapay.today"]
+    checks.append(("журнал пережив видалення: email-знімок лишився, target_id обнулено",
+                   len(kept) >= 2 and all(e["target_id"] is None for e in kept),
+                   [(e["action"], e["target_id"], e["target_email"]) for e in kept[:3]]))
+    checks.append(("сам факт видалення записано в журнал",
+                   any(e["action"] == "delete_user" for e in kept),
+                   [e["action"] for e in kept]))
 
     for name, ok, val in checks:
         print(f"{'PASS' if ok else 'FAIL'}  {name}" + ("" if ok else f"  -> {val!r}"))

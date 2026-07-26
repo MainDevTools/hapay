@@ -71,6 +71,19 @@ def test_collect_health_no_stray_percent():
     _check(_sql_of(qtasks.collect_health), "collect_health")
 
 
+def test_admin_builders_no_stray_percent():
+    """Адмін-панель (S16): пошук за email тягне ILIKE з `%` У ЗНАЧЕННІ (це безпечно),
+    але сусідній текст запиту мусить лишатись чистим; метрики збору колись мали
+    `LIKE 'fail%'` — саме той випадок, який тут ловиться."""
+    for kw in ({}, {"q": "acer"}, {"role": "admin"}, {"active": False},
+               {"q": "a", "role": "user", "active": True, "page": 2}):
+        _check(_sql_of(db.list_users, **kw), f"list_users({kw})")
+    _check(_sql_of(db.admin_metrics), "admin_metrics")
+    for kw in ({}, {"action": "set_role"}, {"action": "ban", "page": 3}):
+        _check(_sql_of(db.list_audit, **kw), f"list_audit({kw})")
+    _check(_sql_of(db.user_detail, 1), "user_detail")
+
+
 def test_other_builders_no_stray_percent():
     for fn, a, kw in ((db.list_discounts, (), {}),
                       (db.list_discounts, (), {"q": "acer", "category": "tv"}),
@@ -78,3 +91,26 @@ def test_other_builders_no_stray_percent():
                       (db.product_history, (1,), {}),
                       (db.categories, (), {})):
         _check(_sql_of(fn, *a, **kw), fn.__name__)
+
+
+# Раннера тут не було, і в CI файл не значився — тобто запобіжник, СТВОРЕНИЙ після
+# зламу CI 2026-07-21, жодного разу не виконався. Мовчазний запобіжник гірший за
+# його відсутність: дає хибне відчуття захисту (виявлено 2026-07-26, S16).
+def _main():
+    fns = [v for k, v in sorted(globals().items())
+           if k.startswith("test_") and callable(v)
+           and getattr(v, "__module__", None) == __name__]
+    failed = 0
+    for fn in fns:
+        try:
+            fn()
+            print(f"PASS  {fn.__name__}")
+        except Exception as e:
+            failed += 1
+            print(f"FAIL  {fn.__name__}  -> {type(e).__name__}: {e}")
+    print(f"\n{len(fns) - failed}/{len(fns)} passed")
+    sys.exit(1 if failed else 0)
+
+
+if __name__ == "__main__":
+    _main()

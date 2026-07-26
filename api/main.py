@@ -386,15 +386,79 @@ def my_watchlist_remove(watchlist_id: int, claims=Depends(require_account),
 
 # ── адмін-панель (S15): керування акаунтами / ролі / метрики ──────────────────────
 @app.get("/api/admin/users")
-def admin_users(claims=Depends(require_moderator), conn=Depends(get_conn)):
-    """Список акаунтів (moderator+): email, роль, стан, verified, watchlist-лічильник."""
-    return qdb.list_users(conn)
+def admin_users(q: str | None = None, role: str | None = None,
+                active: bool | None = None, page: int = 0,
+                claims=Depends(require_moderator), conn=Depends(get_conn)):
+    """Сторінка акаунтів (moderator+): пошук за email, фільтри роль/стан, пагінація.
+    Без пагінації список ріс би без межі — панель мусить лишатись робочою на тисячах."""
+    if role is not None and role not in qdb._ROLES:
+        raise HTTPException(400, "невідома роль")
+    return qdb.list_users(conn, q=q, role=role, active=active, page=page)
 
 
 @app.get("/api/admin/metrics")
 def admin_metrics(claims=Depends(require_moderator), conn=Depends(get_conn)):
-    """Зведення для панелі (moderator+): акаунти по ролях + verified + стан збору."""
-    return qdb.admin_metrics(conn)
+    """Метрики панелі (moderator+): дані · детекція · збір по крамницях · акаунти.
+    Стан черги домішуємо з qtasks.collect_health — щоб не заводити ДРУГЕ визначення
+    «збір живий» поруч із наявним (розбіжні визначення показників гірші за їх брак)."""
+    m = qdb.admin_metrics(conn)
+    m["collect"]["health"] = qtasks.collect_health(conn)
+    return m
+
+
+@app.get("/api/admin/users/{user_id}")
+def admin_user_detail(user_id: int, claims=Depends(require_moderator), conn=Depends(get_conn)):
+    """Картка акаунта (moderator+): профіль + стеження + адмін-дії НАД НИМ."""
+    u = qdb.user_detail(conn, user_id)
+    if u is None:
+        raise HTTPException(404, "акаунт не існує")
+    return u
+
+
+@app.get("/api/admin/audit")
+def admin_audit_log(action: str | None = None, page: int = 0,
+                    claims=Depends(require_moderator), conn=Depends(get_conn)):
+    """Журнал адмін-дій (moderator+): хто, що, кому, коли. До S16 слід писався, але
+    прочитати його не було чим — перевірити роздачу прав було неможливо."""
+    return qdb.list_audit(conn, action=action, page=page)
+
+
+@app.post("/api/admin/users/{target_id}/verify")
+def admin_verify(target_id: int, claims=Depends(require_moderator), conn=Depends(get_conn)):
+    """Підтвердити email вручну (moderator+) — коли лист не доходить. Пишеться в аудит."""
+    try:
+        return qdb.admin_verify_email(conn, int(claims["sub"]), target_id)
+    except qdb.AdminForbidden as e:
+        raise HTTPException(403, str(e))
+    except qdb.AdminError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/admin/users/{target_id}/send-reset")
+def admin_send_reset(target_id: int, request: Request, claims=Depends(require_moderator),
+                     conn=Depends(get_conn)):
+    """Надіслати юзеру код скидання пароля (moderator+). Лист іде на ЧУЖУ адресу, тож
+    під лімітом і в аудиті — інакше це готовий вектор розсилки чужими руками."""
+    _rate_gate(request, qrl.email_limiter, qrl.EMAIL_LIMIT, qrl.EMAIL_WINDOW_S)
+    u = qdb.get_user(conn, target_id)
+    if u is None:
+        raise HTTPException(404, "акаунт не існує")
+    _send_code(conn, u["user_id"], u["email"], "reset")
+    qdb.audit_action(conn, int(claims["sub"]), "send_reset", target_id,
+                     "надіслано код скидання")
+    return {"sent": True}
+
+
+@app.delete("/api/admin/users/{target_id}")
+def admin_delete_user(target_id: int, claims=Depends(require_admin), conn=Depends(get_conn)):
+    """Видалити акаунт (ЛИШЕ admin) — незворотно, право на забуття. Слід у журналі
+    лишається (0171: email збережено знімком), тож історія прав не зникає разом з ним."""
+    try:
+        return qdb.delete_user(conn, int(claims["sub"]), target_id)
+    except qdb.AdminForbidden as e:
+        raise HTTPException(403, str(e))
+    except qdb.AdminError as e:
+        raise HTTPException(400, str(e))
 
 
 @app.post("/api/admin/users/{target_id}/role")

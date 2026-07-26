@@ -647,8 +647,11 @@ def set_email_verified(conn, user_id: int) -> None:
     conn.execute("UPDATE app_user SET email_verified = true WHERE user_id = %s", (user_id,))
 
 
-# ── адмін-функції під ролями (S15) ────────────────────────────────────────────────
+# ── адмін-функції під ролями (S15) + панель (S16) ─────────────────────────────────
 _ROLES = ("user", "collector", "moderator", "admin")
+USERS_PER_PAGE = 50
+_BADGE_ORDER = ("verified", "verified_provisional", "pumped",
+                "declared", "insufficient_history")
 
 
 class AdminError(Exception):
@@ -659,31 +662,150 @@ class AdminForbidden(AdminError):
     """Межа прав: актор пройшов гейт, але ця дія над цією ціллю йому заборонена → 403."""
 
 
-def _audit(conn, actor_id: int, action: str, target_id: int, detail: str) -> None:
+def _audit(conn, actor_id: int, action: str, target_id: int | None, detail: str) -> None:
+    """Слід адмін-дії. Email денормалізуємо ЗНІМКОМ (0171): акаунт можуть видалити, а
+    журнал мусить лишитись читабельним — інакше після видалення слід перетворюється
+    на пару беззмістовних чисел."""
     conn.execute(
-        "INSERT INTO admin_audit (actor_id, action, target_id, detail) VALUES (%s,%s,%s,%s)",
-        (actor_id, action, target_id, detail))
+        "INSERT INTO admin_audit (actor_id, action, target_id, detail, actor_email, target_email) "
+        "VALUES (%s,%s,%s,%s, (SELECT email FROM app_user WHERE user_id = %s), "
+        "        (SELECT email FROM app_user WHERE user_id = %s))",
+        (actor_id, action, target_id, detail, actor_id, target_id))
 
 
-def list_users(conn):
-    """Список акаунтів для адмін-панелі (moderator+). Watchlist-лічильник — контекст."""
+def audit_action(conn, actor_id: int, action: str, target_id: int | None,
+                 detail: str) -> None:
+    """Публічний вхід у журнал для дій, які виконує шар API сам (напр. надсилання
+    листа): сама дія живе в main.py, але слід має лягати тим самим шляхом."""
+    _audit(conn, actor_id, action, target_id, detail)
+
+
+def list_audit(conn, action: str | None = None, page: int = 0,
+               per_page: int = USERS_PER_PAGE) -> dict:
+    """Журнал адмін-дій (S16 П3). До нього `admin_audit` була write-only: слід писався,
+    прочитати його не було чим — тобто перевірити, хто роздав права, було неможливо."""
+    per_page = max(1, min(int(per_page or USERS_PER_PAGE), 200))
+    page = max(0, int(page or 0))
+    where, params = [], []
+    if action:
+        where.append("action = %s")
+        params.append(action)
+    clause = (" WHERE " + " AND ".join(where)) if where else ""
     with conn.cursor(row_factory=dict_row) as cur:
-        return cur.execute(
-            "SELECT u.user_id, u.email, u.role, u.is_active, u.email_verified, u.created_at, "
+        rows = cur.execute(
+            "SELECT audit_id, actor_id, actor_email, action, target_id, target_email, "
+            "       detail, created_at FROM admin_audit" + clause +
+            " ORDER BY created_at DESC, audit_id DESC LIMIT %s OFFSET %s",
+            params + [per_page, page * per_page]).fetchall()
+        total = cur.execute("SELECT count(*) AS n FROM admin_audit" + clause,
+                            params).fetchone()["n"]
+    return {"entries": rows, "total": total, "page": page, "per_page": per_page,
+            "pages": (total + per_page - 1) // per_page}
+
+
+def user_detail(conn, user_id: int) -> dict | None:
+    """Картка акаунта: профіль + стеження + історія адмін-дій НАД НИМ. Один запит на
+    блок — панель відкривається однією відповіддю, без N+1 з боку клієнта."""
+    with conn.cursor(row_factory=dict_row) as cur:
+        u = cur.execute(
+            "SELECT user_id, email, role, is_active, email_verified, created_at, last_login_at "
+            "FROM app_user WHERE user_id = %s", (user_id,)).fetchone()
+        if u is None:
+            return None
+        u["watchlist"] = cur.execute(
+            "SELECT watchlist_id, kind, ref_id, query_text, created_at FROM watchlist "
+            "WHERE user_id = %s ORDER BY created_at DESC LIMIT 50", (user_id,)).fetchall()
+        u["audit"] = cur.execute(
+            "SELECT audit_id, actor_email, action, detail, created_at FROM admin_audit "
+            "WHERE target_id = %s ORDER BY created_at DESC LIMIT 50", (user_id,)).fetchall()
+    return u
+
+
+def list_users(conn, q: str | None = None, role: str | None = None,
+               active: bool | None = None, page: int = 0,
+               per_page: int = USERS_PER_PAGE) -> dict:
+    """Сторінка акаунтів із пошуком/фільтрами (S16). Пошук — ILIKE за email через
+    ПАРАМЕТР (значення ніколи не склеюється в текст запиту). Пагінація обов'язкова:
+    без неї список ріс би без межі й панель лягла б на тисячі акаунтів."""
+    per_page = max(1, min(int(per_page or USERS_PER_PAGE), 200))
+    page = max(0, int(page or 0))
+    where, params = [], []
+    if q:
+        where.append("u.email ILIKE %s")
+        params.append(f"%{q}%")
+    if role:
+        where.append("u.role = %s")
+        params.append(role)
+    if active is not None:
+        where.append("u.is_active = %s")
+        params.append(bool(active))
+    clause = (" WHERE " + " AND ".join(where)) if where else ""
+    with conn.cursor(row_factory=dict_row) as cur:
+        rows = cur.execute(
+            "SELECT u.user_id, u.email, u.role, u.is_active, u.email_verified, "
+            "       u.created_at, u.last_login_at, "
             "       (SELECT count(*) FROM watchlist w WHERE w.user_id = u.user_id) AS watchlist_n "
-            "FROM app_user u ORDER BY u.created_at DESC").fetchall()
+            "FROM app_user u" + clause +
+            " ORDER BY u.created_at DESC LIMIT %s OFFSET %s",
+            params + [per_page, page * per_page]).fetchall()
+        total = cur.execute("SELECT count(*) AS n FROM app_user u" + clause,
+                            params).fetchone()["n"]
+    return {"users": rows, "total": total, "page": page, "per_page": per_page,
+            "pages": (total + per_page - 1) // per_page}
 
 
 def admin_metrics(conn) -> dict:
-    """Зведення для адмін-панелі: акаунти по ролях + verified-частка + свіжість збору."""
+    """Метрики панелі (S16): дані · детекція · збір по крамницях · акаунти.
+
+    Панель мусить показувати здоров'я ПРОДУКТУ, не лише акаунти: скільки товарів і
+    цінової історії зібрано, що показала детекція (скільки накачаних знижок знайдено)
+    і які крамниці мовчать. До S16 не було видно нічого з цього.
+
+    ⚠ Нульові бейджі НЕ ховаємо: `verified 0` при 29 `pumped` — це сигнал, а не
+    порожнеча (guardrail §7 брифа; тихий нуль — визнаний дефект показників)."""
     with conn.cursor(row_factory=dict_row) as cur:
+        data = cur.execute(
+            "SELECT (SELECT count(*) FROM store_product) AS products, "
+            "       (SELECT count(*) FROM price_snapshot) AS snapshots, "
+            "       (SELECT count(*) FROM discount_event) AS events, "
+            "       (SELECT count(*) FROM category) AS categories, "
+            "       (SELECT count(*) FROM source WHERE active) AS sources, "
+            "       (SELECT count(*) FROM store_product "
+            "          WHERE first_seen_at > now() - interval '1 day') AS products_1d, "
+            "       (SELECT count(*) FROM price_snapshot "
+            "          WHERE seen_at > now() - interval '1 day') AS snapshots_1d"
+        ).fetchone()
+        seen = {r["badge_state"]: r for r in cur.execute(
+            "SELECT badge_state, count(*) AS total, "
+            "       count(*) FILTER (WHERE computed_at > now() - interval '7 days') AS d7 "
+            "FROM discount_event GROUP BY badge_state").fetchall()}
+        accounts = cur.execute(
+            "SELECT count(*) AS total, "
+            "       count(*) FILTER (WHERE email_verified) AS verified, "
+            "       count(*) FILTER (WHERE NOT is_active) AS banned, "
+            "       count(*) FILTER (WHERE created_at > now() - interval '7 days') AS reg_7d, "
+            "       count(*) FILTER (WHERE created_at > now() - interval '30 days') AS reg_30d, "
+            "       count(*) FILTER (WHERE last_login_at > now() - interval '7 days') AS active_7d, "
+            "       count(*) FILTER (WHERE last_login_at > now() - interval '30 days') AS active_30d "
+            "FROM app_user").fetchone()
         by_role = {r["role"]: r["n"] for r in cur.execute(
             "SELECT role, count(*) AS n FROM app_user GROUP BY role").fetchall()}
-        row = cur.execute(
-            "SELECT count(*) AS total, count(*) FILTER (WHERE email_verified) AS verified, "
-            "       count(*) FILTER (WHERE NOT is_active) AS banned FROM app_user").fetchone()
-    return {"by_role": by_role, "total": row["total"], "verified": row["verified"],
-            "banned": row["banned"], "collect": freshness(conn)}
+        # starts_with, а не LIKE із шаблоном: у тексті запиту не має бути жодного «%»
+        # крім плейсхолдера — psycopg сканує весь текст (test_sqlsafe, обпеклись 2026-07-21)
+        stores = cur.execute(
+            "SELECT source, count(*) AS tasks, "
+            "       count(*) FILTER (WHERE last_status = 'ok') AS ok, "
+            "       count(*) FILTER (WHERE starts_with(last_status, 'fail')) AS fail, "
+            "       count(*) FILTER (WHERE fail_count > 0) AS failing, "
+            "       round(EXTRACT(epoch FROM now() - "
+            "             max(last_done_at) FILTER (WHERE last_status = 'ok')) / 60)::int AS ok_min "
+            "FROM collect_task GROUP BY source ORDER BY source").fetchall()
+    badges = [{"state": s,
+               "total": seen.get(s, {}).get("total", 0),
+               "d7": seen.get(s, {}).get("d7", 0)} for s in _BADGE_ORDER]
+    accounts["by_role"] = by_role
+    return {"data": data, "detection": {"badges": badges}, "accounts": accounts,
+            "collect": {"stores": stores, **freshness(conn)}}
 
 
 def _active_admin_count(conn, exclude_id: int | None = None) -> int:
@@ -728,6 +850,41 @@ def set_user_active(conn, actor_id: int, actor_role: str, target_id: int, active
     conn.execute("UPDATE app_user SET is_active=%s WHERE user_id=%s", (active, target_id))
     _audit(conn, actor_id, "set_active", target_id, f"active={active}")
     return {"user_id": target_id, "is_active": active}
+
+
+def admin_verify_email(conn, actor_id: int, target_id: int) -> dict:
+    """Підтвердити email вручну (S16 П4) — підтримка, коли лист не доходить. Обхід
+    поштової перевірки мусить лишати слід, тому обов'язково в аудит."""
+    with conn.cursor(row_factory=dict_row) as cur:
+        t = cur.execute("SELECT user_id, email, email_verified FROM app_user WHERE user_id=%s",
+                        (target_id,)).fetchone()
+    if t is None:
+        raise AdminError("акаунт не існує")
+    if t["email_verified"]:
+        return {"user_id": target_id, "email_verified": True}   # нема що робити
+    set_email_verified(conn, target_id)
+    _audit(conn, actor_id, "verify_email", target_id, "підтверджено вручну")
+    return {"user_id": target_id, "email_verified": True}
+
+
+def delete_user(conn, actor_id: int, target_id: int) -> dict:
+    """Видалити акаунт (S16 П4, ЛИШЕ admin) — незворотно, право на забуття.
+    Захисти ті самі, що й у бану: не себе, не останнього активного admin.
+    Watchlist і токени підуть каскадом; слід у журналі ЛИШИТЬСЯ (0171 денормалізував
+    email), тож видалення акаунта не стирає історію того, хто роздавав права."""
+    if actor_id == target_id:
+        raise AdminError("не можна видалити власний акаунт")
+    with conn.cursor(row_factory=dict_row) as cur:
+        t = cur.execute("SELECT user_id, email, role FROM app_user WHERE user_id=%s",
+                        (target_id,)).fetchone()
+    if t is None:
+        raise AdminError("акаунт не існує")
+    if t["role"] == "admin" and _active_admin_count(conn, target_id) == 0:
+        raise AdminError("не можна видалити останнього активного адміна")
+    # аудит ПЕРЕД видаленням: інакше знімок email уже не з чого взяти
+    _audit(conn, actor_id, "delete_user", target_id, f"видалено акаунт {t['email']}")
+    conn.execute("DELETE FROM app_user WHERE user_id = %s", (target_id,))
+    return {"deleted": target_id, "email": t["email"]}
 
 
 def update_password(conn, user_id: int, password_hash: str) -> None:

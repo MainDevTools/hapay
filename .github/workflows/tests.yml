@@ -65,6 +65,8 @@ jobs:
         run: python tests/test_ratelimit.py
       - name: account tokens — verify/reset коди + email LogSender (S13)
         run: python tests/test_account_tokens.py
+      - name: sqlsafe — блукаючий «%» у SQL (запобіжник зламу 2026-07-21)
+        run: python tests/test_sqlsafe.py
 
   migration:
     # Верифікація 0001 проти живого PostgreSQL 18 (= версія прод-Neon; Timescale-фічі → 0002).
