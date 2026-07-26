@@ -548,35 +548,170 @@ public class AdminUser
         _ => "юзер",
     };
 
+    [JsonPropertyName("created_at")] public DateTime? CreatedAt { get; set; }
+    [JsonPropertyName("last_login_at")] public DateTime? LastLoginAt { get; set; }
+
     [JsonIgnore] public string StatusText => IsActive ? "активний" : "заблокований";
     [JsonIgnore] public string BanActionText => IsActive ? "Заблокувати" : "Розблокувати";
     /// Заблокований рядок притлумлений — видно з першого погляду, без читання тексту.
     [JsonIgnore] public double RowOpacity => IsActive ? 1.0 : 0.55;
     [JsonIgnore] public string VerifiedGlyph => EmailVerified ? "✓" : "—";
+    /// «ніколи» — важливіше за порожній рядок: акаунт, що жодного разу не входив,
+    /// це окремий стан, а не брак даних.
+    [JsonIgnore] public string LastLoginText =>
+        LastLoginAt is DateTime d ? $"вхід {d.ToLocalTime():dd.MM.yy}" : "не входив";
+    [JsonIgnore] public string CreatedText =>
+        CreatedAt is DateTime c ? $"з {c.ToLocalTime():dd.MM.yy}" : "";
+    /// Ручний verify показуємо лише тим, хто ще не підтверджений (інакше кнопка-пустушка).
+    [JsonIgnore] public bool CanVerify => !EmailVerified;
 }
 
+/// Сторінка акаунтів (S16): пошук/фільтри/пагінація — без них список ріс би без межі.
+public class AdminUsersPage
+{
+    [JsonPropertyName("users")] public List<AdminUser> Users { get; set; } = new();
+    [JsonPropertyName("total")] public int Total { get; set; }
+    [JsonPropertyName("page")] public int Page { get; set; }
+    [JsonPropertyName("pages")] public int Pages { get; set; }
+}
+
+/// ── Метрики панелі (S16): дані · детекція · збір · акаунти ────────────────────────
 public class AdminMetrics
+{
+    [JsonPropertyName("data")] public MetricData Data { get; set; } = new();
+    [JsonPropertyName("detection")] public MetricDetection Detection { get; set; } = new();
+    [JsonPropertyName("accounts")] public MetricAccounts Accounts { get; set; } = new();
+    [JsonPropertyName("collect")] public MetricCollect Collect { get; set; } = new();
+}
+
+public class MetricData
+{
+    [JsonPropertyName("products")] public int Products { get; set; }
+    [JsonPropertyName("snapshots")] public int Snapshots { get; set; }
+    [JsonPropertyName("events")] public int Events { get; set; }
+    [JsonPropertyName("categories")] public int Categories { get; set; }
+    [JsonPropertyName("sources")] public int Sources { get; set; }
+    [JsonPropertyName("products_1d")] public int Products1d { get; set; }
+    [JsonPropertyName("snapshots_1d")] public int Snapshots1d { get; set; }
+
+    [JsonIgnore] public string ProductsText => $"{Products:N0} товарів  (+{Products1d:N0} за добу)";
+    [JsonIgnore] public string SnapshotsText => $"{Snapshots:N0} снапшотів  (+{Snapshots1d:N0} за добу)";
+    [JsonIgnore] public string EventsText => $"{Events:N0} подій знижок";
+    [JsonIgnore] public string ScopeText => $"{Categories} категорій · {Sources} джерел";
+}
+
+public class MetricDetection
+{
+    [JsonPropertyName("badges")] public List<BadgeRow> Badges { get; set; } = new();
+}
+
+public class BadgeRow
+{
+    [JsonPropertyName("state")] public string State { get; set; } = "";
+    [JsonPropertyName("total")] public int Total { get; set; }
+    [JsonPropertyName("d7")] public int D7 { get; set; }
+
+    [JsonIgnore] public string Label => State switch
+    {
+        "verified" => "перевірено",
+        "verified_provisional" => "перевірено попередньо",
+        "pumped" => "накачано",
+        "declared" => "заявлено",
+        _ => "замало історії",
+    };
+    [JsonIgnore] public string CountText => $"{Total:N0}  (за 7 дн: {D7:N0})";
+}
+
+public class MetricAccounts
 {
     [JsonPropertyName("total")] public int Total { get; set; }
     [JsonPropertyName("verified")] public int Verified { get; set; }
     [JsonPropertyName("banned")] public int Banned { get; set; }
+    [JsonPropertyName("reg_7d")] public int Reg7d { get; set; }
+    [JsonPropertyName("reg_30d")] public int Reg30d { get; set; }
+    [JsonPropertyName("active_7d")] public int Active7d { get; set; }
+    [JsonPropertyName("active_30d")] public int Active30d { get; set; }
     [JsonPropertyName("by_role")] public Dictionary<string, int> ByRole { get; set; } = new();
-    /// Стан збору (той самий вузол, що /api/freshness): хвилини від останнього снапшота.
-    [JsonPropertyName("collect")] public CollectFreshness? Collect { get; set; }
 
+    [JsonIgnore] public string TotalsText =>
+        $"{Total} акаунтів · {Verified} підтверджених · {Banned} заблокованих";
     [JsonIgnore] public string RolesText =>
         $"адмінів {ByRole.GetValueOrDefault("admin")} · замів {ByRole.GetValueOrDefault("moderator")} · "
         + $"колекторів {ByRole.GetValueOrDefault("collector")} · юзерів {ByRole.GetValueOrDefault("user")}";
-
-    [JsonIgnore] public string AccountsText =>
-        $"акаунтів {Total} · підтверджених {Verified} · заблокованих {Banned}";
-
-    [JsonIgnore] public string CollectText => Collect?.Minutes is int m
-        ? (m < 90 ? $"збір: {m} хв тому" : $"збір: {m / 60} год тому")
-        : "збір: даних нема";
+    [JsonIgnore] public string ActivityText =>
+        $"реєстрацій: {Reg7d} за 7 дн / {Reg30d} за 30 · входили: {Active7d} / {Active30d}";
 }
 
-public class CollectFreshness
+public class MetricCollect
 {
     [JsonPropertyName("minutes")] public int? Minutes { get; set; }
+    [JsonPropertyName("stores")] public List<StoreRow> Stores { get; set; } = new();
+    [JsonPropertyName("health")] public CollectHealthNote? Health { get; set; }
+
+    [JsonIgnore] public string HealthText => Health?.Note ?? "стан збору невідомий";
+    [JsonIgnore] public bool HealthOk => Health?.Ok ?? false;
+}
+
+public class CollectHealthNote
+{
+    [JsonPropertyName("ok")] public bool Ok { get; set; }
+    [JsonPropertyName("note")] public string Note { get; set; } = "";
+}
+
+public class StoreRow
+{
+    [JsonPropertyName("source")] public string Source { get; set; } = "";
+    [JsonPropertyName("tasks")] public int Tasks { get; set; }
+    [JsonPropertyName("ok")] public int Ok { get; set; }
+    [JsonPropertyName("fail")] public int Fail { get; set; }
+    [JsonPropertyName("ok_min")] public int? OkMin { get; set; }
+
+    /// Факт, а не оцінка: скільки минуло від ОСТАННЬОГО УСПІШНОГО збору.
+    [JsonIgnore] public string AgoText => OkMin is not int m ? "не збирав"
+        : m < 90 ? $"{m} хв тому" : m < 2880 ? $"{m / 60} год тому" : $"{m / 1440} дн тому";
+    [JsonIgnore] public string DetailText => $"задач {Tasks} · успішних {Ok} · збоїв {Fail} · {AgoText}";
+    /// Мовчить понад добу або не збирав жодного разу — підсвічуємо.
+    [JsonIgnore] public bool IsStale => OkMin is not int m || m > 1440;
+}
+
+/// ── Журнал адмін-дій (S16 П3) ─────────────────────────────────────────────────────
+public class AuditPage
+{
+    [JsonPropertyName("entries")] public List<AuditEntry> Entries { get; set; } = new();
+    [JsonPropertyName("total")] public int Total { get; set; }
+    [JsonPropertyName("page")] public int Page { get; set; }
+    [JsonPropertyName("pages")] public int Pages { get; set; }
+}
+
+public class AuditEntry
+{
+    [JsonPropertyName("audit_id")] public long AuditId { get; set; }
+    [JsonPropertyName("actor_id")] public long? ActorId { get; set; }
+    [JsonPropertyName("actor_email")] public string? ActorEmail { get; set; }
+    [JsonPropertyName("action")] public string Action { get; set; } = "";
+    [JsonPropertyName("target_id")] public long? TargetId { get; set; }
+    [JsonPropertyName("target_email")] public string? TargetEmail { get; set; }
+    [JsonPropertyName("detail")] public string? Detail { get; set; }
+    [JsonPropertyName("created_at")] public DateTime? CreatedAt { get; set; }
+
+    [JsonIgnore] public string ActionLabel => Action switch
+    {
+        "set_role" => "зміна ролі",
+        "set_active" => "бан / розбан",
+        "verify_email" => "підтвердження email",
+        "send_reset" => "скидання пароля",
+        "delete_user" => "видалення акаунта",
+        _ => Action,
+    };
+
+    /// «(акаунт видалено)» — запис пережив видалення (0171): id обнулено, email лишився.
+    [JsonIgnore] public string WhoText =>
+        $"{ActorEmail ?? "—"} → {TargetEmail ?? "—"}"
+        + (TargetId is null && TargetEmail is not null ? "  (акаунт видалено)" : "");
+
+    [JsonIgnore] public string WhenText =>
+        CreatedAt is DateTime d ? d.ToLocalTime().ToString("dd.MM.yy HH:mm") : "";
+
+    [JsonIgnore] public string DetailText =>
+        string.IsNullOrWhiteSpace(Detail) ? ActionLabel : $"{ActionLabel} · {Detail}";
 }

@@ -50,6 +50,10 @@ public static class MauiProgram
         builder.Services.AddTransient<ComparePage>();
         builder.Services.AddTransient<AdminViewModel>();
         builder.Services.AddTransient<AdminPage>();
+        builder.Services.AddTransient<AdminMetricsViewModel>();
+        builder.Services.AddTransient<AdminMetricsPage>();
+        builder.Services.AddTransient<AdminAuditViewModel>();
+        builder.Services.AddTransient<AdminAuditPage>();
         builder.Services.AddTransient<DetailViewModel>();
         builder.Services.AddTransient<DetailPage>();
         builder.Services.AddTransient<LoginViewModel>();

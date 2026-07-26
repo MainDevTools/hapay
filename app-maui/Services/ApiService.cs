@@ -292,13 +292,53 @@ public class ApiService
         resp.EnsureSuccessStatusCode();
     }
 
-    // ── адмін-панель (S15): гейт на сервері, клієнт лише ховає вхід ──────────────────
-    public async Task<List<AdminUser>> AdminUsersAsync(CancellationToken ct = default)
+    // ── адмін-панель (S15/S16): гейт на сервері, клієнт лише ховає вхід ──────────────
+    public async Task<AdminUsersPage> AdminUsersAsync(string? q = null, string? role = null,
+                                                      bool? active = null, int page = 0,
+                                                      CancellationToken ct = default)
     {
-        var resp = await _http.GetAsync($"{Base}/api/admin/users", ct);
+        var p = new List<string> { $"page={page}" };
+        if (!string.IsNullOrWhiteSpace(q)) p.Add($"q={Uri.EscapeDataString(q)}");
+        if (!string.IsNullOrWhiteSpace(role)) p.Add($"role={role}");
+        if (active is bool a) p.Add($"active={(a ? "true" : "false")}");
+        var resp = await _http.GetAsync($"{Base}/api/admin/users?{string.Join("&", p)}", ct);
         if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
         if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
-        return await resp.Content.ReadFromJsonAsync<List<AdminUser>>(_json, ct) ?? new();
+        return await resp.Content.ReadFromJsonAsync<AdminUsersPage>(_json, ct) ?? new();
+    }
+
+    public async Task<AuditPage> AdminAuditAsync(string? action = null, int page = 0,
+                                                 CancellationToken ct = default)
+    {
+        var p = new List<string> { $"page={page}" };
+        if (!string.IsNullOrWhiteSpace(action)) p.Add($"action={action}");
+        var resp = await _http.GetAsync($"{Base}/api/admin/audit?{string.Join("&", p)}", ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
+        return await resp.Content.ReadFromJsonAsync<AuditPage>(_json, ct) ?? new();
+    }
+
+    /// Ручне підтвердження email — коли лист не доходить (сервер пише це в аудит).
+    public async Task AdminVerifyAsync(long userId, CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsync($"{Base}/api/admin/users/{userId}/verify", null, ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
+    }
+
+    public async Task AdminSendResetAsync(long userId, CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsync($"{Base}/api/admin/users/{userId}/send-reset", null, ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
+    }
+
+    /// Видалення акаунта — незворотне, лише admin (сервер відхилить решту).
+    public async Task AdminDeleteUserAsync(long userId, CancellationToken ct = default)
+    {
+        var resp = await _http.DeleteAsync($"{Base}/api/admin/users/{userId}", ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
     }
 
     public async Task<AdminMetrics?> AdminMetricsAsync(CancellationToken ct = default)

@@ -172,40 +172,77 @@ def add_watchlist(body: dict, user=Depends(require_user), conn=Depends(get_conn)
 _COLLECTOR_ROLES = {"collector", "moderator", "admin"}
 
 
-def require_collector(authorization: str | None = Header(default=None)):
+def require_collector(authorization: str | None = Header(default=None),
+                      conn=Depends(get_conn)):
     """Гейт ingest: статичний bearer-токен колектора (S10 — скрипти/GH Actions) АБО
     app-акаунт із роллю collector+ (S11 етап 3 — збір із застосунку). Повертає мітку
-    колектора для провенансу (label токена або `acct:<user_id>`)."""
+    колектора для провенансу (label токена або `acct:<user_id>`).
+
+    Роль звіряємо з БАЗОЮ, не з токена (S16): інакше знижений або забанений колектор
+    слав би дані далі — до кінця життя свого JWT."""
     label = qingest.collector_label(authorization)
     if label:
         return label
     claims = qauth.bearer_claims(authorization)
-    if claims and claims.get("role") in _COLLECTOR_ROLES:
-        return f"acct:{claims.get('sub')}"
+    if claims:
+        u = qdb.get_user(conn, int(claims["sub"]))
+        if u is not None and u.get("is_active", True) and u["role"] in _COLLECTOR_ROLES:
+            return f"acct:{u['user_id']}"
     raise HTTPException(401, "потрібен токен колектора або акаунт із роллю collector")
 
 
 # ── акаунти (S11): реєстрація / логін / профіль / watchlist на юзера ──────────────
 def require_account(authorization: str | None = Header(default=None)):
-    """Гейт для app-акаунтів: валідний JWT (api/auth). Повертає claims (sub, role)."""
+    """Гейт для app-акаунтів: валідний JWT (api/auth). Повертає claims (sub, role).
+
+    ⚠ РОЛЬ У CLAIMS — З МОМЕНТУ ВИДАЧІ ТОКЕНА, вона могла застаріти. Для будь-якого
+    рішення про ПРАВА бери роль із бази (`_live_user` / require_moderator/admin),
+    інакше зміна ролі не діятиме до перелогіну, а відібрати права буде неможливо."""
     claims = qauth.bearer_claims(authorization)
     if claims is None:
         raise HTTPException(401, "потрібен валідний токен акаунта")
     return claims
 
 
-def require_moderator(claims=Depends(require_account)):
-    """Гейт адмін-панелі (S15): role ∈ {moderator, admin}. Керування акаунтами + метрики."""
-    if claims.get("role") not in ("moderator", "admin"):
+def require_active_account(claims=Depends(require_account), conn=Depends(get_conn)):
+    """require_account + звірка, що акаунт живий і не забанений. Бан мусить діяти на
+    ЧИННІ сесії теж — інакше «заблоковано» означало б лише «не зможе увійти знову»."""
+    _live_user(claims, conn)
+    return claims
+
+
+def _live_user(claims, conn):
+    """АКТУАЛЬНІ роль і стан акаунта — з БД, не з токена.
+
+    Роль зашита в JWT на момент видачі, тож перевірка за claims має дві вади, і обидві
+    ми зустріли живцем (2026-07-26): підвищений юзер не отримував прав до перелогіну, а
+    ЗНИЖЕНИЙ адмін зберігав би повні права до кінця життя токена — тобто відібрати
+    права було неможливо. Те саме з баном: він діяв лише на новий вхід.
+
+    Ціна — один запит на адмін-виклик; ці ендпойнти й так ходять у базу."""
+    u = qdb.get_user(conn, int(claims["sub"]))
+    if u is None:
+        raise HTTPException(401, "акаунт не існує")
+    if not u.get("is_active", True):
+        raise HTTPException(403, "акаунт заблоковано")
+    return u
+
+
+def require_moderator(claims=Depends(require_account), conn=Depends(get_conn)):
+    """Гейт адмін-панелі (S15): role ∈ {moderator, admin}. Керування акаунтами + метрики.
+    Повертає claims із ЖИВОЮ роллю — далі по коду вона вже звірена з базою."""
+    u = _live_user(claims, conn)
+    if u["role"] not in ("moderator", "admin"):
         raise HTTPException(403, "потрібні права модератора")
-    return claims
+    return {"sub": u["user_id"], "role": u["role"]}
 
 
-def require_admin(claims=Depends(require_account)):
+def require_admin(claims=Depends(require_account), conn=Depends(get_conn)):
     """Гейт зміни ролей (S15): лише admin. Найвищий рівень — роздача прав."""
-    if claims.get("role") != "admin":
+    u = _live_user(claims, conn)
+    if u["role"] != "admin":
         raise HTTPException(403, "потрібні права адміністратора")
-    return claims
+    return {"sub": u["user_id"], "role": u["role"]}
 
 
 def _rate_gate(request: Request, limiter: qrl.RateLimiter, limit: int, window: int):
@@ -248,7 +285,7 @@ def register(body: dict, request: Request, conn=Depends(get_conn)):
 
 
 @app.post("/api/auth/verify")
-def verify_email(body: dict, request: Request, claims=Depends(require_account),
+def verify_email(body: dict, request: Request, claims=Depends(require_active_account),
                  conn=Depends(get_conn)):
     """Підтвердити email кодом із листа. Прив'язано до залогіненого юзера."""
     _rate_gate(request, qrl.code_limiter, qrl.CODE_LIMIT, qrl.CODE_WINDOW_S)
@@ -263,7 +300,7 @@ def verify_email(body: dict, request: Request, claims=Depends(require_account),
 
 
 @app.post("/api/auth/verify/resend")
-def verify_resend(request: Request, claims=Depends(require_account), conn=Depends(get_conn)):
+def verify_resend(request: Request, claims=Depends(require_active_account), conn=Depends(get_conn)):
     """Надіслати новий код підтвердження (якщо email ще не підтверджено)."""
     _rate_gate(request, qrl.email_limiter, qrl.EMAIL_LIMIT, qrl.EMAIL_WINDOW_S)
     u = qdb.get_user(conn, int(claims["sub"]))
@@ -326,7 +363,7 @@ def login(body: dict, request: Request, conn=Depends(get_conn)):
 
 
 @app.get("/api/me")
-def me(claims=Depends(require_account), conn=Depends(get_conn)):
+def me(claims=Depends(require_active_account), conn=Depends(get_conn)):
     u = qdb.get_user(conn, int(claims["sub"]))
     if u is None:
         raise HTTPException(401, "акаунт не існує")
@@ -334,12 +371,12 @@ def me(claims=Depends(require_account), conn=Depends(get_conn)):
 
 
 @app.get("/api/me/watchlist")
-def my_watchlist(claims=Depends(require_account), conn=Depends(get_conn)):
+def my_watchlist(claims=Depends(require_active_account), conn=Depends(get_conn)):
     return qdb.list_watchlist_user(conn, int(claims["sub"]))
 
 
 @app.post("/api/me/watchlist")
-def my_watchlist_add(body: dict, claims=Depends(require_account), conn=Depends(get_conn)):
+def my_watchlist_add(body: dict, claims=Depends(require_active_account), conn=Depends(get_conn)):
     kind = body.get("kind")
     if kind not in ("category", "store_product", "query"):
         raise HTTPException(400, "kind ∈ category|store_product|query")
@@ -351,7 +388,7 @@ def my_watchlist_add(body: dict, claims=Depends(require_account), conn=Depends(g
 
 
 @app.get("/api/me/watchlist/drops")
-def my_price_drops(claims=Depends(require_account), conn=Depends(get_conn)):
+def my_price_drops(claims=Depends(require_active_account), conn=Depends(get_conn)):
     """Відстежувані товари, що подешевшали від часу останнього сповіщення.
     Застосунок опитує це у фоні й показує ЛОКАЛЬНЕ сповіщення (без сторонніх
     push-сервісів — §7.7: жодної телеметрії назовні)."""
@@ -359,7 +396,7 @@ def my_price_drops(claims=Depends(require_account), conn=Depends(get_conn)):
 
 
 @app.post("/api/me/watchlist/drops/ack")
-def my_price_drops_ack(body: dict, claims=Depends(require_account), conn=Depends(get_conn)):
+def my_price_drops_ack(body: dict, claims=Depends(require_active_account), conn=Depends(get_conn)):
     """Підтвердити, що про зниження повідомлено — щоб не дзвонити вдруге про те саме."""
     ids = (body or {}).get("watchlist_ids")
     if not isinstance(ids, list) or not all(isinstance(i, int) for i in ids):
@@ -368,14 +405,14 @@ def my_price_drops_ack(body: dict, claims=Depends(require_account), conn=Depends
 
 
 @app.get("/api/me/watchlist/category-news")
-def my_category_news(claims=Depends(require_account), conn=Depends(get_conn)):
+def my_category_news(claims=Depends(require_active_account), conn=Depends(get_conn)):
     """Відстежувані КАТЕГОРІЇ з новими знижками від останнього сповіщення — одне
     згруповане сповіщення на категорію («N нових знижок, топ −X%»), не спам."""
     return qdb.list_category_news(conn, int(claims["sub"]))
 
 
 @app.post("/api/me/watchlist/category-news/ack")
-def my_category_news_ack(body: dict, claims=Depends(require_account), conn=Depends(get_conn)):
+def my_category_news_ack(body: dict, claims=Depends(require_active_account), conn=Depends(get_conn)):
     """Підтвердити показ категорійних новин — водяний знак пересувається на now()."""
     ids = (body or {}).get("watchlist_ids")
     if not isinstance(ids, list) or not all(isinstance(i, int) for i in ids):
@@ -384,7 +421,7 @@ def my_category_news_ack(body: dict, claims=Depends(require_account), conn=Depen
 
 
 @app.delete("/api/me/watchlist/{watchlist_id}")
-def my_watchlist_remove(watchlist_id: int, claims=Depends(require_account),
+def my_watchlist_remove(watchlist_id: int, claims=Depends(require_active_account),
                         conn=Depends(get_conn)):
     """Прибрати зі стеження. Чужий рядок не видалиться (user_id у WHERE) → 404."""
     if not qdb.remove_watchlist_user(conn, int(claims["sub"]), watchlist_id):

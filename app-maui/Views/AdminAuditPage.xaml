@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Hapay.Views.AdminAuditPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:Hapay.ViewModels"
+    xmlns:models="clr-namespace:Hapay.Models"
+    xmlns:conv="clr-namespace:Hapay.Converters"
+    x:DataType="vm:AdminAuditViewModel"
+    Title="Журнал дій">
+
+    <ContentPage.Resources>
+        <conv:StringNotEmptyConverter x:Key="NotEmpty" />
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <VerticalStackLayout Grid.Row="0" Padding="14,10" Spacing="6">
+            <Picker ItemsSource="{Binding ActionFilters}" SelectedItem="{Binding ActionFilter}"
+                    FontSize="14" />
+            <Label Text="{Binding TotalText}" Style="{StaticResource Caption}" />
+            <Label Text="{Binding Error}"
+                   IsVisible="{Binding Error, Converter={StaticResource NotEmpty}}"
+                   TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}" />
+        </VerticalStackLayout>
+
+        <RefreshView Grid.Row="1" Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsLoading}">
+            <CollectionView ItemsSource="{Binding Entries}">
+                <CollectionView.EmptyView>
+                    <Label Text="Журнал порожній" Margin="16" Style="{StaticResource Caption}"
+                           HorizontalOptions="Center" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:AuditEntry">
+                        <Border Style="{StaticResource Card}" Margin="12,4" Padding="12"
+                                StrokeShape="RoundRectangle 12">
+                            <VerticalStackLayout Spacing="2">
+                                <!-- «хто → кому»; для записів, що пережили видалення акаунта,
+                                     WhoText сам домальовує «(акаунт видалено)» -->
+                                <Label Text="{Binding WhoText}" Style="{StaticResource Body}"
+                                       LineBreakMode="WordWrap" />
+                                <Label Text="{Binding DetailText}" Style="{StaticResource Caption}" />
+                                <Label Text="{Binding WhenText}" Style="{StaticResource Caption}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+        <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Padding="14,8"
+              IsVisible="{Binding HasPages}">
+            <Button Text="←" Command="{Binding PrevPageCommand}" WidthRequest="52"
+                    HeightRequest="36" FontSize="14" />
+            <Label Grid.Column="1" Text="{Binding PageText}" HorizontalOptions="Center"
+                   VerticalOptions="Center" Style="{StaticResource Caption}" />
+            <Button Grid.Column="2" Text="→" Command="{Binding NextPageCommand}"
+                    WidthRequest="52" HeightRequest="36" FontSize="14" />
+        </Grid>
+    </Grid>
+</ContentPage>

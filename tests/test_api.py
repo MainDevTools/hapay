@@ -1259,6 +1259,45 @@ def main():
     checks.append(("admin_audit пише слід (set_role+set_active)",
                    naudit >= 3 and {"set_role", "set_active"} <= acts, (naudit, acts)))
 
+    # ── S16: права беруться з БАЗИ, не з токена ──────────────────────────────────
+    # Знайдено живцем 2026-07-26: роль зашита в JWT на момент видачі, тож підвищений
+    # юзер не отримував прав до перелогіну, а ЗНИЖЕНИЙ адмін зберігав би повні права
+    # до кінця життя токена — відібрати права було неможливо.
+    up = client.post("/api/auth/register",
+                     json={"email": "promoted@hapay.today", "password": "promotedpass"}).json()
+    uphdr = {"Authorization": f"Bearer {up.get('token', '')}"}     # токен видано з role=user
+    checks.append(("свіжий юзер в адмін-панель → 403",
+                   client.get("/api/admin/users", headers=uphdr).status_code == 403, None))
+    with psycopg.connect(URL, autocommit=True) as c:
+        c.execute("UPDATE app_user SET role='moderator' WHERE lower(email)='promoted@hapay.today'")
+    checks.append(("підвищення діє БЕЗ перелогіну (той самий токен) → 200",
+                   client.get("/api/admin/users", headers=uphdr).status_code == 200, None))
+    with psycopg.connect(URL, autocommit=True) as c:
+        c.execute("UPDATE app_user SET role='user' WHERE lower(email)='promoted@hapay.today'")
+    checks.append(("зниження діє НЕГАЙНО (старий токен уже без прав) → 403",
+                   client.get("/api/admin/users", headers=uphdr).status_code == 403, None))
+    # бан мусить діяти на ЧИННУ сесію, не лише на новий вхід
+    with psycopg.connect(URL, autocommit=True) as c:
+        c.execute("UPDATE app_user SET is_active=false WHERE lower(email)='promoted@hapay.today'")
+    checks.append(("забанений із живим токеном втрачає доступ до /api/me → 403",
+                   client.get("/api/me", headers=uphdr).status_code == 403, None))
+    checks.append(("забанений із живим токеном не читає watchlist → 403",
+                   client.get("/api/me/watchlist", headers=uphdr).status_code == 403, None))
+    with psycopg.connect(URL, autocommit=True) as c:
+        c.execute("UPDATE app_user SET is_active=true WHERE lower(email)='promoted@hapay.today'")
+    checks.append(("розбан повертає доступ тим самим токеном",
+                   client.get("/api/me", headers=uphdr).status_code == 200, None))
+    # той самий принцип для збору: знижений колектор більше не інджестить
+    with psycopg.connect(URL, autocommit=True) as c:
+        c.execute("UPDATE app_user SET role='user' WHERE lower(email)='collector@hapay.today'")
+    checks.append(("знижений колектор більше не інджестить → 401",
+                   client.post("/api/ingest/html", headers=chdr,
+                               json={"source": "Foxtrot",
+                                     "url": "https://www.foxtrot.com.ua/uk/shop/x.html",
+                                     "html": "<html></html>"}).status_code == 401, None))
+    with psycopg.connect(URL, autocommit=True) as c:
+        c.execute("UPDATE app_user SET role='collector' WHERE lower(email)='collector@hapay.today'")
+
     # ── S16 П3: журнал аудиту (до S16 admin_audit була write-only) ───────────────
     aud = client.get("/api/admin/audit", headers=modhdr)
     aj = aud.json()

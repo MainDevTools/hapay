@@ -8,23 +8,39 @@
     xmlns:models="clr-namespace:Hapay.Models"
     xmlns:conv="clr-namespace:Hapay.Converters"
     x:DataType="vm:AdminViewModel"
-    Title="Адмін-панель">
+    Title="Акаунти">
 
     <ContentPage.Resources>
         <conv:StringNotEmptyConverter x:Key="NotEmpty" />
     </ContentPage.Resources>
 
-    <Grid RowDefinitions="Auto,*">
+    <Grid RowDefinitions="Auto,*,Auto">
 
-        <!-- шапка: метрики + результат/помилка останньої дії -->
-        <VerticalStackLayout Grid.Row="0" Padding="16,12" Spacing="6">
-            <Border Style="{StaticResource Card}" Padding="12" StrokeShape="RoundRectangle 12">
-                <VerticalStackLayout Spacing="2">
-                    <Label Text="{Binding Metrics.AccountsText}" Style="{StaticResource Body}" />
-                    <Label Text="{Binding Metrics.RolesText}" Style="{StaticResource Caption}" />
-                    <Label Text="{Binding Metrics.CollectText}" Style="{StaticResource Caption}" />
-                </VerticalStackLayout>
-            </Border>
+        <VerticalStackLayout Grid.Row="0" Padding="14,10" Spacing="8">
+            <!-- вхід у метрики й журнал: на телефоні їм тісно поруч зі списком -->
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                <Button Text="Метрики" Command="{Binding OpenMetricsCommand}"
+                        FontSize="14" HeightRequest="40" BackgroundColor="Transparent"
+                        TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
+                        BorderColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
+                        BorderWidth="1" />
+                <Button Grid.Column="1" Text="Журнал" Command="{Binding OpenAuditCommand}"
+                        FontSize="14" HeightRequest="40" BackgroundColor="Transparent"
+                        TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
+                        BorderColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
+                        BorderWidth="1" />
+            </Grid>
+
+            <SearchBar Placeholder="пошук за email" Text="{Binding Search}" />
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                <Picker ItemsSource="{Binding RoleFilters}" SelectedItem="{Binding RoleFilter}"
+                        FontSize="14" />
+                <Picker Grid.Column="1" ItemsSource="{Binding StateFilters}"
+                        SelectedItem="{Binding StateFilter}" FontSize="14" />
+            </Grid>
+
+            <Label Text="{Binding FoundText}" Style="{StaticResource Caption}" />
 
             <!-- відмову сервера показуємо ТЕКСТОМ як є (напр. «не можна лишити систему
                  без активного адміна») — клієнт не переказує правил своїми словами -->
@@ -38,48 +54,79 @@
         <RefreshView Grid.Row="1" Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsLoading}">
             <CollectionView ItemsSource="{Binding Users}">
                 <CollectionView.EmptyView>
-                    <Label Text="Акаунтів ще немає" Margin="16" Style="{StaticResource Caption}"
+                    <Label Text="Нічого не знайдено" Margin="16" Style="{StaticResource Caption}"
                            HorizontalOptions="Center" />
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:AdminUser">
                         <Border Style="{StaticResource Card}" Margin="12,4" Padding="12"
                                 StrokeShape="RoundRectangle 12" Opacity="{Binding RowOpacity}">
-                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="2">
+                            <VerticalStackLayout Spacing="4">
 
-                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding Email}"
-                                       Style="{StaticResource Body}" LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding Email}" Style="{StaticResource Body}"
+                                       LineBreakMode="TailTruncation" />
 
-                                <!-- роль + стан: людськими словами, не машинними мітками -->
-                                <Label Grid.Row="1" Grid.Column="0" Style="{StaticResource Caption}"
-                                       Text="{Binding RoleLabel, StringFormat='роль: {0}'}" />
-                                <Label Grid.Row="2" Grid.Column="0" Style="{StaticResource Caption}">
+                                <Label Style="{StaticResource Caption}">
                                     <Label.Text>
-                                        <MultiBinding StringFormat="{}{0} · email {1} · стежень {2}">
+                                        <MultiBinding StringFormat="{}{0} · {1} · email {2} · стежень {3}">
+                                            <Binding Path="RoleLabel" />
                                             <Binding Path="StatusText" />
                                             <Binding Path="VerifiedGlyph" />
                                             <Binding Path="WatchlistN" />
                                         </MultiBinding>
                                     </Label.Text>
                                 </Label>
+                                <Label Style="{StaticResource Caption}">
+                                    <Label.Text>
+                                        <MultiBinding StringFormat="{}{0} · {1}">
+                                            <Binding Path="CreatedText" />
+                                            <Binding Path="LastLoginText" />
+                                        </MultiBinding>
+                                    </Label.Text>
+                                </Label>
 
-                                <!-- дії: «Роль» лише повному адміну (сервер підтверджує гейтом) -->
-                                <HorizontalStackLayout Grid.Row="0" Grid.Column="1" Grid.RowSpan="3"
-                                                       Spacing="6" VerticalOptions="Center">
-                                    <Button Text="Роль" FontSize="12" Padding="10,4" HeightRequest="34"
+                                <!-- дії; «Роль»/«Видалити» лише повному адміну (сервер гейтить теж) -->
+                                <FlexLayout Wrap="Wrap" JustifyContent="Start" Margin="0,4,0,0">
+                                    <Button Text="{Binding BanActionText}" FontSize="12"
+                                            Padding="10,2" HeightRequest="32" Margin="0,0,6,4"
+                                            Command="{Binding Source={x:Reference Page}, Path=BindingContext.ToggleBanCommand}"
+                                            CommandParameter="{Binding .}" />
+                                    <Button Text="Роль" FontSize="12" Padding="10,2"
+                                            HeightRequest="32" Margin="0,0,6,4"
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.ChangeRoleCommand}"
                                             CommandParameter="{Binding .}"
                                             IsVisible="{Binding Source={x:Reference Page}, Path=BindingContext.CanChangeRoles}" />
-                                    <Button Text="{Binding BanActionText}" FontSize="12" Padding="10,4"
-                                            HeightRequest="34"
-                                            Command="{Binding Source={x:Reference Page}, Path=BindingContext.ToggleBanCommand}"
+                                    <Button Text="Підтвердити email" FontSize="12" Padding="10,2"
+                                            HeightRequest="32" Margin="0,0,6,4"
+                                            Command="{Binding Source={x:Reference Page}, Path=BindingContext.VerifyUserCommand}"
+                                            CommandParameter="{Binding .}"
+                                            IsVisible="{Binding CanVerify}" />
+                                    <Button Text="Скинути пароль" FontSize="12" Padding="10,2"
+                                            HeightRequest="32" Margin="0,0,6,4"
+                                            Command="{Binding Source={x:Reference Page}, Path=BindingContext.SendResetCommand}"
                                             CommandParameter="{Binding .}" />
-                                </HorizontalStackLayout>
-                            </Grid>
+                                    <Button Text="Видалити" FontSize="12" Padding="10,2"
+                                            HeightRequest="32" Margin="0,0,6,4"
+                                            TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}"
+                                            Command="{Binding Source={x:Reference Page}, Path=BindingContext.DeleteUserCommand}"
+                                            CommandParameter="{Binding .}"
+                                            IsVisible="{Binding Source={x:Reference Page}, Path=BindingContext.CanChangeRoles}" />
+                                </FlexLayout>
+                            </VerticalStackLayout>
                         </Border>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
         </RefreshView>
+
+        <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Padding="14,8"
+              IsVisible="{Binding HasPages}">
+            <Button Text="←" Command="{Binding PrevPageCommand}" WidthRequest="52"
+                    HeightRequest="36" FontSize="14" />
+            <Label Grid.Column="1" Text="{Binding PageText}" HorizontalOptions="Center"
+                   VerticalOptions="Center" Style="{StaticResource Caption}" />
+            <Button Grid.Column="2" Text="→" Command="{Binding NextPageCommand}"
+                    WidthRequest="52" HeightRequest="36" FontSize="14" />
+        </Grid>
     </Grid>
 </ContentPage>
