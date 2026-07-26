@@ -145,7 +145,11 @@
   .body{grid-area:b}
   .pricebox{grid-area:p;display:flex;flex-direction:column;gap:2px}
   .offers{color:var(--muted);font-size:12px;font-weight:600}
+  /* Кнопка й підвал — лише на десктопі. Правила «сховати» мусять стояти ДО медіа-запиту:
+     @media не додає специфічності, тож однакове селектором правило, написане нижче,
+     перемогло б показ (саме на це я й наступив 2026-07-26 — підвал не з'являвся). */
   .buy{display:none}
+  .foot{display:none}
 
   /* ─────────────────────────── бічна колонка (десктоп) ───────────────────────────
      Категорій 171 у 31 розділі — плоский список був би стіною. Розділ = заголовок,
@@ -212,8 +216,6 @@
     .sheet.on{transform:translate(-50%,-50%);opacity:1}
     .grip{display:none}
   }
-
-  .foot{display:none}
 </style>
 </head>
 <body>
