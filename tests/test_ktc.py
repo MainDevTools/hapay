@@ -66,5 +66,19 @@ def _main():
     sys.exit(1 if failed else 0)
 
 
+
+def test_image_from_picture_srcset_not_sticker():
+    """Фото було втрачене НЕ через його відсутність: у `<img src>` справді стікери
+    (`ktc.ua/imgd/stickers/…`), а мініатюра лежить у `<picture><source srcset>` на
+    `img.ktc.ua`. Через цю плутанину 2405 із 2405 товарів KTC стояли без фото."""
+    items = _items()
+    assert items, "касета має давати позиції"
+    assert all(i.image_url for i in items), \
+        f"без фото: {[i.title[:30] for i in items if not i.image_url]}"
+    for i in items:
+        assert i.image_url.startswith("https://img.ktc.ua/"), i.image_url
+        assert "sticker" not in i.image_url, f"стікер замість фото: {i.image_url}"
+
 if __name__ == "__main__":
     _main()
+

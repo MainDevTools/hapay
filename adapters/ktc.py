@@ -13,13 +13,40 @@ MPN у назві (дужки) → матчинг T15. З ДЦ 403 → сате�
 """
 from __future__ import annotations
 
+import re
 from urllib.parse import urlsplit
 
 from selectolax.lexbor import LexborHTMLParser
 
 from .base import RawItem, canon_ref, parse_price_to_kop
 
+# Мініатюри товарів лежать на окремому хості; стікери й банери — на ktc.ua/imgd,
+# і саме через них фото колись визнали «непридатними».
+IMG_HOST_RE = re.compile(r"^https://img\.ktc\.ua/")
+
 BASE = "https://ktc.ua"
+
+
+def _image_of(card) -> str | None:
+    """Фото товару з картки лістинга (інв. B — беремо лише ВКАЗІВНИК, не байти).
+
+    ⚠ Довго стояло `image_url=None` з поміткою «фото KTC lazy/стікери». Помітка була
+    напівправдою: в `<img src>` справді стікери (`ktc.ua/imgd/stickers/…`), але сама
+    мініатюра лежить у `<picture><source srcset>` на `img.ktc.ua`. Наслідок побачили
+    аж на сайті 2026-07-26: 2405 із 2405 товарів KTC без фото, третина стрічки —
+    плейсхолдери.
+
+    Беремо саме `source[srcset]`, а не `data-images`: другий — це ВСЯ галерея товару,
+    і її перший кадр не збігається з тим, що крамниця показує в лістингу."""
+    node = card.css_first("picture source[srcset]")
+    if node is None:
+        return None
+    # srcset може нести дескриптори («url 2x, url2 3x») — беремо перший URL
+    raw = (node.attributes.get("srcset") or "").strip()
+    url = raw.split(",")[0].strip().split(" ")[0]
+    if not url.startswith("https://") or not IMG_HOST_RE.match(url):
+        return None                       # стікери/банери з іншого хоста — не фото товару
+    return url
 
 
 class KtcAdapter:
@@ -71,7 +98,7 @@ class KtcAdapter:
                 price_now_kop=now_kop,
                 price_old_kop=old_kop,
                 in_stock=True,                # лістинг не маркує відсутність; OOS зникає з видачі
-                image_url=None,               # фото KTC lazy/стікери — не беремо (плейсхолдер у застосунку)
+                image_url=_image_of(card),
                 discount_pct=pct,
             ))
         return items
