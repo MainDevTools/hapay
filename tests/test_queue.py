@@ -206,8 +206,13 @@ def main():
         # ── колектор оголошує, що ВМІЄ (S23) ──────────────────────────────────────
         # Серверний колектор без WebView і з ДЦ-адресою не має брати задачі, які
         # гарантовано провалить: збій зіпсував би їм лічильник замість лишити телефону.
+        # чергу перед цим уже розібрали попередні перевірки — повертаємо все у «дозріле»,
+        # інакше перша ж оренда тут порожня і блок падає на порожньому списку
+        conn.execute("UPDATE collect_task SET leased_until = NULL, "
+                     "not_before = now() - interval '1 hour'")
         got_any = qtasks.lease_tasks(conn, "t-src", 40)
         srcs = sorted({t["source"] for t in got_any})
+        assert srcs, "оренда без фільтра не дала жодної задачі — стан черги зламано"
         checks.append(("оренда без фільтра віддає різні крамниці", len(srcs) > 1, srcs[:4]))
         conn.execute("UPDATE collect_task SET leased_until = NULL, "
                      "not_before = now() - interval '1 hour'")
