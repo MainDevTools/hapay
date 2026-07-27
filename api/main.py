@@ -81,6 +81,24 @@ _META = {
 }
 
 
+def _asset_stamp() -> str:
+    """Мітка версії статики = найсвіжіший mtime серед css/js.
+
+    Навіщо, якщо є `Cache-Control: no-cache`. Заголовок діє лише на НОВІ відповіді —
+    копія, збережена браузером ДО його появи, живе за евристикою й далі. Саме на це я
+    двічі наступив, перевіряючи власні правки: сторінка приїжджала нова, стилі й
+    скрипти лишались старі. Мітка в адресі робить стару копію просто іншим ресурсом,
+    тож жодного «нова розмітка + старий код» більше не буває — ні в мене, ні в людей,
+    які відкривали сайт учора.
+
+    Рахуємо на кожен запит: три `stat()` дешевші за клас помилок, який вони знімають,
+    а перерахунок на старті процесу давав би стару мітку після `git pull` без рестарту."""
+    try:
+        return str(max(int(os.path.getmtime(os.path.join(WEB_DIR, n))) for n in _ASSETS))
+    except OSError:
+        return "0"
+
+
 def _page(name: str, head: str, summary: str = "", status: int = 200) -> HTMLResponse:
     """Готовий HTML із підставленим блоком <head>. Якщо маркера немає — віддаємо як є:
     сторінка без прев'ю краща за сторінку з винятком."""
@@ -89,6 +107,9 @@ def _page(name: str, head: str, summary: str = "", status: int = 200) -> HTMLRes
     src = src.replace(_SEO_MARK, head, 1)
     if summary:
         src = src.replace(_SUMMARY_MARK, summary, 1)
+    stamp = _asset_stamp()
+    for a in _ASSETS:
+        src = src.replace(f'"/s/{a}"', f'"/s/{a}?v={stamp}"')
     return HTMLResponse(src, status_code=status, headers=_NOCACHE)
 
 
