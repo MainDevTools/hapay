@@ -27,6 +27,10 @@
 
             <Label Text="{Binding Error}" TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}"
                    IsVisible="{Binding Error, Converter={StaticResource NotEmpty}}" />
+            <!-- успіх реєстрації: не помилка, тож і колір не тривожний -->
+            <Label Text="{Binding Notice}" LineBreakMode="WordWrap"
+                   TextColor="{AppThemeBinding Light={StaticResource SaveFgLight}, Dark={StaticResource SaveFgDark}}"
+                   IsVisible="{Binding Notice, Converter={StaticResource NotEmpty}}" />
 
             <Button Text="{Binding SubmitText}" Command="{Binding SubmitCommand}"
                     HeightRequest="48" />

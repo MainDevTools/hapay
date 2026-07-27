@@ -14,6 +14,8 @@ public partial class LoginViewModel : ObservableObject
     [ObservableProperty] private bool _isRegister;      // false = вхід, true = реєстрація
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private string? _error;
+    /// Успішне повідомлення (реєстрація пройшла) — окремо від помилки, бо це не збій.
+    [ObservableProperty] private string? _notice;
 
     public LoginViewModel(AuthService auth) => _auth = auth;
 
@@ -24,6 +26,7 @@ public partial class LoginViewModel : ObservableObject
     partial void OnIsRegisterChanged(bool value)
     {
         Error = null;
+        Notice = null;      // перемкнули режим — стара «готово» більше не про це
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(SubmitText));
         OnPropertyChanged(nameof(ToggleText));
@@ -41,6 +44,7 @@ public partial class LoginViewModel : ObservableObject
     {
         if (IsBusy) return;
         Error = null;
+        Notice = null;
 
         if (string.IsNullOrWhiteSpace(Email) || !Email.Contains('@'))
         {
@@ -56,8 +60,17 @@ public partial class LoginViewModel : ObservableObject
         IsBusy = true;
         try
         {
-            if (IsRegister) await _auth.RegisterAsync(Email.Trim(), Password);
-            else await _auth.LoginAsync(Email.Trim(), Password);
+            if (IsRegister)
+            {
+                // Реєстрація не логінить: сервер навмисно відповідає однаково на нову
+                // й на вже зареєстровану адресу, тож видана сесія викрила б різницю.
+                await _auth.RegisterAsync(Email.Trim(), Password);
+                Password = "";
+                IsRegister = false;                // лишаємось на екрані, але вже у вході
+                Notice = "Готово. Ми надіслали лист на цю адресу — тепер увійди своїм паролем.";
+                return;
+            }
+            await _auth.LoginAsync(Email.Trim(), Password);
             Password = "";
             await Shell.Current.GoToAsync("..");   // назад на попередній екран (Home/Profile)
         }

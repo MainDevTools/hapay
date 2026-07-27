@@ -114,8 +114,15 @@ public class ApiService
             $"{Base}/api/product/{storeProductId}/specs", _json, ct))?.Specs;
 
     // ── auth (S11) ────────────────────────────────────────────────────────────────
-    public Task<AuthResult> RegisterAsync(string email, string password, CancellationToken ct = default) =>
-        PostAuthAsync("/api/auth/register", email, password, ct);
+    /// Реєстрація НЕ повертає сесію: сервер відповідає однаково на нову й на вже
+    /// зареєстровану адресу, тож токен видав би саме те, що ми ховаємо. Людина далі
+    /// входить звичайним паролем.
+    public async Task RegisterAsync(string email, string password, CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync($"{Base}/api/auth/register",
+                                               new { email, password }, ct);
+        if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
+    }
 
     public Task<AuthResult> LoginAsync(string email, string password, CancellationToken ct = default) =>
         PostAuthAsync("/api/auth/login", email, password, ct);

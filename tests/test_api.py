@@ -42,6 +42,15 @@ def main():
     client = TestClient(app)
     checks, failed = [], 0
 
+    def signup(email, password):
+        """Реєстрація більше НЕ повертає токен: відповідь однакова для нової й наявної
+        адреси (інакше 409 сам був би оракулом «чи є акаунт»). Сесію беремо звичайним
+        входом — тим самим паролем, який щойно ввели."""
+        r = client.post("/api/auth/register", json={"email": email, "password": password})
+        assert r.status_code == 200, r.text
+        return client.post("/api/auth/login",
+                           json={"email": email, "password": password}).json()
+
     checks.append(("health", client.get("/api/health").json() == {"ok": True}, None))
 
     disc = client.get("/api/discounts").json()
@@ -158,13 +167,28 @@ def main():
     for _lim in (_rl.login_limiter, _rl.register_limiter, _rl.email_limiter, _rl.code_limiter):
         _lim._hits.clear()
     reg = client.post("/api/auth/register", json={"email": "Test@Hapay.today", "password": "supersecret"})
-    checks.append(("register 200 + token", reg.status_code == 200 and "token" in reg.json(), reg.status_code))
-    tok = reg.json().get("token", "")
+    checks.append(("register 200 без токена (сесію не віддаємо)",
+                   reg.status_code == 200 and reg.json() == {"sent": True}, reg.json()))
+    tok = client.post("/api/auth/login",
+                      json={"email": "test@hapay.today",
+                            "password": "supersecret"}).json().get("token", "")
     ahdr = {"Authorization": f"Bearer {tok}"}
+    checks.append(("акаунт справді створено (вхід працює)", bool(tok), None))
 
-    checks.append(("дубль email → 409",
-                   client.post("/api/auth/register",
-                               json={"email": "test@hapay.today", "password": "another1"}).status_code == 409, None))
+    # ⚠ Головне тут: відповідь на ДУБЛЬ і на НОВУ адресу нерозрізненна — інакше
+    # будь-хто перевіряв би, чи є в нас акаунт на чужу пошту (T20, переглянуто 27.07).
+    dup = client.post("/api/auth/register",
+                      json={"email": "test@hapay.today", "password": "another1"})
+    fresh = client.post("/api/auth/register",
+                        json={"email": "brand-new-2026@hapay.today", "password": "another1"})
+    checks.append(("дубль і нова адреса — ОДНАКОВІ код і тіло",
+                   dup.status_code == fresh.status_code == 200
+                   and dup.json() == fresh.json() == {"sent": True},
+                   (dup.status_code, dup.json(), fresh.status_code, fresh.json())))
+    checks.append(("дубль НЕ створив другого акаунта",
+                   client.post("/api/auth/login",
+                               json={"email": "test@hapay.today",
+                                     "password": "another1"}).status_code == 401, None))
     checks.append(("короткий пароль → 400",
                    client.post("/api/auth/register",
                                json={"email": "b@hapay.today", "password": "short"}).status_code == 400, None))
@@ -487,8 +511,7 @@ def main():
                    fr.status_code == 200 and "minutes" in fr.json(), fr.json()))
 
     # чуже стеження не видаляється — інакше будь-хто чистив би чужі списки
-    other = client.post("/api/auth/register",
-                        json={"email": "watcher2@hapay.today", "password": "watchpass"}).json()
+    other = signup("watcher2@hapay.today", "watchpass")
     ohdr = {"Authorization": f"Bearer {other.get('token', '')}"}
     checks.append(("чужий запис стеження не видаляється → 404",
                    client.delete(f"/api/me/watchlist/{wit['watchlist_id']}",
@@ -1384,8 +1407,7 @@ def main():
     # Знайдено живцем 2026-07-26: роль зашита в JWT на момент видачі, тож підвищений
     # юзер не отримував прав до перелогіну, а ЗНИЖЕНИЙ адмін зберігав би повні права
     # до кінця життя токена — відібрати права було неможливо.
-    up = client.post("/api/auth/register",
-                     json={"email": "promoted@hapay.today", "password": "promotedpass"}).json()
+    up = signup("promoted@hapay.today", "promotedpass")
     uphdr = {"Authorization": f"Bearer {up.get('token', '')}"}     # токен видано з role=user
     checks.append(("свіжий юзер в адмін-панель → 403",
                    client.get("/api/admin/users", headers=uphdr).status_code == 403, None))

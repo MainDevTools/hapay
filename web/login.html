@@ -45,7 +45,7 @@ function draw(){
 
   else if (mode === 'register') F.innerHTML = `
     <h2>Реєстрація</h2>
-    <p class="lead">Потрібні лише email і пароль. Підтвердження надішлемо листом.</p>
+    <p class="lead">Потрібні лише email і пароль. Далі надішлемо лист і попросимо увійти — так ми не підказуємо стороннім, які адреси в нас зареєстровані.</p>
     <label for="e">Email</label><input id="e" type="email" autocomplete="username">
     <label for="p">Пароль</label><input id="p" type="password" autocomplete="new-password"
       placeholder="щонайменше 8 символів">
@@ -90,10 +90,14 @@ async function submit(){
       return;
     }
     if (mode === 'register'){
-      const r = await api('/api/auth/register', {method:'POST',
+      // Сервер відповідає ОДНАКОВО на нову й на вже зареєстровану адресу — інакше
+      // сама відповідь казала б, чи є в нас такий акаунт. Тому й тут повідомлення
+      // однакове, і токена ми не отримуємо: людина входить звичайним паролем.
+      await api('/api/auth/register', {method:'POST',
         body: JSON.stringify({email: v('e'), password: document.getElementById('p').value})});
-      AUTH.set(r.token, r.email);
-      location.href = '/me';
+      say('Готово. Ми надіслали лист на цю адресу — далі увійди своїм паролем.', 'ok');
+      setTimeout(() => { mode = 'login'; history.replaceState(null,'','?m=login'); draw();
+        document.getElementById('e').value = v('e'); }, 1800);
       return;
     }
     if (mode === 'forgot'){

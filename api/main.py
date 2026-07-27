@@ -328,16 +328,24 @@ def register(body: dict, request: Request, conn=Depends(get_conn)):
         raise HTTPException(400, "невірний email")
     if len(password) < qauth.MIN_PASSWORD:
         raise HTTPException(400, f"пароль ≥ {qauth.MIN_PASSWORD} символів")
+    # ⚠ ВІДПОВІДЬ ОДНАКОВА В ОБОХ ВИПАДКАХ (T20 переглянуто 2026-07-27).
+    # Доти дубль давав 409, тобто будь-хто міг перевірити, чи є в нас акаунт на чужу
+    # адресу — біт, який годиться для прицільного фішингу й для відсіву адрес перед
+    # credential stuffing. Тепер і код, і тіло, і факт відправки листа однакові;
+    # різниця лише в тому, ЩО прийде на пошту — а це бачить тільки її власник.
+    #
+    # Токен більше НЕ повертаємо: віддати сесію одразу означало б відрізнити «створено»
+    # від «уже було» саме її наявністю. Людина входить звичайним логіном тим паролем,
+    # який щойно ввела, і підтверджує пошту з кабінету.
     row = qdb.create_user(conn, email, qauth.hash_password(password))
     if row is None:
-        raise HTTPException(409, "email уже зареєстрований")
-    user_id, role = row
-    try:
-        token = qauth.make_token(user_id, role)     # SOFT-verify: вхід не блокуємо
-    except qauth.AuthError as e:
-        raise HTTPException(500, str(e))            # JWT_SECRET не заданий на сервері
-    _send_code(conn, user_id, email, "verify")      # лист підтвердження (email_verified=false)
-    return {"token": token, "role": role, "email": email, "email_verified": False}
+        # адреса вже зареєстрована: повідомляємо ВЛАСНИКА (без коду — код тут був би
+        # вектором, а не захистом) і мовчимо тому, хто натиснув «зареєструватись»
+        subject, text = qemail.signup_attempt_body()
+        qemail.send(email, subject, text)
+    else:
+        _send_code(conn, row[0], email, "verify")   # лист підтвердження новому акаунту
+    return {"sent": True}
 
 
 @app.post("/api/auth/verify")

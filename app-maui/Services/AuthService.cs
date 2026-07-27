@@ -60,8 +60,10 @@ public partial class AuthService : ObservableObject
         }
     }
 
-    public async Task RegisterAsync(string email, string password)
-        => await ApplyAsync(await _api.RegisterAsync(email, password));
+    /// Реєстрація лише створює акаунт (або мовчки нічого, якщо адреса вже є —
+    /// відповідь однакова навмисно). Сесії тут немає: вхід окремим кроком.
+    public Task RegisterAsync(string email, string password)
+        => _api.RegisterAsync(email, password);
 
     public async Task LoginAsync(string email, string password)
         => await ApplyAsync(await _api.LoginAsync(email, password));
