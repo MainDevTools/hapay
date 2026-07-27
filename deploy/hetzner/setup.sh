@@ -176,8 +176,12 @@ EOF
 # ── серверний колектор (S23) ──────────────────────────────────────────────────────
 # Сервер бере з черги ті крамниці, які пускають ДЦ-адресу (16 із 28 — заміряно
 # серійно 2026-07-26; це 37% черги). Ходить у ВЛАСНЕ API рівно як телефон, тож
-# шлях розбору/детекції один. Раз на 20 хв: сервер завжди ввімкнений, а розліт
-# 15 хв/крамницю тримає сама черга — частіший тик просто впирався б у неї.
+# шлях розбору/детекції один.
+#
+# ОДИН прохід на запуск, таймер 15 хв — рівно SOURCE_SPACING_MIN. Перший прогін
+# показав чому: прохід 1 узяв 16 задач і 493 позиції, а проходи 2-3 отримали НУЛЬ,
+# бо розліт 15 хв/крамницю вже вичерпав чергу. Кілька проходів поспіль — марна
+# робота; ритм задає сама черга.
 cat > /etc/systemd/system/hapay-collect-server.service <<EOF
 [Unit]
 Description=Хапай — серверний колектор (крамниці, що пускають ДЦ)
@@ -187,14 +191,14 @@ Type=oneshot
 User=$APP_USER
 WorkingDirectory=$REPO_DIR
 EnvironmentFile=$ENV_FILE
-ExecStart=$VENV/bin/python collect_server.py --limit 16 --passes 3
+ExecStart=$VENV/bin/python collect_server.py --limit 16 --passes 1
 EOF
 cat > /etc/systemd/system/hapay-collect-server.timer <<'EOF'
 [Unit]
-Description=Хапай — серверний збір раз на 20 хв
+Description=Хапай — серверний збір раз на 15 хв
 [Timer]
 OnBootSec=5min
-OnUnitActiveSec=20min
+OnUnitActiveSec=15min
 Persistent=true
 [Install]
 WantedBy=timers.target
