@@ -1601,6 +1601,14 @@ def main():
     checks.append(("404 для API лишився JSON",
                    j404.status_code == 404 and "detail" in j404.json(), j404.status_code))
 
+    cmp_pg = client.get("/compare", headers={"accept": "text/html"})
+    checks.append(("/compare → сторінка", cmp_pg.status_code == 200
+                   and "cmp-t" in cmp_pg.text, cmp_pg.status_code))
+    # мітка версії: без неї стара копія css/js зустрічається з новою розміткою
+    checks.append(("css/js віддаються з міткою версії",
+                   "/s/app.css?v=" in cmp_pg.text and "/s/app.js?v=" in cmp_pg.text,
+                   None))
+
     al = client.get("/.well-known/assetlinks.json")
     checks.append(("assetlinks без ANDROID_CERT_SHA256 → 404, а не порожній файл",
                    al.status_code == 404, al.status_code))

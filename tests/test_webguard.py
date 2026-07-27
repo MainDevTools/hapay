@@ -206,6 +206,32 @@ def test_media_rules_not_overridden_by_later_base():
     assert not bad, "\n".join(sorted(set(bad)))
 
 
+# ── 5. клікабельне мусить бути кнопкою або посиланням ────────────────────────────
+_CLICKABLE = ("chip", "catlink", "title", "cmp")
+
+
+def test_no_div_controls():
+    """<div onclick> — це елемент, до якого не веде Tab і якого не бачить читач екрана.
+
+    Саме так до 2026-07-27 жили чіпи, 149 категорій і назва товару: каталог був
+    непридатний без миші, а краулер не мав жодного посилання на товар. Перевірка
+    текстова, бо розмітку будує JS: шукаємо `<div class="chip"` і рідню."""
+    for js in ("catalog.js", "app.js"):
+        src = _code(js)
+        for cls in _CLICKABLE:
+            for m in re.finditer(rf'<div[^>]*class="{cls}\b', src):
+                line = src[:m.start()].count("\n") + 1
+                raise AssertionError(
+                    f"{js}:{line} малює <div class=\"{cls}\">. Керування мусить бути "
+                    f"<button> або <a href>, інакше воно недосяжне з клавіатури.")
+    # у сторінках теж
+    for page in _pages():
+        src = _code(page)
+        for cls in _CLICKABLE:
+            assert f'<div class="{cls}"' not in src and f"<div class='{cls}'" not in src, \
+                f"{page}: <div class=\"{cls}\"> — має бути <button>/<a>"
+
+
 def _main():
     fns = [v for k, v in sorted(globals().items())
            if k.startswith("test_") and callable(v)
