@@ -45,7 +45,13 @@ def main():
     def signup(email, password):
         """Реєстрація більше НЕ повертає токен: відповідь однакова для нової й наявної
         адреси (інакше 409 сам був би оракулом «чи є акаунт»). Сесію беремо звичайним
-        входом — тим самим паролем, який щойно ввели."""
+        входом — тим самим паролем, який щойно ввели.
+
+        Ліміт реєстрацій знімаємо: TestClient шле все з однієї адреси, а REGISTER_LIMIT
+        це 5/год/IP — службові акаунти тесту впирались би в нього й мовчки не
+        створювались (саме на цьому впав CI 2026-07-27)."""
+        from api import ratelimit as _r
+        _r.register_limiter._hits.clear()
         r = client.post("/api/auth/register", json={"email": email, "password": password})
         assert r.status_code == 200, r.text
         return client.post("/api/auth/login",
@@ -522,6 +528,7 @@ def main():
 
     # ── html-ingest (S11 етап 3): гейт ролі collector + сервер парсить переслане HTML ──
     # ролі роздає власник напряму в БД (trusted-people) — робимо акаунт колектором
+    _rl.register_limiter._hits.clear()          # див. signup(): ліміт 5/год/IP
     client.post("/api/auth/register", json={"email": "collector@hapay.today", "password": "collectorpass"})
     with psycopg.connect(URL, autocommit=True) as conn:
         conn.execute("UPDATE app_user SET role='collector' WHERE lower(email)='collector@hapay.today'")
