@@ -1183,6 +1183,6 @@ def sitemap_rows(conn, limit: int = 20000):
         "  LEFT JOIN discount_event de "
         "         ON de.store_product_id = sp.store_product_id AND de.ended_at IS NULL "
         " ORDER BY (de.badge_state IN ('verified','verified_provisional','pumped')) DESC NULLS LAST, "
-        "          de.detected_at DESC NULLS LAST, sp.store_product_id DESC "
+        "          de.computed_at DESC NULLS LAST, sp.store_product_id DESC "
         " LIMIT %s", (limit,)).fetchall()]
     return cats, prods

@@ -1541,6 +1541,70 @@ def main():
                    any(e["action"] == "delete_user" for e in kept),
                    [e["action"] for e in kept]))
 
+    # ── SEO: те, що бачить БОТ (S25) ─────────────────────────────────────────────
+    # Сайт малюється клієнтом, тож усе нижче — єдине, що взагалі бачить бот прев'ю
+    # посилання в Telegram і краулер. Тест живий, бо sitemap — це SQL: перший його
+    # варіант посилався на неіснуючу колонку `de.detected_at` і впав 500 уже НА
+    # ПРОДІ, бо жоден тест того запиту не виконував.
+    import json as _json
+    import re as _re
+
+    spid = client.get("/api/discounts").json()[0]["store_product_id"]
+    pg = client.get(f"/product/{spid}", headers={"accept": "text/html"})
+    body = pg.text
+    checks.append(("сторінка товару → 200 HTML", pg.status_code == 200
+                   and "text/html" in pg.headers.get("content-type", ""), pg.status_code))
+    for tag in ("og:title", "og:description", "og:url", "og:image", "twitter:card"):
+        checks.append((f"прев'ю: {tag} у розмітці", tag in body, None))
+    checks.append(("прев'ю: canonical на цей товар",
+                   f'rel="canonical" href="https://hapay.today/product/{spid}"' in body, None))
+
+    ld = _re.search(r'application/ld\+json">(.*?)</script>', body, _re.S)
+    checks.append(("JSON-LD присутній і валідний", bool(ld), None))
+    if ld:
+        data = _json.loads(ld.group(1))
+        checks.append(("JSON-LD: Product з ціною й валютою",
+                       data.get("@type") == "Product"
+                       and data["offers"]["priceCurrency"] == "UAH"
+                       and "price" in data["offers"], data.get("offers")))
+        # інваріант B: опису крамниці ми не зберігаємо, тож і публікувати нема чого
+        checks.append(("JSON-LD БЕЗ description (інваріант B)",
+                       "description" not in data, list(data)))
+        checks.append(("JSON-LD БЕЗ image (фото — не наше)",
+                       "image" not in data, list(data)))
+
+    checks.append(("назва товару є в HTML до будь-якого JS",
+                   "<h1>" in body, None))
+
+    nf = client.get("/product/999999999", headers={"accept": "text/html"})
+    checks.append(("неіснуючий товар → сторінка, не виняток",
+                   nf.status_code == 200 and "noindex" in nf.text, nf.status_code))
+
+    rb = client.get("/robots.txt")
+    checks.append(("robots.txt віддається", rb.status_code == 200
+                   and "Sitemap:" in rb.text, rb.status_code))
+    checks.append(("robots НЕ закриває /s/ (там css/js і картинка прев'ю)",
+                   "Disallow: /s/" not in rb.text, rb.text))
+
+    sm = client.get("/sitemap.xml")
+    checks.append(("sitemap.xml → 200 XML", sm.status_code == 200
+                   and "xml" in sm.headers.get("content-type", ""), sm.status_code))
+    checks.append(("sitemap містить головну, каталог і сторінки товарів",
+                   "<loc>https://hapay.today/</loc>" in sm.text
+                   and "/catalog" in sm.text and f"/product/{spid}" in sm.text,
+                   sm.text[:200]))
+
+    h404 = client.get("/take-storinky-nemaye", headers={"accept": "text/html"})
+    checks.append(("404 для людини → HTML-сторінка, не JSON",
+                   h404.status_code == 404 and "<html" in h404.text, h404.status_code))
+    j404 = client.get("/api/nemaye-takogo", headers={"accept": "application/json"})
+    checks.append(("404 для API лишився JSON",
+                   j404.status_code == 404 and "detail" in j404.json(), j404.status_code))
+
+    al = client.get("/.well-known/assetlinks.json")
+    checks.append(("assetlinks без ANDROID_CERT_SHA256 → 404, а не порожній файл",
+                   al.status_code == 404, al.status_code))
+
     for name, ok, val in checks:
         print(f"{'PASS' if ok else 'FAIL'}  {name}" + ("" if ok else f"  -> {val!r}"))
         failed += 0 if ok else 1
