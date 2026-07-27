@@ -348,7 +348,10 @@ a.brand{text-decoration:none;color:inherit}
 .stats{display:flex;flex-wrap:wrap;margin:22px 0 0;
   background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
   overflow:hidden}
-.stat{flex:1 1 150px;padding:11px 14px;text-align:center;border-left:1px solid var(--line)}
+/* База 110, не 150: на 390px три комірки по 150 не влазили, і третя («останнє
+   оновлення цін») з'їжджала в окремий рядок на всю ширину — 2+1 читалось як недогляд.
+   Заміряно: 129/129/129, жодне число не обрізане, смуга навіть нижча (121 проти 144). */
+.stat{flex:1 1 110px;padding:11px 14px;text-align:center;border-left:1px solid var(--line)}
 .stat:first-child{border-left:none}
 .stat .n{font-size:var(--f5);font-weight:750;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .stat .l{color:var(--muted);font-size:var(--f1);margin-top:1px}
