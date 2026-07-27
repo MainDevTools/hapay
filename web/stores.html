@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--SEO-->
+<link rel="stylesheet" href="/s/app.css">
+</head>
+<body>
+<div class="app">
+<header id="hdr"></header>
+<nav id="crumbs" hidden></nav>
+
+<div class="page">
+  <h1>Крамниці, за якими ми стежимо</h1>
+  <p class="lead">Тут лише факти наших спостережень: скільки товарів бачимо, скільки
+    активних знижок і скільки з них пройшли перевірку 30-денним мінімумом.
+    <b>Це не рейтинг.</b> Мітка стосується конкретної знижки, а не продавця —
+    <a href="/how">чому саме так</a>.</p>
+  <div id="out"></div>
+</div>
+
+<div id="ftr"></div>
+</div>
+
+<script src="/s/app.js"></script>
+<script>
+renderHeader('');
+renderFooter();
+renderCrumbs([{href:'/', label:'Головна'}, {label:'Крамниці'}]);
+
+const nfmt = n => Number(n||0).toLocaleString('uk-UA');
+
+/* Порядок — за нашим ПОКРИТТЯМ (скільки знижок бачимо), а не за часткою «накачаних».
+   Сортування за часткою перетворило б перелік на рейтинг чесності, якого ми свідомо
+   не даємо (T12): видимий шар не виносить вердикту про крамницю. */
+async function load(){
+  const out = document.getElementById('out');
+  out.innerHTML = '<div class="panel"><div class="sub">Завантаження…</div></div>';
+  try{
+    const rows = await api('/api/stores');
+    const live = rows.filter(r => r.products > 0);
+    if(!live.length){ out.innerHTML =
+      `<div class="empty"><div class="ic">🏪</div><div class="t">Поки порожньо</div>
+       <div>Колектор ще накопичує дані.</div></div>`; return; }
+    out.innerHTML = `<div class="sects">` + live.map(r => `
+      <a href="/store/${esc(r.slug)}">
+        <span>${esc(r.name)}</span>
+        <span class="n">${nfmt(r.discounts)} ${r.discounts === 1 ? 'знижка' : 'знижок'}</span>
+      </a>`).join('') + `</div>
+      <div class="prov" style="margin-top:16px">Усього крамниць: ${live.length}.
+        Числа — з нашої бази спостережень і змінюються після кожного збору.</div>`;
+  }catch(e){
+    out.innerHTML = `<div class="empty"><div class="ic">⚠️</div>
+      <div class="t">Не вдалося завантажити</div><div>${esc(e.message)}</div></div>`;
+  }
+}
+load();
+</script>
+</body>
+</html>

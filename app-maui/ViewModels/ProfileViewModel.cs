@@ -235,4 +235,40 @@ public partial class ProfileViewModel : ObservableObject
         _auth.Logout();
         await Shell.Current.GoToAsync("..");
     }
+
+    /// Видалення акаунта ПРЯМО В ЗАСТОСУНКУ — вимога Google Play: шлях мусить бути і в
+    /// інтерфейсі, і окремою веб-адресою (hapay.today/delete-account) для тих, хто вже
+    /// видалив застосунок. До 2026-07-27 не було жодного з двох: лише «напишіть на
+    /// support@», тобто ручний процес, якого політика не приймає.
+    ///
+    /// Два підтвердження підряд — не бюрократія: дія незворотна, а кнопка стоїть поруч
+    /// із «Вийти», яку тиснуть не думаючи.
+    [RelayCommand]
+    private async Task DeleteAccount()
+    {
+        if (!await Shell.Current.DisplayAlert(
+                "Видалити акаунт?",
+                "Обліковий запис і весь список відстеження буде стерто назавжди. "
+                + "Відновити ми не зможемо.\n\nІсторія цін крамниць лишається — вона "
+                + "знеособлена й ніколи не була вашою.",
+                "Видалити", "Скасувати"))
+            return;
+        if (!await Shell.Current.DisplayAlert(
+                "Точно видалити?", "Це остання можливість передумати.",
+                "Так, видалити", "Ні"))
+            return;
+        try
+        {
+            await _api.DeleteAccountAsync();
+            _auth.Logout();
+            await Shell.Current.DisplayAlert("Готово", "Акаунт видалено.", "Зрозуміло");
+            await Shell.Current.GoToAsync("..");
+        }
+        catch (Exception e)
+        {
+            // Найімовірніша відмова — «ви єдиний активний адміністратор»; текст із
+            // сервера показуємо як є, бо він пояснює причину людською мовою.
+            await Shell.Current.DisplayAlert("Не вдалося", e.Message, "Зрозуміло");
+        }
+    }
 }

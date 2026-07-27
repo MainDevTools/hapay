@@ -1609,6 +1609,73 @@ def main():
                    "/s/app.css?v=" in cmp_pg.text and "/s/app.js?v=" in cmp_pg.text,
                    None))
 
+    # ── сторінки-обличчя (S27) ───────────────────────────────────────────────────
+    # Категорійні адреси мусять мати ВЛАСНИЙ титул і canonical на себе. До 27.07 усі
+    # 148 віддавали один заголовок і canonical на /catalog — тобто sitemap перелічував
+    # сторінки, які самі казали краулеру «я копія».
+    cat_slug = client.get("/api/categories").json()[0]["slug"]
+    base = client.get("/catalog", headers={"accept": "text/html"}).text
+    withc = client.get(f"/catalog?c={cat_slug}", headers={"accept": "text/html"}).text
+    t_of = lambda h: (_re.search(r"<title>(.*?)</title>", h) or ["", ""])[1]
+    checks.append(("категорія має ВЛАСНИЙ <title>", t_of(base) != t_of(withc),
+                   (t_of(base), t_of(withc))))
+    checks.append(("категорія: canonical на СЕБЕ, не на /catalog",
+                   f'rel="canonical" href="https://hapay.today/catalog?c={cat_slug}"' in withc,
+                   None))
+
+    pumped = client.get("/catalog?b=pumped", headers={"accept": "text/html"}).text
+    checks.append(("?b=pumped має власне обличчя",
+                   "завищеною" in t_of(pumped).lower() or "завищен" in pumped[:3000],
+                   t_of(pumped)))
+    srch = client.get("/catalog?q=acer", headers={"accept": "text/html"}).text
+    checks.append(("сторінка пошуку — noindex (не смітимо власною видачею)",
+                   "noindex" in srch, t_of(srch)))
+
+    for path, needle in (("/how", "перевіряємо"), ("/delete-account", "Видалення"),
+                         ("/stores", "рамниц")):
+        r = client.get(path, headers={"accept": "text/html"})
+        checks.append((f"{path} → сторінка", r.status_code == 200 and needle in r.text,
+                       r.status_code))
+
+    stores = client.get("/api/stores")
+    checks.append(("/api/stores → список із фактами", stores.status_code == 200
+                   and isinstance(stores.json(), list), stores.status_code))
+    slist = stores.json() if stores.status_code == 200 else []
+    if slist:
+        sslug = slist[0]["slug"]
+        checks.append(("крамниця має slug у нижньому регістрі", sslug == sslug.lower(), sslug))
+        sp = client.get(f"/store/{sslug}", headers={"accept": "text/html"})
+        checks.append((f"/store/{sslug} → сторінка з власним title",
+                       sp.status_code == 200 and slist[0]["name"] in t_of(sp.text), sp.status_code))
+        one = client.get(f"/api/store/{sslug}").json()
+        checks.append(("факти крамниці: усі лічильники присутні",
+                       all(k in one for k in ("products", "discounts", "verified", "pumped")),
+                       list(one)))
+    miss = client.get("/store/takoyi-nemaye", headers={"accept": "text/html"})
+    checks.append(("невідома крамниця → 404 і noindex",
+                   miss.status_code == 404 and "noindex" in miss.text, miss.status_code))
+
+    # ── самостійне видалення акаунта (вимога Google Play) ────────────────────────
+    dele = signup("bye@hapay.today", "byepassword")
+    delh = {"Authorization": "Bearer " + dele}
+    checks.append(("своє видалення без токена → 401",
+                   client.delete("/api/me").status_code == 401, None))
+    dd = client.delete("/api/me", headers=delh)
+    checks.append(("DELETE /api/me → 200", dd.status_code == 200, dd.text[:120]))
+    checks.append(("після видалення токен більше не працює",
+                   client.get("/api/me", headers=delh).status_code == 401, None))
+    checks.append(("видалений не може увійти",
+                   client.post("/api/auth/login", json={"email": "bye@hapay.today",
+                                                        "password": "byepassword"}).status_code == 401,
+                   None))
+    # захист: останній активний адмін не може піти й лишити систему без керування
+    with psycopg.connect(URL, autocommit=True) as c:
+        try:
+            _qdb.delete_own_account(c, uids["admin1@hapay.today"])
+            checks.append(("останній адмін видаляє себе → AdminError", False, "не кинуло"))
+        except _qdb.AdminError:
+            checks.append(("останній адмін видаляє себе → AdminError", True, None))
+
     al = client.get("/.well-known/assetlinks.json")
     checks.append(("assetlinks без ANDROID_CERT_SHA256 → 404, а не порожній файл",
                    al.status_code == 404, al.status_code))

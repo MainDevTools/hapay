@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--SEO-->
+<link rel="stylesheet" href="/s/app.css">
+</head>
+<body>
+<div class="app narrow">
+<header id="hdr"></header>
+<nav id="crumbs" hidden></nav>
+
+<div class="page">
+  <h1>Видалення акаунта</h1>
+  <p class="lead">Ви можете видалити акаунт «Хапай» самостійно — з цієї сторінки або
+    з застосунку. Встановлювати застосунок для цього не потрібно.</p>
+
+  <div class="panel">
+    <h2>Що саме буде видалено</h2>
+    <div class="row"><div><div class="t">Обліковий запис</div>
+      <div class="s">Email і пароль — стираються повністю.</div></div></div>
+    <div class="row"><div><div class="t">Список відстеження</div>
+      <div class="s">Усі товари й категорії, за якими ви стежили, разом із записами про
+        надіслані сповіщення.</div></div></div>
+    <div class="row"><div><div class="t">Коди підтвердження й відновлення</div>
+      <div class="s">Гаснуть разом з акаунтом.</div></div></div>
+    <div class="row"><div><div class="t" style="color:var(--muted)">Що НЕ видаляється</div>
+      <div class="s">Історія цін крамниць — вона знеособлена й ніколи не була вашою:
+        це наші спостереження за товарами, а не за вами. Службовий запис про сам факт
+        видалення лишається в журналі — без нього неможливо довести, що запит виконано.
+        Деталі — у <a href="/privacy">політиці конфіденційності</a>.</div></div></div>
+  </div>
+
+  <div id="msg" class="msg"></div>
+  <div class="panel" id="act"></div>
+
+  <div class="prov">Дія незворотна: відновити акаунт після видалення ми не зможемо.
+    Якщо вам потрібна копія даних перед видаленням — напишіть на
+    <a href="mailto:support@hapay.today">support@hapay.today</a>.</div>
+</div>
+
+<div id="ftr"></div>
+</div>
+
+<script src="/s/app.js"></script>
+<script>
+renderHeader('');
+renderFooter();
+renderCrumbs([{href:'/', label:'Головна'}, {label:'Видалення акаунта'}]);
+
+function say(t, k){ const m=document.getElementById('msg');
+  m.className='msg on '+(k||'ok'); m.textContent=t; }
+
+/* Сторінка мусить бути корисною і для НЕзалогіненого: вимога Google Play — щоб людина,
+   яка вже видалила застосунок, усе одно могла ініціювати видалення. Тому для гостя
+   тут не «увійдіть», а два робочі шляхи: вхід або лист. */
+function draw(){
+  const box = document.getElementById('act');
+  if (!AUTH.in){
+    box.innerHTML = `<h2>Як видалити</h2>
+      <div class="sub">Щоб видалити акаунт одним натисканням, увійдіть — ми маємо
+        переконатися, що це ваш акаунт.</div>
+      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+        <a class="btn btn-main" href="/login">Увійти й видалити</a>
+        <a class="btn btn-ghost" href="mailto:support@hapay.today?subject=%D0%92%D0%B8%D0%B4%D0%B0%D0%BB%D0%B5%D0%BD%D0%BD%D1%8F%20%D0%B0%D0%BA%D0%B0%D1%83%D0%BD%D1%82%D0%B0">Написати нам</a>
+      </div>
+      <div class="sub" style="margin-top:12px">Не пам'ятаєте пароль —
+        <a href="/login?m=forgot">відновіть доступ</a> або напишіть із адреси акаунта:
+        ми виконаємо запит вручну протягом 30 днів.</div>`;
+    return;
+  }
+  box.innerHTML = `<h2>Видалити акаунт ${esc(AUTH.email)}</h2>
+    <div class="sub">Введіть <b>ВИДАЛИТИ</b> у поле нижче, щоб підтвердити. Це захист
+      від випадкового натискання, а не бюрократія.</div>
+    <label for="cf" style="display:block;font-size:var(--f2);font-weight:600;
+      color:var(--muted);margin:14px 0 5px">Підтвердження</label>
+    <input id="cf" class="search" style="max-width:240px;display:inline-block"
+           autocomplete="off" placeholder="ВИДАЛИТИ">
+    <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-main" id="go" style="background:var(--red);border-color:var(--red)">
+        Видалити назавжди</button>
+      <a class="btn btn-ghost" href="/me">Скасувати</a>
+    </div>`;
+
+  document.getElementById('go').onclick = async () => {
+    const v = document.getElementById('cf').value.trim().toUpperCase();
+    if (v !== 'ВИДАЛИТИ'){ say('Введіть слово ВИДАЛИТИ, щоб підтвердити.', 'err'); return; }
+    try{
+      await api('/api/me', {method:'DELETE'});
+      AUTH.out();
+      document.getElementById('act').innerHTML =
+        `<h2>Акаунт видалено</h2><div class="sub">Обліковий запис і список відстеження
+         стерто. Дякуємо, що були з нами.</div>
+         <div style="margin-top:14px"><a class="btn btn-ghost" href="/">На головну</a></div>`;
+      say('Готово. Акаунт більше не існує.', 'ok');
+    }catch(e){ say(e.message, 'err'); }
+  };
+}
+draw();
+</script>
+</body>
+</html>

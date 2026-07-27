@@ -69,6 +69,12 @@ _META = {
     "catalog": ("Знижки в українських крамницях — Хапай",
                 "Знижки, звірені з історією цін: найменша ціна за 30 днів проти того, що "
                 "крамниця називає «старою».", False),
+    "how":     ("Як ми перевіряємо знижки — Хапай",
+                "Що саме ми записуємо, як рахуємо найменшу ціну за 30 днів і чого "
+                "НЕ стверджуємо. Метод, а не обіцянка.", False),
+    "delete-account": ("Видалення акаунта — Хапай",
+                "Як видалити акаунт «Хапай» і всі пов'язані дані — з сайту або з "
+                "застосунку.", False),
     "compare": ("Порівняння товарів — Хапай",
                 "Ціна, заявлена знижка й наша перевірка для 2-4 товарів поруч.", True),
     "login":   ("Вхід — Хапай", "Вхід і реєстрація в «Хапай».", True),
@@ -134,7 +140,9 @@ def admin_page():
 # Сторінки сайту (S19). Кожна — окремий файл у web/; спільні стилі й скрипти лежать
 # поруч і віддаються через /s/<файл>. УСІ ці маршрути мусять стояти ДО catch-all
 # `/{page}` — інакше він перехопить шлях і віддасть 404 (на це вже наступали з /admin).
-_PAGES = {"catalog", "login", "me", "compare"}
+_PAGES = {"login", "me", "compare", "how", "delete-account"}
+# ⚠ "catalog" зник із цього набору навмисно: у нього тепер ВЛАСНИЙ маршрут
+# нижче, бо заголовок і canonical залежать від фільтра в адресі.
 # Білий список: жодного обходу шляхом. Зображення — ВЛАСНА брендова графіка
 # (scripts/make-brand-assets.py), не чужі фото: інваріант B не порушено.
 _ASSETS = {"app.css": "text/css; charset=utf-8",
@@ -183,7 +191,8 @@ _SITEMAP = qseo.Cached(ttl_s=3600)
 def sitemap(conn=Depends(get_conn)):
     def build():
         cats, prods = qdb.sitemap_rows(conn)
-        return qseo.sitemap(cats, prods)
+        stores = [r["slug"] for r in qdb.store_list(conn)]
+        return qseo.sitemap(cats, prods, stores)
     return Response(_SITEMAP.get(build), media_type="application/xml", headers=_NOCACHE)
 
 
@@ -201,6 +210,55 @@ def assetlinks():
         "target": {"namespace": "android_app", "package_name": "com.companyname.hapay",
                    "sha256_cert_fingerprints": [f.strip() for f in fp.split(",") if f.strip()]},
     }], headers=_NOCACHE)
+
+
+@app.get("/catalog")
+def catalog_page(request: Request, conn=Depends(get_conn)):
+    """Каталог. Заголовок і canonical залежать від фільтра в АДРЕСІ.
+
+    ⚠ До 2026-07-27 усе `?c=…`, `?s=…`, `?b=…` віддавало один заголовок і canonical на
+    `/catalog`. Тобто sitemap перелічував 148 категорійних адрес, кожна з яких сама
+    казала краулеру «я копія, індексуй іншу» — гірше, ніж не перелічувати їх узагалі."""
+    q = request.query_params
+    cat = q.get("c") or None
+    meta = qdb.category_meta(conn, cat) if cat else None
+    section = q.get("s") if not meta else None
+    if section is not None and section not in SECTION_ORDER:
+        section = None                      # чужий розділ не отримує власного обличчя
+    head = qseo.catalog_head(category=meta, section=section,
+                             badge=q.get("b"), query=q.get("q"))
+    return _page("catalog", head)
+
+
+@app.get("/stores")
+def stores_page():          # список тягне клієнт через /api/stores — з'єднання тут зайве
+    title = "Крамниці, за якими ми стежимо — Хапай"
+    desc = ("Перелік українських крамниць, чиї ціни ми записуємо щодня, з кількістю "
+            "знижок і перевірок. Лише факти спостережень.")
+    return _page("stores", qseo.page_head(title, desc, "/stores"))
+
+
+@app.get("/store/{slug}")
+def store_page(slug: str, conn=Depends(get_conn)):
+    st = qdb.store_meta(conn, slug.lower())
+    if st is None:
+        return _page("store", qseo.page_head("Крамницю не знайдено — Хапай",
+                                             "Такої крамниці ми не відстежуємо.",
+                                             f"/store/{slug}", noindex=True), status=404)
+    return _page("store", qseo.store_head(st))
+
+
+@app.get("/api/stores")
+def api_stores(conn=Depends(get_conn)):
+    return qdb.store_list(conn)
+
+
+@app.get("/api/store/{slug}")
+def api_store(slug: str, conn=Depends(get_conn)):
+    st = qdb.store_meta(conn, slug.lower())
+    if st is None:
+        raise HTTPException(404, "крамницю не знайдено")
+    return st
 
 
 @app.get("/product/{store_product_id}")
@@ -582,6 +640,23 @@ def me(claims=Depends(require_active_account), conn=Depends(get_conn)):
     if u is None:
         raise HTTPException(401, "акаунт не існує")
     return u
+
+
+@app.delete("/api/me")
+def delete_me(claims=Depends(require_active_account), conn=Depends(get_conn)):
+    """Самостійне видалення акаунта.
+
+    Вимога Google Play (перевірено у першоджерелі 2026-07-27): застосунок із
+    реєстрацією мусить давати шлях видалення І в інтерфейсі, І окремою веб-адресою,
+    доступною без встановлення. У нас не було ЖОДНОГО з двох — лише «напишіть на
+    support@», тобто ручний процес, який політика не приймає.
+
+    Незворотно: watchlist і токени підуть каскадом. Слід у журналі лишається (0171
+    тримає знімок email) — інакше видалення акаунта стирало б і історію прав."""
+    try:
+        return qdb.delete_own_account(conn, int(claims["sub"]))
+    except qdb.AdminError as e:
+        raise HTTPException(400, str(e))
 
 
 @app.get("/api/me/watchlist")

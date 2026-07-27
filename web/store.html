@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--SEO-->
+<link rel="stylesheet" href="/s/app.css">
+</head>
+<body>
+<div class="app">
+<header id="hdr"></header>
+<nav id="crumbs" hidden></nav>
+
+<div class="page">
+  <div id="head"></div>
+  <div id="out"></div>
+</div>
+
+<div id="ftr"></div>
+</div>
+
+<script src="/s/app.js"></script>
+<script>
+renderHeader('');
+renderFooter();
+
+const SLUG = decodeURIComponent(location.pathname.split('/').pop() || '');
+const nfmt = n => Number(n||0).toLocaleString('uk-UA');
+
+/* ⚠ Сторінка крамниці показує ЧИСЛА, а не оцінку. Спокуса вивести «частку накачаних
+   знижок» велика — і саме її ми не робимо: це був би вердикт про продавця, а видимий
+   шар не оцінює (T12), і застосунок про «чесність крамниці» теж мовчить. Тому поруч
+   із числами стоїть рядок, який пояснює, чого вони НЕ означають. */
+async function load(){
+  const head = document.getElementById('head'), out = document.getElementById('out');
+  let s;
+  try { s = await api('/api/store/' + encodeURIComponent(SLUG)); }
+  catch(e){
+    head.innerHTML = `<div class="empty"><div class="ic">🏪</div>
+      <div class="t">Крамницю не знайдено</div>
+      <div>Ми за нею не стежимо. <a href="/stores">Перелік крамниць →</a></div></div>`;
+    return;
+  }
+  document.title = `${s.name} — знижки та історія цін — Хапай`;
+  renderCrumbs([{href:'/', label:'Головна'}, {href:'/stores', label:'Крамниці'},
+                {label:s.name}]);
+
+  const upd = s.last_seen ? new Date(s.last_seen).toLocaleDateString('uk-UA',
+      {day:'numeric', month:'long'}) : null;
+
+  head.innerHTML = `<h1>${esc(s.name)}</h1>
+    <p class="lead">Ми щодня записуємо ціни цієї крамниці й звіряємо кожну знижку з
+      власною історією спостережень.</p>
+    <div class="stats">
+      <div class="stat"><div class="n">${nfmt(s.products)}</div><div class="l">товарів бачимо</div></div>
+      <div class="stat"><div class="n">${nfmt(s.discounts)}</div><div class="l">активних знижок</div></div>
+      <div class="stat"><div class="n">${nfmt(s.verified)}</div><div class="l">пройшли перевірку</div></div>
+      <div class="stat"><div class="n">${nfmt(s.pumped)}</div><div class="l">«стара» ціна завищена</div></div>
+    </div>
+    <div class="prov" style="margin-top:12px">Числа — з наших спостережень, не з даних
+      крамниці${upd ? `; останнє оновлення — ${esc(upd)}` : ''}.
+      <b>Це не оцінка продавця:</b> мітка стосується окремої знижки, а не крамниці, і
+      «без мітки» означає лише те, що історії ще замало. <a href="/how">Як ми
+      перевіряємо →</a></div>`;
+
+  const cats = (s.categories || []).filter(c => c.n > 0);
+  out.innerHTML = `
+    <div style="margin:18px 0;display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn btn-main" href="/catalog?q=${encodeURIComponent(s.name)}">Знижки цієї крамниці</a>
+      <a class="btn btn-ghost" href="${esc(s.base_url)}" target="_blank" rel="nofollow noopener">Сайт крамниці →</a>
+    </div>
+    ${cats.length ? `<div class="sec"><div class="sec-h"><h2>Найбільші категорії</h2></div>
+      <div class="sects">${cats.map(c => `<a href="/catalog?c=${encodeURIComponent(c.slug)}">
+        <span>${esc(c.name)}</span><span class="n">${nfmt(c.n)}</span></a>`).join('')}</div></div>` : ''}`;
+}
+load();
+</script>
+</body>
+</html>

@@ -107,6 +107,15 @@ public class ApiService
         (await _http.GetFromJsonAsync<ChoiceEnvelope>(
             $"{Base}/api/product/{storeProductId}/choice", _json, ct))?.Choice;
 
+    /// Самостійне видалення акаунта (вимога Google Play: шлях у застосунку + веб-адреса).
+    /// Незворотно; сервер віддає 400 з поясненням, якщо це останній активний адмін.
+    public async Task DeleteAccountAsync(CancellationToken ct = default)
+    {
+        var resp = await _http.DeleteAsync($"{Base}/api/me", ct);
+        if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
+        if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
+    }
+
     /// Один товар за id. Потрібен там, де товару в руках НЕМАЄ — глибоке посилання
     /// hapay.today/product/{id} дає лише число, а екран деталей чекає повний Discount.
     public async Task<Discount?> CardAsync(int storeProductId, CancellationToken ct = default) =>

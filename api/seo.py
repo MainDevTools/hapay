@@ -177,7 +177,7 @@ def _url(loc: str, changefreq: str, priority: str) -> str:
             f"<priority>{priority}</priority></url>")
 
 
-def sitemap(categories, product_ids) -> str:
+def sitemap(categories, product_ids, stores=()) -> str:
     """Карта сайту. Стрічку каталогу малює JS, тож сторінки товарів мусять бути тут —
     інакше до них немає жодного шляху, яким пройде краулер."""
     out = ['<?xml version="1.0" encoding="UTF-8"?>',
@@ -188,7 +188,13 @@ def sitemap(categories, product_ids) -> str:
         out.append(_url(f"{SITE}/catalog?c={slug}", "daily", "0.7"))
     for pid in product_ids:
         out.append(_url(f"{SITE}/product/{pid}", "daily", "0.6"))
-    for p in ("privacy", "terms", "support"):
+    out.append(_url(SITE + "/how", "monthly", "0.8"))       # метод — обличчя продукту
+    out.append(_url(SITE + "/stores", "weekly", "0.6"))
+    for slug in stores:
+        out.append(_url(f"{SITE}/store/{slug}", "daily", "0.5"))
+    out.append(_url(SITE + "/catalog?b=verified", "hourly", "0.8"))
+    out.append(_url(SITE + "/catalog?b=pumped", "hourly", "0.8"))
+    for p in ("privacy", "terms", "support", "delete-account"):
         out.append(_url(f"{SITE}/{p}", "monthly", "0.2"))
     out.append("</urlset>")
     return "\n".join(out)
@@ -208,3 +214,59 @@ class Cached:
             self._value = build()
             self._at = now
         return self._value
+
+
+# ─────────────────────────── обличчя сторінок каталогу (S27) ───────────────────
+BADGE_PAGE = {
+    "verified": ("Перевірені знижки — {b}",
+                 "Знижки, де ціна справді нижча за все, що ми бачили за 30 днів."),
+    "pumped":   ("Знижки із завищеною «старою» ціною — {b}",
+                 "Товари, де «стара» ціна вища за фактичний мінімум наших спостережень "
+                 "за 30 днів."),
+}
+
+
+def catalog_head(*, category=None, section=None, badge=None, query=None) -> str:
+    """<head> каталогу З УРАХУВАННЯМ фільтра.
+
+    ⚠ До 2026-07-27 усі 148 адрес `?c=…` віддавали однаковий заголовок і canonical на
+    `/catalog` — тобто sitemap перелічував сторінки, які САМІ казали краулеру «я копія,
+    індексуй іншу». Тепер у кожної свій титул, свій опис і canonical на себе.
+
+    Пошук (`?q=`) навмисно `noindex`: сторінка результатів — не контент, а відповідь на
+    чужий запит; індексувати такі — класичний спосіб засмітити видачу власним сайтом."""
+    path, title, desc, noindex = "/catalog", None, None, False
+    if query:
+        return "\n".join(_tags(f"Пошук: {query} — {BRAND}",
+                               "Результати пошуку за назвою товару.",
+                               f"{SITE}/catalog", noindex=True))
+    if category:
+        n = category.get("n") or 0
+        path = f"/catalog?c={category['slug']}"
+        title = f"{category['name']} — знижки, перевірені історією цін | {BRAND}"
+        desc = (f"{n} знижок у категорії «{category['name']}», звірених із нашою власною "
+                f"історією цін: видно, чи ціна справді нижча, ніж була."
+                if n else
+                f"Категорія «{category['name']}»: стежимо за цінами й звіряємо знижки з "
+                f"власною історією спостережень.")
+    elif section:
+        path = f"/catalog?s={section}"
+        title = f"{section} — знижки, перевірені історією цін | {BRAND}"
+        desc = (f"Знижки в розділі «{section}», звірені з нашою історією цін за 30 днів.")
+    elif badge in BADGE_PAGE:
+        t, d = BADGE_PAGE[badge]
+        path = f"/catalog?b={badge}"
+        title, desc = t.format(b=BRAND), d
+    else:
+        title = f"Знижки в українських крамницях — {BRAND}"
+        desc = ("Знижки, звірені з історією цін: найменша ціна за 30 днів проти того, що "
+                "крамниця називає «старою».")
+    return "\n".join(_tags(title, desc, SITE + path, noindex=noindex))
+
+
+def store_head(store: dict) -> str:
+    n, v = store.get("discounts") or 0, store.get("verified") or 0
+    title = f"{store['name']} — знижки та історія цін | {BRAND}"
+    desc = (f"Стежимо за цінами {store['name']}: {n} активних знижок, з них {v} пройшли "
+            f"перевірку 30-денним мінімумом. Лише факти наших спостережень.")
+    return "\n".join(_tags(title, desc, f"{SITE}/store/{store['slug']}"))

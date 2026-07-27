@@ -130,6 +130,16 @@
         <Button Text="Вийти" Command="{Binding LogoutCommand}"
                 BackgroundColor="Transparent" TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}" MinimumHeightRequest="48" />
 
+        <!-- Видалення акаунта — вимога Google Play (шлях у застосунку + веб-адреса).
+             Дрібним і без заливки: дія незворотна, і вона не має конкурувати оком
+             із «Вийти», яку тиснуть щодня. -->
+        <Label Text="Видалити акаунт" FontSize="12" HorizontalOptions="Center" Margin="0,4,0,0"
+               TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}">
+            <Label.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding DeleteAccountCommand}" />
+            </Label.GestureRecognizers>
+        </Label>
+
         <!-- юр-посилання (обов'язкові для App Store / Google Play) -->
         <HorizontalStackLayout HorizontalOptions="Center" Spacing="14" Margin="0,20,0,0">
             <Label Text="Конфіденційність" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}">

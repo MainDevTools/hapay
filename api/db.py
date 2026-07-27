@@ -1186,3 +1186,92 @@ def sitemap_rows(conn, limit: int = 20000):
         "          de.computed_at DESC NULLS LAST, sp.store_product_id DESC "
         " LIMIT %s", (limit,)).fetchall()]
     return cats, prods
+
+
+# ─────────────────────────── сторінки-обличчя (S27) ───────────────────────────
+def category_meta(conn, slug: str):
+    """Назва категорії + скільки в ній активних знижок — для <title> і опису сторінки.
+
+    Потрібно саме серверу: до 2026-07-27 усі 148 адрес `?c=…` віддавали ОДИН заголовок
+    і canonical на `/catalog`, тобто самі казали краулеру «я копія». Показувати число
+    в описі теж не косметика — «12 знижок» проти «знижки» різнить сніпет у видачі."""
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(
+            "SELECT c.name, c.slug, count(de.discount_event_id)::int AS n "
+            "  FROM category c "
+            "  LEFT JOIN store_product sp ON sp.category_id = c.category_id "
+            "  LEFT JOIN discount_event de ON de.store_product_id = sp.store_product_id "
+            "                             AND de.ended_at IS NULL "
+            " WHERE c.slug = %s GROUP BY c.name, c.slug", (slug,)).fetchone()
+
+
+# Крамниці мають лише `name` (латиниця: Comfy, Rozetka…), окремої колонки slug у схемі
+# немає. Тому адреса /store/comfy зіставляється з lower(name): стабільно, без міграції
+# й без транслітерації, яка колись розійшлася б із назвою.
+_STORE_FACTS = """
+    SELECT s.source_id, s.name, s.base_url,
+           count(DISTINCT sp.store_product_id)::int AS products,
+           count(DISTINCT de.discount_event_id) FILTER (WHERE de.ended_at IS NULL)::int AS discounts,
+           count(DISTINCT de.discount_event_id) FILTER (
+             WHERE de.ended_at IS NULL
+               AND de.badge_state IN ('verified','verified_provisional'))::int AS verified,
+           count(DISTINCT de.discount_event_id) FILTER (
+             WHERE de.ended_at IS NULL AND de.badge_state = 'pumped')::int AS pumped,
+           max(sp.last_seen_at) AS last_seen
+      FROM source s
+      LEFT JOIN store_product sp ON sp.source_id = s.source_id
+      LEFT JOIN discount_event de ON de.store_product_id = sp.store_product_id
+"""
+
+
+def store_list(conn):
+    """Усі крамниці, за якими ми стежимо, з ФАКТАМИ — без жодного рейтингу.
+
+    ⚠ Свідомо немає «частки накачаних» і сортування за нею: це був би вердикт про
+    чесність крамниці, а видимий шар не оцінює (T12). Порядок — за кількістю знижок,
+    тобто за нашим покриттям, а не за «поведінкою» крамниці."""
+    with conn.cursor(row_factory=dict_row) as cur:
+        rows = cur.execute(_STORE_FACTS +
+                           " WHERE s.active GROUP BY s.source_id, s.name, s.base_url"
+                           " ORDER BY discounts DESC, s.name").fetchall()
+    for r in rows:
+        r["slug"] = r["name"].lower()
+    return rows
+
+
+def store_meta(conn, slug: str):
+    """Одна крамниця + її найбільші категорії (щоб було куди піти зі сторінки)."""
+    with conn.cursor(row_factory=dict_row) as cur:
+        row = cur.execute(_STORE_FACTS +
+                          " WHERE s.active AND lower(s.name) = %s"
+                          " GROUP BY s.source_id, s.name, s.base_url"
+                          " ORDER BY s.source_id LIMIT 1", (slug,)).fetchone()
+        if row is None:
+            return None
+        row["slug"] = row["name"].lower()
+        row["categories"] = cur.execute(
+            "SELECT c.name, c.slug, count(*)::int AS n "
+            "  FROM store_product sp JOIN category c ON c.category_id = sp.category_id "
+            " WHERE sp.source_id = %s GROUP BY c.name, c.slug "
+            " ORDER BY n DESC, c.name LIMIT 12", (row["source_id"],)).fetchall()
+    return row
+
+
+def delete_own_account(conn, user_id: int) -> dict:
+    """Самостійне видалення акаунта — вимога Google Play (веб + шлях у застосунку).
+
+    Окремо від `delete_user`, бо той НАВМИСНО забороняє видаляти себе: там це захист
+    адміна від помилки. Тут навпаки — це право людини, і єдиний захист лишається один:
+    останній активний адмін не може піти, інакше система лишиться без керування.
+    Слід у журналі переживає видалення (0171 тримає знімок email)."""
+    with conn.cursor(row_factory=dict_row) as cur:
+        u = cur.execute("SELECT user_id, email, role FROM app_user WHERE user_id=%s",
+                        (user_id,)).fetchone()
+    if u is None:
+        raise AdminError("акаунт не існує")
+    if u["role"] == "admin" and _active_admin_count(conn, user_id) == 0:
+        raise AdminError("ви єдиний активний адміністратор — спершу призначте іншого")
+    _audit(conn, user_id, "delete_own_account", user_id,
+           f"самостійне видалення акаунта {u['email']}")
+    conn.execute("DELETE FROM app_user WHERE user_id = %s", (user_id,))
+    return {"deleted": user_id}
