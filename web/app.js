@@ -171,9 +171,11 @@ function renderFooter(){
    сходинки (не інтерполяція — вона вигадує ціни, яких не існувало), вісь X за реальними
    датами (щоб прогалини було видно), точки завжди, пунктир там, де вимірів не було. */
 
-function sparkline(points, refKop, W){
+function sparkline(points, refKop, W, H){
   if(points.length<2) return '<div class="prov">Замало вимірів для графіка — історія ще накопичується.</div>';
-  const DAY=86400000, H=158, pad=8;
+  // H передає викликач: на широкій сторінці товару графік 954×158 (6:1) сплющував рух
+  // ціни в майже пряму. Значення за замовчуванням — те, що було.
+  const DAY=86400000, pad=8; H = H || 158;
   const xs=points.map(p=>Date.parse(p.day)), ys=points.map(p=>p.min_kop);
   const t0=xs[0], tN=xs[xs.length-1], span=Math.max(tN-t0, DAY);
   let minY=Math.min(...ys), maxY=Math.max(...ys);

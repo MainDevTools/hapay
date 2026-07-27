@@ -159,6 +159,10 @@ async function loadHistory(me){
   try{
     const hist = await api(`/api/product/${SPID}/history`);
     const W = Math.max(280, box.clientWidth - 44);
+    // Чим ширша колонка, тим вищий графік — інакше на десктопі виходило 6:1 і рух ціни
+    // ставав пласким. Та сама висота йде і в CSS, і у viewBox: не розтягуємо картинку.
+    const CH = W > 700 ? 210 : 158;
+    box.style.setProperty('--chart-h', CH + 'px');
     const ref = me.reference_kop != null
       ? `За нашими спостереженнями ціна за 30 днів <b>не була нижчою за ${grn(me.reference_kop)}</b> — сірий пунктир.`
       : 'Історія ще накопичується — статутну базу за 30 днів рахуємо з часом.';
@@ -169,7 +173,7 @@ async function loadHistory(me){
     const basis = hist.length ? `Основа: <b>${plu(meas,'вимір','виміри','вимірів')}</b> у ${hist.length} з ${plu(days,'доби','діб','діб')}.
       Лінія тримає останній вимір до наступного; пунктир — проміжки без вимірів.
       <b>Між вимірами ціна могла змінюватись — ми цього не фіксували.</b>` : '';
-    box.innerHTML = `<h2>Історія ціни</h2>${sparkline(hist, me.reference_kop, W)}
+    box.innerHTML = `<h2>Історія ціни</h2>${sparkline(hist, me.reference_kop, W, CH)}
       <div class="prov">${ref} ${basis}</div>`;
   }catch(e){
     box.innerHTML = `<h2>Історія ціни</h2><div class="sub">Не вдалося завантажити історію.</div>`;
