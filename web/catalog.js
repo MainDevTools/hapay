@@ -1,22 +1,27 @@
 /* Стрічка каталогу: чіпи, картки, пагінація, бічна колонка (S19).
    Історію ціни показує окрема сторінка /product/{id} — шторку прибрано,
    щоб та сама логіка не жила у двох місцях. */
+/* <button aria-pressed>, а не <div onclick>: чіп — це перемикач фільтра, і з клавіатури
+   до нього треба потрапляти Tab-ом, а читач екрана мусить казати, увімкнений він чи ні. */
 function renderChips(){
   const c = document.getElementById('chips'); c.innerHTML='';
-  BADGES.forEach(b=>{ const chip=el(`<div class="chip ${b.k===badge?'on':''}">${b.label}</div>`);
+  BADGES.forEach(b=>{
+    const on = b.k===badge;
+    const chip=el(`<button type="button" class="chip ${on?'on':''}" aria-pressed="${on}">${b.label}</button>`);
     chip.onclick=()=>{ badge=b.k; renderChips(); syncUrl(); load(); }; c.appendChild(chip); });
 }
 
 function card(d){
   const off = pct(d);
   const bt = BADGE_TEXT[d.badge_state];   // undefined = мітки нема (як у застосунку)
+  const href = '/product/' + d.store_product_id;
   const c = el(`<div class="card">
     <div class="thumb">
       ${d.image_url?`<img src="${esc(d.image_url)}" loading="lazy" alt="${esc(d.title)}" onerror="this.outerHTML=PH_HTML">`:PH_HTML}
       ${off?`<span class="off">−${off}%</span>`:''}
     </div>
     <div class="body">
-      <p class="title">${esc(d.title)}</p>
+      <a class="title" href="${href}">${esc(d.title)}</a>
       <div class="meta"><b>${esc(d.store||'')}</b>${d.variant_note?' · '+esc(d.variant_note):''}</div>
       ${bt?`<span class="badge"><span class="dot"></span>${bt}</span>`:''}
     </div>
@@ -26,13 +31,18 @@ function card(d){
         ${d.old_declared_kop?`<span class="old">${grn(d.old_declared_kop)}</span>`:''}
       </div>
       ${d.offers_n>1?`<div class="offers">Всі пропозиції (${d.offers_n})</div>`:''}
-      <a class="buy" href="/product/${d.store_product_id}">Порівняти ціни</a>
+      <a class="buy" href="${href}">Порівняти ціни</a>
+      ${cmpButton(d.store_product_id)}
     </div></div>`);
   // Клік по картці веде на СТОРІНКУ товару, а не у крамницю: там історія ціни,
   // усі пропозиції й провенанс — тобто те, заради чого людина сюди прийшла.
-  // Кнопка веде туди ж, тож її клік не має спрацьовувати двічі.
-  c.querySelector('.buy').addEventListener('click', e=>e.stopPropagation());
-  c.onclick=()=>{ location.href = '/product/' + d.store_product_id; };
+  // ⚠ Назва тепер СПРАВЖНЄ посилання: до цього картка була <div onclick>, тобто на
+  // товар не було способу перейти ні з клавіатури, ні читачем екрана, ні краулером.
+  // Клік по всій картці лишився для миші, але вкладені посилання й кнопка мусять
+  // спиняти сплиття — інакше перехід спрацював би двічі.
+  c.querySelectorAll('a').forEach(a => a.addEventListener('click', e=>e.stopPropagation()));
+  cmpBind(c);
+  c.onclick=()=>{ location.href = href; };
   return c;
 }
 
@@ -78,23 +88,34 @@ function loadMore(){ page++; load(false); }
 /* Бічна колонка: 171 категорія в 31 розділі. Плоский список був би стіною, тому
    групуємо за розділом — той самий порядок, що в застосунку (сервер уже віддає
    `section`). На телефоні колонка прихована, категорію обирає select у шапці. */
+/* ⚠ Категорії — СПРАВЖНІ посилання (<a href>), а не <div onclick>. Було: 149 пунктів,
+   до яких неможливо дійти Tab-ом, невидимих для читача екрана й для краулера. Тепер
+   href робочий (сторінка відкриється й без JS, і в новій вкладці середньою кнопкою),
+   а звичайний клік перехоплюємо — стрічка перемальовується без перезавантаження. */
 function renderSide(cats){
   const box=document.getElementById('side'); if(!box) return;
   box.innerHTML='';
-  const all=el(`<div class="catlink ${cat===''?'on':''}"><span>Усі категорії</span></div>`);
-  all.onclick=()=>{ setCat(''); }; box.appendChild(all);
+  const nav = el('<nav aria-label="Категорії"></nav>');
+  const mk = (slug, label, n) => {
+    const on = cat === slug;
+    const a = el(`<a class="catlink ${on?'on':''}" href="/catalog${slug?'?c='+encodeURIComponent(slug):''}"
+        ${on?'aria-current="page"':''}><span>${esc(label)}</span>${
+        n==null?'':`<span class="n">${n}</span>`}</a>`);
+    a.addEventListener('click', e => {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;  // «відкрити в новій» лишаємо браузеру
+      e.preventDefault(); setCat(slug);
+    });
+    return a;
+  };
+  nav.appendChild(mk('', 'Усі категорії', null));
   const bySect=new Map();
   cats.forEach(c=>{ const s=c.section||'Інше';
     if(!bySect.has(s)) bySect.set(s,[]); bySect.get(s).push(c); });
   for(const [sect,items] of bySect){
-    box.appendChild(el(`<div class="sect">${esc(sect)}</div>`));
-    items.forEach(c=>{
-      const a=el(`<div class="catlink ${cat===c.slug?'on':''}">
-        <span>${esc(c.name)}</span><span class="n">${c.n}</span></div>`);
-      a.onclick=()=>setCat(c.slug);
-      box.appendChild(a);
-    });
+    nav.appendChild(el(`<div class="sect">${esc(sect)}</div>`));
+    items.forEach(c=> nav.appendChild(mk(c.slug, c.name, c.n)));
   }
+  box.appendChild(nav);
 }
 
 let CATS=[];
@@ -181,4 +202,4 @@ if (_srch) {
   _srch.oninput = e => { clearTimeout(searchT);
     searchT = setTimeout(() => { query = e.target.value.trim(); syncUrl(); load(); }, 300); };
 }
-crumbs(); drawPrice(); renderChips(); loadCats(); load();
+crumbs(); drawPrice(); renderChips(); renderCmpBar(); loadCats(); load();

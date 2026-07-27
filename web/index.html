@@ -117,7 +117,7 @@ function topCard(d){
       ${off?`<span class="off">−${off}%</span>`:''}
     </div>
     <div class="body">
-      <p class="title">${esc(d.title)}</p>
+      <a class="title" href="/product/${d.store_product_id}">${esc(d.title)}</a>
       <div class="meta"><b>${esc(d.store||'')}</b></div>
       ${bt?`<span class="badge"><span class="dot"></span>${bt}</span>`:''}
     </div>
@@ -126,7 +126,12 @@ function topCard(d){
         ${d.old_declared_kop?`<span class="old">${grn(d.old_declared_kop)}</span>`:''}</div>
       ${d.offers_n>1?`<div class="offers">Всі пропозиції (${d.offers_n})</div>`:''}
       <a class="buy" href="/product/${d.store_product_id}">Порівняти ціни</a>
+      ${cmpButton(d.store_product_id)}
     </div></div>`);
+  // назва — справжнє посилання; клік по картці лишився для миші, тож вкладені
+  // посилання й кнопка спиняють сплиття (інакше перехід спрацював би двічі)
+  c.querySelectorAll('a').forEach(a => a.addEventListener('click', e => e.stopPropagation()));
+  cmpBind(c);
   c.onclick = () => { location.href = '/product/' + d.store_product_id; };
   return c;
 }
@@ -178,7 +183,7 @@ async function loadHeroExample(){
   }catch(e){ box.remove(); }
 }
 
-if (!IN_TG) { loadStats(); loadTop(); loadSections(); loadHeroExample(); }
+if (!IN_TG) { loadStats(); loadTop(); loadSections(); loadHeroExample(); renderCmpBar(); }
 </script>
 </body>
 </html>

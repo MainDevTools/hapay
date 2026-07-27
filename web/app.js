@@ -71,6 +71,77 @@ const AUTH = {
   out(){ localStorage.removeItem('hapay_t'); localStorage.removeItem('hapay_e'); },
 };
 
+/* ── порівняння товарів (S26) ────────────────────────────────────────────────────
+   Сервер уміє /api/compare з S14 (2-4 товари), у застосунку є екран — на сайті не було
+   нічого. Вибір тримаємо в localStorage: людина набирає товари, гортаючи каталог, і
+   вибір не має зникати від переходу на сторінку товару чи перезавантаження.
+   Стеля 4 — не забаганка UI, а межа самого ендпойнта. */
+const CMP_MAX = 4;
+const COMPARE = {
+  get list(){ try { return JSON.parse(localStorage.getItem('hapay_cmp') || '[]')
+                      .filter(Number.isInteger).slice(0, CMP_MAX); }
+              catch(e){ return []; } },
+  has(id){ return this.list.includes(id); },
+  set(a){ localStorage.setItem('hapay_cmp', JSON.stringify(a.slice(0, CMP_MAX))); },
+  toggle(id){
+    const a = this.list, i = a.indexOf(id);
+    if (i >= 0) a.splice(i, 1);
+    else if (a.length >= CMP_MAX) return false;   // мовчки не додаємо — кажемо смугою
+    else a.push(id);
+    this.set(a); return true;
+  },
+  clear(){ localStorage.removeItem('hapay_cmp'); },
+};
+
+/* Смуга внизу: скільки обрано + куди перейти. Малюється сама, один раз на сторінку. */
+function renderCmpBar(){
+  if (IN_TG) return;                 // у Mini App свій хром знизу — не займаємо його
+  let bar = document.getElementById('cmpbar');
+  if (!bar){
+    bar = el(`<div class="cmpbar" id="cmpbar"><span class="n"></span>
+      <a href="/compare">Порівняти</a>
+      <button type="button" aria-label="Скинути вибір">Скинути</button></div>`);
+    document.body.appendChild(bar);
+    bar.querySelector('button').onclick = () => {
+      COMPARE.clear(); renderCmpBar();
+      document.querySelectorAll('.cmp').forEach(b => {
+        b.setAttribute('aria-pressed', 'false'); b.textContent = '+ до порівняння'; });
+    };
+  }
+  const n = COMPARE.list.length;
+  bar.querySelector('.n').textContent = n >= CMP_MAX
+    ? `Обрано ${n} — це максимум`
+    : plu(n, 'товар обрано', 'товари обрано', 'товарів обрано');
+  // порівнювати можна від двох; поки один — смугу показуємо, але кнопку глушимо
+  const go = bar.querySelector('a');
+  go.href = '/compare';
+  go.style.pointerEvents = n < 2 ? 'none' : '';
+  go.style.opacity = n < 2 ? '.45' : '';
+  bar.classList.toggle('on', n > 0);
+}
+
+/* Кнопка на картці. Повертає готовий рядок розмітки; обробник вішає cmpBind(). */
+function cmpButton(id){
+  const on = COMPARE.has(id);
+  return `<button type="button" class="cmp" data-cmp="${id}" aria-pressed="${on}">` +
+         `${on ? '✓ у порівнянні' : '+ до порівняння'}</button>`;
+}
+
+function cmpBind(root){
+  root.querySelectorAll('[data-cmp]').forEach(b => {
+    b.addEventListener('click', e => {
+      e.stopPropagation();            // клік по картці веде на товар — тут не веде
+      e.preventDefault();
+      const id = +b.dataset.cmp;
+      if (!COMPARE.toggle(id)) { renderCmpBar(); return; }   // уперлись у стелю
+      const on = COMPARE.has(id);
+      b.setAttribute('aria-pressed', on);
+      b.textContent = on ? '✓ у порівнянні' : '+ до порівняння';
+      renderCmpBar();
+    });
+  });
+}
+
 async function api(path, opts){
   const o = Object.assign({headers:{}}, opts||{});
   if (tg && tg.initData) o.headers['X-Init-Data'] = tg.initData;
@@ -95,13 +166,16 @@ function renderHeader(active, opts){
   const h = document.getElementById('hdr');
   if (!h || IN_TG) { if (h && IN_TG) h.remove(); return; }
   const nav = [['/', 'Головна'], ['/catalog', 'Знижки']];
-  h.innerHTML = `<div class="hrow">
+  // «Перейти до вмісту» — перше, на що потрапляє Tab: інакше клавіатурі доводиться
+  // проходити всю шапку й фільтри перед кожним переглядом стрічки.
+  h.innerHTML = `<a class="skip" href="#list">Перейти до вмісту</a><div class="hrow">
     <a class="brand" href="/"><h1>Хапай</h1><span class="sub">знижки проти історії цін</span></a>
     <nav class="nav">${nav.map(([href,label]) =>
       `<a href="${href}" class="${active===href?'on':''}">${label}</a>`).join('')}</nav>
     ${opts.search ? `<div class="searchwrap">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input id="search" class="search" placeholder="Пошук за назвою…" autocomplete="off"></div>` : ''}
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="search" class="search" placeholder="Пошук за назвою…" autocomplete="off"
+             aria-label="Пошук за назвою товару"></div>` : ''}
     <div class="hauth">${AUTH.in
       ? `<a href="/me" class="hme" title="${esc(AUTH.email)}">Мій кабінет</a>`
       : `<a href="/login" class="hlogin">Увійти</a>`}</div>

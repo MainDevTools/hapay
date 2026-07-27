@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--SEO-->
+<link rel="stylesheet" href="/s/app.css">
+</head>
+<body>
+<div class="app">
+<header id="hdr"></header>
+<nav id="crumbs" hidden></nav>
+
+<div class="page">
+  <div class="sec-h"><h2 id="ttl">Порівняння</h2>
+    <a href="/catalog">← До каталогу</a></div>
+  <div id="msg" class="msg"></div>
+  <div id="out" class="panel"></div>
+</div>
+
+<div id="ftr"></div>
+</div>
+
+<script src="/s/app.js"></script>
+<script>
+renderHeader('/catalog');
+renderFooter();
+renderCrumbs([{href:'/', label:'Головна'}, {href:'/catalog', label:'Знижки'},
+              {label:'Порівняння'}]);
+
+/* Список беремо з АДРЕСИ, якщо він там є (щоб порівнянням можна було поділитись),
+   інакше — з локального вибору. Адреса має пріоритет: перейшовши за чужим
+   посиланням, людина має побачити саме те, що їй надіслали. */
+const _ids = (new URLSearchParams(location.search).get('ids') || '')
+  .split(',').map(x => parseInt(x, 10)).filter(Number.isInteger);
+const IDS = (_ids.length >= 2 ? _ids : COMPARE.list).slice(0, 4);
+
+function say(t, k){ const m = document.getElementById('msg');
+  m.className = 'msg on ' + (k || 'ok'); m.textContent = t; }
+
+/* Ціна виводиться копійками з /api/compare (price_kop), а не рядком: форматуємо тим
+   самим grn(), що й решта сайту, інакше «19 999 ₴» і «19999.00» жили б поруч. */
+async function load(){
+  const out = document.getElementById('out');
+  if (IDS.length < 2){
+    out.innerHTML = `<div class="empty"><div class="ic">⚖️</div>
+      <div class="t">Обери щонайменше два товари</div>
+      <div>У каталозі натисни «+ до порівняння» на картках — можна до чотирьох.
+        <a href="/catalog">До каталогу →</a></div></div>`;
+    return;
+  }
+  out.innerHTML = `<div class="sub">Завантаження…</div>`;
+  let d;
+  try { d = await api('/api/compare?ids=' + IDS.join(',')); }
+  catch(e){ out.innerHTML = `<div class="empty"><div class="ic">⚠️</div>
+      <div class="t">Не вдалося завантажити</div><div>${esc(e.message)}</div></div>`; return; }
+
+  const P = d.products || [];
+  if (P.length < 2){
+    out.innerHTML = `<div class="empty"><div class="ic">⚖️</div>
+      <div class="t">Замало товарів для порівняння</div>
+      <div>Частина обраних більше недоступна. <a href="/catalog">До каталогу →</a></div></div>`;
+    return;
+  }
+  document.title = `Порівняння ${P.length} товарів — Хапай`;
+  document.getElementById('ttl').textContent = `Порівняння: ${P.length}`;
+
+  // найнижча ціна — ФАКТ, а не оцінка «краще»: підписуємо словом, а не кольором-вердиктом
+  const prices = P.map(p => p.price_kop).filter(v => v != null);
+  const best = prices.length ? Math.min(...prices) : null;
+
+  const head = P.map(p => `<td><div class="cmp-head">
+      ${p.image_url ? `<img src="${esc(p.image_url)}" alt="" loading="lazy">`
+                    : `<div class="ph">${PH_SVG}</div>`}
+      <a class="t" href="/product/${p.store_product_id}">${esc(p.title)}</a>
+    </div></td>`).join('');
+
+  const priceRow = P.map(p => `<td>
+      <div class="cmp-price">${p.price_kop != null ? grn(p.price_kop) : '—'}</div>
+      ${p.price_kop != null && p.price_kop === best && prices.length > 1
+        ? '<div class="cmp-best">найнижча з обраних</div>' : ''}
+    </td>`).join('');
+
+  const badgeRow = P.map(p => `<td>${BADGE_TEXT[p.badge_state] || '—'}</td>`).join('');
+  const offersRow = P.map(p => `<td>${p.offers_n > 1
+      ? plu(p.offers_n, 'крамниця', 'крамниці', 'крамниць') : 'одна крамниця'}</td>`).join('');
+  const declRow = P.map(p => `<td>${p.declared_pct != null ? '−' + p.declared_pct + '%' : '—'}</td>`).join('');
+
+  const specs = (d.spec_rows || []).map(r => `<tr><th>${esc(r.name)}</th>` +
+      r.values.map(v => `<td>${v == null ? '—' : esc(v)}</td>`).join('') + '</tr>').join('');
+
+  out.innerHTML = `<div class="cmpwrap"><table class="cmp-t">
+      <tr><th></th>${head}</tr>
+      <tr><th>Ціна</th>${priceRow}</tr>
+      <tr><th>Заявлена знижка</th>${declRow}</tr>
+      <tr><th>Наша перевірка</th>${badgeRow}</tr>
+      <tr><th>Пропозицій</th>${offersRow}</tr>
+      ${specs}
+    </table></div>
+    ${specs ? '' : `<div class="prov">Характеристик для цих товарів ми ще не зібрали —
+      порівнюємо те, що знаємо напевно: ціну, заявлену знижку та нашу перевірку.</div>`}
+    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <a class="mini" href="/catalog">Додати ще</a>
+      <button class="mini danger" id="clr" type="button">Очистити вибір</button>
+    </div>`;
+
+  document.getElementById('clr').onclick = () => {
+    COMPARE.clear(); renderCmpBar(); location.href = '/catalog';
+  };
+}
+
+load();
+renderCmpBar();
+</script>
+</body>
+</html>
