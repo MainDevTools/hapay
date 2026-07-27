@@ -9,10 +9,9 @@
 <link rel="stylesheet" href="/s/app.css">
 </head>
 <body>
-<div class="app">
+<div class="app wide">
 <header id="hdr"></header>
 <nav id="crumbs" hidden></nav>
-<div class="chips" id="chips"></div>
 <div class="layout">
   <!-- Фільтр ціни — у бічній колонці (десктоп) і окремо над списком (телефон, де
        колонка прихована). Один і той самий рендер, два контейнери. -->
@@ -21,6 +20,23 @@
     <div id="side"></div>
   </div></aside>
   <div>
+    <!-- Пошук у Telegram: там сайтової шапки немає, тож поле живе тут. Веб-версія
+         малює своє поле в шапці (renderHeader з opts.search) — двох одночасно не буває. -->
+    <div id="tgsearch"></div>
+    <!-- Керування СТРІЧКОЮ стоїть над стрічкою, а не в шапці сайту: у шапці сортування
+         розтягувалось на всю ширину сторінки, а чіпи висіли над бічною колонкою, якої
+         вони не стосуються. -->
+    <div class="toolbar">
+      <div class="chips" id="chips"></div>
+      <div class="controls">
+        <select id="cat" aria-label="Категорія"><option value="">Усі категорії</option></select>
+        <select id="sort" aria-label="Сортування">
+          <option value="verified">Наше зниження</option>
+          <option value="discount">Заявлена знижка</option>
+          <option value="new">Найновіші</option>
+        </select>
+      </div>
+    </div>
     <div id="pricef-m"></div>
     <main id="list"></main>
     <div id="morewrap" class="morewrap" hidden><button id="moreBtn" class="morebtn">Показати ще</button></div>
@@ -34,31 +50,25 @@
 
 <script src="/s/app.js"></script>
 <script>
-// Сортування й вибір категорії — під шапкою; на телефоні це єдиний спосіб обрати
-// категорію (бічна колонка там прихована).
-renderHeader('/catalog', {search: true, controls: `<div class="controls">
-    <select id="cat"><option value="">Усі категорії</option></select>
-    <select id="sort">
-      <option value="verified">Наше зниження</option>
-      <option value="discount">Заявлена знижка</option>
-      <option value="new">Найновіші</option>
-    </select>
-  </div>`});
+renderHeader('/catalog', {search: true});
 renderFooter();
 
-// У Telegram шапки немає — але керування потрібне, тож малюємо його окремо.
+/* ⚠ ТУТ БУВ МЕРТВИЙ MINI APP (виправлено 2026-07-27, знайдено на локальному стенді).
+   Було: renderHeader() у Telegram ВИДАЛЯЄ #hdr, а наступний рядок робив
+   `document.getElementById('hdr').outerHTML = …` — тобто звертався до щойно видаленого
+   вузла. TypeError валив увесь інлайн-скрипт, разом із ним лишався неініціалізованим
+   `const _sect`, і вже catalog.js падав на `typeof _sect` (typeof НЕ рятує від TDZ) —
+   тобто не спрацьовував ні load(), ні renderChips(). У Telegram каталог був порожньою
+   сторінкою: 0 карток, 0 чіпів, body.innerText = "". Лендинг же в Telegram одразу
+   робить replace('/catalog') — отже міні-застосунок показував білий екран, і так з
+   моменту, коли шапка стала спільною (S19, 26.07).
+   Тепер керування живе в РОЗМІТЦІ й однакове для обох середовищ, а в Telegram
+   домальовується лише пошук — жодних звертань до #hdr після renderHeader. */
 if (IN_TG) {
-  document.getElementById('hdr').outerHTML = `<header><div class="controls">
-      <select id="cat"><option value="">Усі категорії</option></select>
-      <select id="sort">
-        <option value="verified">Наше зниження</option>
-        <option value="discount">Заявлена знижка</option>
-        <option value="new">Найновіші</option>
-      </select></div>
-    <div class="searchwrap">
+  document.getElementById('tgsearch').innerHTML = `<div class="searchwrap" style="margin:10px 16px 0">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
       <input id="search" class="search" placeholder="Пошук за назвою…" autocomplete="off">
-    </div></header>`;
+    </div>`;
 }
 
 // Стан фільтра з адреси: /catalog?c=smartfony&b=pumped&q=… — щоб на добірку можна

@@ -1,25 +1,31 @@
 /* Спільні стилі hapay.today. Витягнуто з index.html 2026-07-26 (S19), коли сайт
    став багатосторінковим: інлайнити той самий блок у пʼять файлів = пʼять копій,
    що розʼїдуться. Мобільна частина — та, якою живе Telegram Mini App. */
+  /* ── Акцент має ДВІ ролі, і один токен їх не тримав (виміряно на живому 2026-07-27) ──
+     Як ЧОРНИЛО (текст «Порівняти ціни», рамка, лінія графіка) він мусить бути темним на
+     світлому тлі й світлим на темному. Як ЗАЛИВКА під білим текстом — навпаки. Одне
+     значення на обидві ролі провалювало AA в обидва боки: біле на #1a8f3c = 4.17:1, а в
+     темній темі біле на #4ecb71 = 2.08:1 (норма 4.5:1). Тому три токени замість одного:
+     --accent (чорнило) / --accent-fill (заливка) / --on-accent (чим пишемо НА заливці).
+     У темній темі заливка лишається світло-зеленою, але пишемо на ній ТЕМНИМ — 9.4:1.
+     --green/--amber прибрано: 0 використань. Вони лишились від часів, коли колір кодував
+     вердикт; T12 це скасував (розрізняють СЛОВА), і мертві токени лише запрошують
+     повернути колір-оцінку назад. */
   :root{
     --bg:#f4f5f7; --surface:#fff; --fg:#14161a; --muted:#5f6672; --faint:#6b7179;
     --line:#e6e8ec; --shadow:0 1px 2px rgba(20,22,26,.04), 0 4px 16px rgba(20,22,26,.05);
-    --accent:#1a8f3c;
-    --green:#16833a; --green-bg:#e6f6ec; --green-line:#bfe6cd;
-    --amber:#a26708; --amber-bg:#fcf1da; --amber-line:#f0d9a8;
+    --accent:#1a813c; --accent-fill:#1a813c; --accent-hover:#13612d; --on-accent:#fff;
     --grey:#5f6672; --grey-bg:#eceef1;
-    --red:#d23b3b; --sale:#e23b3b; --sale-fg:#fff;
+    --red:#d23b3b; --sale:#d72b2b; --sale-fg:#fff;
     --radius:12px; --radius-s:8px;
   }
   @media (prefers-color-scheme: dark){
     :root{
       --bg:#0a0c0f; --surface:#20242b; --fg:#f0f2f5; --muted:#9aa0a6; --faint:#868d97;
-      --line:#313640; --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.28);
-      --accent:#4ecb71;
-      --green:#57cf7a; --green-bg:#132a1d; --green-line:#1f4a30;
-      --amber:#e3ba5f; --amber-bg:#2c2410; --amber-line:#4a3d18;
+      --line:#3d4450; --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.28);
+      --accent:#4ecb71; --accent-fill:#4ecb71; --accent-hover:#6fd98d; --on-accent:#0a0c0f;
       --grey:#9aa0a6; --grey-bg:#24272c;
-      --red:#f26a6a; --sale:#e85555; --sale-fg:#fff;
+      --red:#f26a6a; --sale:#d72b2b; --sale-fg:#fff;
     }
   }
   /* Шкала кеглів (S20). До неї в CSS жило 18 різних розмірів, шість із них у
@@ -137,11 +143,13 @@
   .sheet.on{transform:none}
   .grip{width:38px;height:4px;border-radius:2px;background:var(--line);margin:6px auto 14px}
   .sheet .title{-webkit-line-clamp:3;font-size:var(--f3);font-weight:700}
-  .prov{color:var(--muted);font-size:var(--f2);line-height:1.5;margin-top:12px}
+  /* max-width — рядок провенансу найдовший текст на сторінці товару; без обмеження на
+     широкому екрані він розтягувався на всю колонку (≈150 символів у рядку). */
+  .prov{color:var(--muted);font-size:var(--f2);line-height:1.5;margin-top:12px;max-width:78ch}
   .prov b{color:var(--fg)}
   svg.chart{width:100%;height:158px;display:block;margin-top:12px;overflow:visible}
-  .cta{display:block;text-align:center;margin-top:16px;background:var(--accent);color:#fff;
-    font-weight:650;padding:13px;border-radius:12px;text-decoration:none}
+  .cta{display:block;text-align:center;margin-top:16px;background:var(--accent-fill);
+    color:var(--on-accent);font-weight:650;padding:13px;border-radius:12px;text-decoration:none}
   .cta:active{opacity:.9}
 
   /* ─────────────────────────── розкладка картки ───────────────────────────
@@ -164,10 +172,24 @@
      Категорій 171 у 31 розділі — плоский список був би стіною. Розділ = заголовок,
      категорії під ним; уся колонка липка й гортається окремо від стрічки. */
   .side{display:none}
-  .side-in{position:sticky;top:96px;max-height:calc(100vh - 116px);overflow:auto;
-    padding-right:6px}
-  .side-in::-webkit-scrollbar{width:6px}
-  .side-in::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+  /* ⚠ Липкість мусить сидіти на САМІЙ колонці, а не на її нутрощах. Було sticky на
+     .side-in усередині .side, але .layout має align-items:start — тож висота <aside>
+     дорівнювала висоті вмісту, і липкому елементу не було куди їхати. Заміряно на живому
+     2026-07-27: при scrollY=1200 колонка стояла на -1007, тобто просто поїхала зі
+     сторінкою — категорії зникали після першого екрана, а стрічка має 7300px.
+     У грід-елемента контейнер — його грід-область (вся висота рядка), тому sticky,
+     поставлений на .side, справді їде. */
+  .side-in{padding-right:6px}
+  .side::-webkit-scrollbar{width:6px}
+  .side::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+
+  /* ─────────────────────────── панель над стрічкою ───────────────────────────
+     Чіпи ліворуч, категорія й сортування праворуч. Раніше сортування жило окремим
+     рядком у ШАПЦІ й на десктопі розтягувалось на всю сторінку (заміряно 1240px): у
+     шапці .controls не був флекс-дитиною .hrow, тож ні margin-left:auto, ні flex:0 0 auto
+     на нього не діяли, а select має flex:1. Тут .controls — справжня флекс-дитина. */
+  .toolbar{display:flex;flex-direction:column;gap:9px;padding:10px 16px 2px}
+  .toolbar .chips{padding:0 16px;margin:0 -16px}   /* скрол чіпів — від краю екрана */
   .sect{font-size:var(--f1);font-weight:700;letter-spacing:.04em;text-transform:uppercase;
     color:var(--faint);margin:16px 0 6px;padding:0 10px}
   .sect:first-child{margin-top:0}
@@ -178,12 +200,46 @@
   .catlink .n{font-size:var(--f1);color:var(--faint);font-variant-numeric:tabular-nums}
   .catlink.on .n{color:var(--bg);opacity:.7}
 
+  /* ───────────── проміжна ширина: планшет і невікноване вікно ноутбука ─────────────
+     До цього між 540 і 1000px не було НІЧОГО: у вікні 900px сайт малювався тією самою
+     колонкою 540px із порожнечею по 173px з кожного боку (заміряно 2026-07-27). Це той
+     самий докір, що й «мобільна версія на компʼютері», лише в іншому діапазоні —
+     десктопні правила просто починались надто пізно. */
+  @media (min-width:640px){
+    .app{max-width:720px;padding:0 16px}
+    header{padding:14px 0 12px}
+    .hrow{display:flex;align-items:center;gap:20px}
+    .brand{margin:0;flex:0 0 auto;flex-direction:column;align-items:flex-start;gap:1px}
+    .nav{display:flex}
+    .searchwrap{margin:0;flex:1 1 auto;min-width:120px;max-width:420px}
+    main{padding:0}
+    .crumbs{padding:14px 0 0}
+    .toolbar{flex-direction:row;align-items:center;gap:12px;padding:12px 0 4px}
+    .toolbar .chips{padding:0;margin:0;overflow:visible;flex-wrap:wrap}
+    .controls{flex-direction:row;flex:0 0 auto;gap:8px;margin-left:auto}
+    .pricef{margin:0 0 12px}
+    .hero{padding:44px 0 20px}
+    .foot{display:block;border-top:1px solid var(--line);margin-top:20px;padding:22px 0 40px;
+      color:var(--faint);font-size:var(--f2)}
+    .foot a{color:var(--muted);text-decoration:none;margin-right:18px;
+      display:inline-block;padding:5px 0}
+    .foot a:hover{color:var(--fg)}
+  }
+
   /* ─────────────────────────── десктоп ───────────────────────────
      Пороги й пропорції зняті з двох живих агрегаторів (hotline.ua, ek.ua,
      2026-07-26): контейнер ≈1265px при вікні 1280, бічна колонка ≈270px,
-     контент ≈935px, товар — ГОРИЗОНТАЛЬНИЙ рядок, а не картка в сітці. */
+     контент ≈935px, товар — ГОРИЗОНТАЛЬНИЙ рядок, а не картка в сітці.
+
+     ДВІ ширини, не одна. `.app.wide` (1280) — для каталогу: там бічна колонка з'їдає
+     280px, і стрічці лишається ті самі ≈960. Решта сторінок — 1040: вони без колонки,
+     і на 1240px рядок товару розтягувався так, що назва (573px тексту) висіла в 852px
+     порожнечі, а ціна від'їжджала на 870px від фото. Ширина контейнера — не смак, а
+     довжина рядка й відстань, яку мусить пройти око. */
   @media (min-width:1000px){
-    .app{max-width:1280px;padding:0 20px}
+    .app{max-width:1040px;padding:0 20px}
+    .app.wide{max-width:1280px}      /* каталог: 280px з'їдає бічна колонка */
+    .app.narrow{max-width:860px}     /* кабінет: рядки «назва — дія», ширше не треба */
     header{padding:14px 0 12px}
     .hrow{display:flex;align-items:center;gap:28px}
     .brand{margin:0;flex:0 0 auto;flex-direction:column;align-items:flex-start;gap:1px}
@@ -191,11 +247,15 @@
     .searchwrap{margin:0;flex:1 1 auto;max-width:560px}
     .search{padding:11px 14px 11px 40px;font-size:var(--f3)}
     .controls{flex-direction:row;flex:0 0 auto;gap:8px;margin-left:auto}
-    select{font-size:var(--f2)}
+    select{font-size:var(--f2);flex:0 0 auto;min-width:170px}
     #cat{display:none}                    /* на десктопі категорії живуть у бічній колонці */
     .chips{padding:12px 0 4px;overflow:visible;flex-wrap:wrap}
+    .toolbar{padding:14px 0 6px;gap:16px}
     .layout{display:grid;grid-template-columns:250px 1fr;gap:30px;align-items:start}
-    .side{display:block}
+    /* top = висота липкої шапки (75px) + повітря; max-height — щоб низ колонки не
+       ховався за краєм вікна, а мав власний скрол */
+    .side{display:block;position:sticky;top:88px;max-height:calc(100vh - 108px);
+      overflow:auto}
     main{padding:0}
     .card{grid-template-columns:104px 1fr 214px;grid-template-areas:"t b p";
       align-items:center;gap:0 18px;padding:14px 16px;margin:0 0 10px}
@@ -215,13 +275,14 @@
       border:1px solid var(--accent);font-weight:650;
       font-size:var(--f2);padding:9px 16px;border-radius:8px;text-decoration:none;
       white-space:nowrap;transition:.15s}
-    .buy:hover{filter:brightness(1.07)}
+    .buy:hover{background:color-mix(in srgb,var(--accent) 10%,transparent)}
     .badge{margin-top:4px}
     .morewrap{padding:8px 0 48px}
     /* підвал лише на десктопі: у Mini App унизу вже є навігація Telegram */
     .foot{display:block;border-top:1px solid var(--line);margin-top:20px;padding:22px 0 40px;
       color:var(--faint);font-size:var(--f2)}
-    .foot a{color:var(--muted);text-decoration:none;margin-right:18px}
+    .foot a{color:var(--muted);text-decoration:none;margin-right:18px;
+      display:inline-block;padding:5px 0}
     .foot a:hover{color:var(--fg)}
     .sheet{max-width:640px;border-radius:12px;bottom:auto;top:50%;left:50%;right:auto;
       transform:translate(-50%,-46%) scale(.98);opacity:0;max-height:82vh;
@@ -241,7 +302,8 @@ a.brand{text-decoration:none;color:inherit}
 .hauth{margin-left:auto;flex:0 0 auto}
 .hauth a{text-decoration:none;font-size:var(--f3);font-weight:600;padding:8px 15px;border-radius:8px;
   white-space:nowrap;display:inline-block}
-.hlogin{background:var(--accent);color:#fff}
+.hlogin{background:var(--accent-fill);color:var(--on-accent)}
+.hlogin:hover{background:var(--accent-hover)}
 .hme{border:1px solid var(--line);background:var(--surface);color:var(--fg)}
 
 /* ── головна ── */
@@ -270,28 +332,40 @@ a.brand{text-decoration:none;color:inherit}
 .ex .cap b{color:var(--fg);font-weight:650}
 .btn{display:inline-block;text-decoration:none;font-weight:650;font-size:var(--f3);padding:12px 24px;
   border-radius:12px;cursor:pointer;border:1px solid transparent}
-.btn-main{background:var(--accent);color:#fff}
-.btn-main:hover{filter:brightness(1.07)}
+/* Наведення міняє САМ колір, а не brightness(): освітлення заливки під білим текстом
+   з'їдало контраст рівно там, де він і так на межі. Токен --accent-hover рахований під
+   кожну тему окремо (світла — темніший зелений, темна — світліший). */
+.btn-main{background:var(--accent-fill);color:var(--on-accent)}
+.btn-main:hover{background:var(--accent-hover)}
 .btn-ghost{background:var(--surface);color:var(--fg);border-color:var(--line)}
 .btn-ghost:hover{border-color:var(--muted)}
 
-.how{display:grid;gap:16px;margin:34px 0 8px}
+/* auto-fit замість жорстких «1 колонка / 3 колонки»: між 540 і 1000 px тепер теж є що
+   показати (2 колонки), і на планшеті кроки не витягуються в стовпчик на весь екран. */
+.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));
+  gap:16px;margin:34px 0 8px}
 .how .step{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
   padding:18px 20px}
 .how .num{width:26px;height:26px;border-radius:50%;background:var(--fg);color:var(--bg);
   display:flex;align-items:center;justify-content:center;font-size:var(--f2);font-weight:700;
   margin-bottom:10px}
-.how h3{margin:0 0 6px;font-size:var(--f3)}
+/* Був --f3 — той самий кегль, що й у тексту під ним: заголовок кроку читався як просто
+   жирний рядок абзацу, ієрархію тримала лише насиченість. */
+.how h3{margin:0 0 6px;font-size:var(--f4)}
 .how p{margin:0;color:var(--muted);font-size:var(--f3);line-height:1.5}
 
 .sec{margin:36px 0 0}
 .sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
 .sec-h h2{margin:0;font-size:var(--f5);letter-spacing:-.02em}
-.sec-h a{color:var(--muted);text-decoration:none;font-size:var(--f3);font-weight:600}
+.sec-h a{color:var(--muted);text-decoration:none;font-size:var(--f3);font-weight:600;
+  display:inline-block;padding:5px 0}      /* 22px висоти було нижче за поріг цілі 24×24 */
 .sec-h a:hover{color:var(--fg)}
 /* Одна смуга з роздільниками замість трьох карток 315×90, у яких число займало
-   чверть площі, а решта була порожнечею. */
-.stats{display:flex;flex-wrap:wrap;margin:24px auto 0;max-width:660px;
+   чверть площі, а решта була порожнечею. Смуга переїхала ВСЕРЕДИНУ .hero-copy: окремим
+   блоком вона висіла по центру сторінки (660px при контенті 1225px), тобто на власній
+   осі — єдиний елемент лендингу, який не збігався з рештою. Всередині hero вона ще й
+   тримає числа біля обіцянки, вище згину. */
+.stats{display:flex;flex-wrap:wrap;margin:22px 0 0;
   background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
   overflow:hidden}
 .stat{flex:1 1 150px;padding:11px 14px;text-align:center;border-left:1px solid var(--line)}
@@ -319,11 +393,21 @@ a.brand{text-decoration:none;color:inherit}
 .form .alt{text-align:center;margin-top:16px;font-size:var(--f3);color:var(--muted)}
 .form .alt a,.linkbtn{color:var(--accent);cursor:pointer;text-decoration:none;font-weight:600;
   background:none;border:none;font-size:inherit;padding:0}
+/* Текст повідомлення — звичайний --fg, а колір несе смуга ліворуч. Кольоровий текст на
+   кольоровій плашці того ж відтінку не тримав AA (виміряно: помилка 3.99:1, успіх 4.10:1
+   у світлій темі), бо плашка підіймає тло рівно тим самим кольором. Плюс це узгоджено з
+   T12: колір — оформлення, значення несуть слова. */
 .msg{padding:11px 13px;border-radius:var(--radius-s);font-size:var(--f3);margin-top:16px;display:none;
-  line-height:1.45}
+  line-height:1.45;color:var(--fg);border-left:3px solid transparent}
 .msg.on{display:block}
-.msg.err{background:color-mix(in srgb,var(--red) 12%,transparent);color:var(--red)}
-.msg.ok{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent)}
+.msg.err{background:color-mix(in srgb,var(--red) 12%,transparent);border-left-color:var(--red)}
+.msg.ok{background:color-mix(in srgb,var(--accent) 14%,transparent);border-left-color:var(--accent)}
+
+/* Сторінки-читання (товар, кабінет) мали власні inline-обгортки 900/720px УСЕРЕДИНІ
+   контейнера — від чого крихти й підвал ішли по одній осі, а зміст по іншій (заміряно на
+   товарі: 1240 проти 900, різниця 170px з кожного боку). Тепер ширину задає контейнер
+   сторінки (.app / .app.wide), а .page лише тримає вертикальні відступи. */
+.page{margin:20px 0 40px}
 
 /* ── кабінет ── */
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
@@ -348,7 +432,7 @@ a.brand{text-decoration:none;color:inherit}
   .hero-copy p{margin-left:0}
   .hero .acts{justify-content:flex-start}
   .heroex{margin-top:0}
-  .how{grid-template-columns:repeat(3,1fr);gap:20px}
+  .how{gap:20px}
   .sec{margin-top:48px}
 }
 
