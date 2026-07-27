@@ -1164,3 +1164,25 @@ def freshness(conn) -> dict:
         "SELECT round(EXTRACT(epoch FROM now() - max(last_done_at)) / 60)::int "
         "FROM collect_task WHERE last_status = 'ok'").fetchone()
     return {"minutes": row[0] if row and row[0] is not None else None}
+
+
+def sitemap_rows(conn, limit: int = 20000):
+    """Категорії й товари для sitemap.xml (S25).
+
+    Порядок товарів НЕ випадковий: спершу ті, де в нас є що сказати понад ціну —
+    активна подія з бейджем. Сторінка товару без нашого вердикту показує те саме, що
+    сторінка крамниці, тож у мапі вона нижча. Ліміт — бо мапа має стелю 50 000 URL,
+    і роздувати її сторінками, які ні на що не відповідають, шкідливо для індексації."""
+    cats = [r[0] for r in conn.execute(
+        "SELECT DISTINCT c.slug FROM category c "
+        "  JOIN store_product sp ON sp.category_id = c.category_id "
+        "  JOIN discount_event de ON de.store_product_id = sp.store_product_id "
+        " WHERE de.ended_at IS NULL ORDER BY c.slug").fetchall()]
+    prods = [r[0] for r in conn.execute(
+        "SELECT sp.store_product_id FROM store_product sp "
+        "  LEFT JOIN discount_event de "
+        "         ON de.store_product_id = sp.store_product_id AND de.ended_at IS NULL "
+        " ORDER BY (de.badge_state IN ('verified','verified_provisional','pumped')) DESC NULLS LAST, "
+        "          de.detected_at DESC NULLS LAST, sp.store_product_id DESC "
+        " LIMIT %s", (limit,)).fetchall()]
+    return cats, prods

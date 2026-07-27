@@ -107,6 +107,12 @@ public class ApiService
         (await _http.GetFromJsonAsync<ChoiceEnvelope>(
             $"{Base}/api/product/{storeProductId}/choice", _json, ct))?.Choice;
 
+    /// Один товар за id. Потрібен там, де товару в руках НЕМАЄ — глибоке посилання
+    /// hapay.today/product/{id} дає лише число, а екран деталей чекає повний Discount.
+    public async Task<Discount?> CardAsync(int storeProductId, CancellationToken ct = default) =>
+        await _http.GetFromJsonAsync<Discount>(
+            $"{Base}/api/product/{storeProductId}/card", _json, ct);
+
     /// Характеристики (S12): пари назва-значення з картки крамниці (одна на групу).
     /// null = ще не зібрано (бекфіл у вільних слотах) — секція не показується.
     public async Task<SpecsResult?> SpecsAsync(int storeProductId, CancellationToken ct = default) =>

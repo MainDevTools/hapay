@@ -164,14 +164,20 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
         }
     }
 
-    /// «Поділитись» — системний share sheet: назва + ціна + лінк крамниці.
+    /// «Поділитись» — системний share sheet: назва + ціна + посилання НА НАС.
+    ///
+    /// ⚠ Було посилання на КРАМНИЦЮ (Item.Url), і це віддавало кожен share конкуренту:
+    /// одержувач бачив картку Rozetka, а не історію цін, тобто саме те, заради чого
+    /// існує «Хапай». Тепер шлемо hapay.today/product/{id} — там і графік, і 30-денна
+    /// база, і кнопка в крамницю за один дотик. Сторінка віддає прев'ю (og:) сама, тож
+    /// у чаті картка розкривається з назвою й ціною.
     [RelayCommand]
     private async Task ShareProduct()
     {
         if (Item is null) return;
         var text = $"{Item.Title} — {PriceRangeText}" +
-                   (Item.OffersN > 1 ? $" · порівняно в {Item.OffersN} крамницях (Хапай)" : " (Хапай)") +
-                   $"\n{Item.Url}";
+                   (Item.OffersN > 1 ? $" · порівняно в {Item.OffersN} крамницях" : "") +
+                   $"\nhttps://hapay.today/product/{Item.StoreProductId}";
         await Share.Default.RequestAsync(new ShareTextRequest { Text = text, Title = Item.Title });
     }
 
@@ -251,7 +257,29 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
     public void ApplyQueryAttributes(IDictionary<string, object> query)
     {
         if (query.TryGetValue("Discount", out var value) && value is Discount d)
+        {
             Item = d;   // setter → OnItemChanged → тягне історію
+            return;
+        }
+        // Глибоке посилання (hapay.today/product/{id}) приносить лише число — товар
+        // доводиться дотягнути. Shell віддає значення рядком, звідки й розбір.
+        if (query.TryGetValue("id", out var raw)
+            && int.TryParse(Convert.ToString(raw), out var id) && id > 0)
+            _ = LoadByIdAsync(id);
+    }
+
+    /// Товар за id: єдиний шлях, коли екран відкрили посиланням, а не зі стрічки.
+    private async Task LoadByIdAsync(int id)
+    {
+        try
+        {
+            Item = await _api.CardAsync(id);
+            if (Item is null) HistoryNote = "Товар не знайдено — можливо, він зник із продажу.";
+        }
+        catch (Exception e)
+        {
+            HistoryNote = $"Не вдалося відкрити товар: {e.Message}";
+        }
     }
 
     // прийшов товар через Shell-навігацію → тягнемо історію + офери

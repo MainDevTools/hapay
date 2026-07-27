@@ -8,7 +8,9 @@ import os
 import time
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse,
+                               PlainTextResponse, Response)
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 import re
 
@@ -19,6 +21,7 @@ from api import qtasks
 from api import auth as qauth
 from api import ratelimit as qrl
 from api import email as qemail
+from api import seo as qseo
 from api.initdata import verify_init_data, check_auth_age, InitDataError
 from detection.runner import detect_pass
 from taxonomy import SECTION_ORDER
@@ -28,7 +31,6 @@ _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 app = FastAPI(title="Радар знижок — read-API")
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 WEB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web")
-WEB_INDEX = os.path.join(WEB_DIR, "index.html")
 _LEGAL = {"privacy", "terms", "support"}   # юр-сторінки (обов'язкові для сторів)
 
 
@@ -52,9 +54,50 @@ def require_user(x_init_data: str | None = Header(default=None)):
     return user
 
 
+# ── сторінки ────────────────────────────────────────────────────────────────────
+# Прев'ю посилань і structured data збираються НА СЕРВЕРІ (api/seo.py): бот Telegram
+# чи Facebook не виконує JS, тож усе, що малює клієнт, для нього не існує. Кожна
+# сторінка має маркер `<!--SEO-->` у <head>, який ми заміщаємо готовим блоком.
+_SEO_MARK = "<!--SEO-->"
+_SUMMARY_MARK = "<!--SUMMARY-->"
+
+# title / опис / noindex для сторінок без даних із БД
+_META = {
+    "index":   ("Хапай — знижки, перевірені історією цін",
+                "Звіряємо заявлену знижку з нашою власною історією спостережень за ціною "
+                "в українських крамницях: видно, чи ціна справді нижча, ніж була.", False),
+    "catalog": ("Знижки в українських крамницях — Хапай",
+                "Знижки, звірені з історією цін: найменша ціна за 30 днів проти того, що "
+                "крамниця називає «старою».", False),
+    "login":   ("Вхід — Хапай", "Вхід і реєстрація в «Хапай».", True),
+    "me":      ("Мій кабінет — Хапай", "Стеження за цінами й налаштування акаунта.", True),
+    "admin":   ("Панель — Хапай", "Службова сторінка.", True),
+    "privacy": ("Конфіденційність — Хапай", "Які дані збирає «Хапай» і навіщо.", False),
+    "terms":   ("Умови користування — Хапай", "Умови користування сервісом «Хапай».", False),
+    "support": ("Підтримка — Хапай", "Як звʼязатися з «Хапай».", False),
+    "404":     ("Сторінку не знайдено — Хапай", "Такої сторінки немає.", True),
+}
+
+
+def _page(name: str, head: str, summary: str = "", status: int = 200) -> HTMLResponse:
+    """Готовий HTML із підставленим блоком <head>. Якщо маркера немає — віддаємо як є:
+    сторінка без прев'ю краща за сторінку з винятком."""
+    with open(os.path.join(WEB_DIR, f"{name}.html"), encoding="utf-8") as f:
+        src = f.read()
+    src = src.replace(_SEO_MARK, head, 1)
+    if summary:
+        src = src.replace(_SUMMARY_MARK, summary, 1)
+    return HTMLResponse(src, status_code=status, headers=_NOCACHE)
+
+
+def _static_page(name: str, path: str) -> HTMLResponse:
+    title, desc, noindex = _META[name]
+    return _page(name, qseo.page_head(title, desc, path, noindex=noindex))
+
+
 @app.get("/")
 def index():
-    return FileResponse(WEB_INDEX, headers=_NOCACHE)
+    return _static_page("index", "/")
 
 
 @app.get("/admin")
@@ -62,15 +105,22 @@ def admin_page():
     """Веб-панель (S16). Реєструється ДО catch-all `/{page}` — інакше той перехопив би
     шлях і віддав 404. Сторінка статична й без секретів: усі дані тягне через ті самі
     гейтовані /api/admin/*, токен бере з логіну й тримає в sessionStorage."""
-    return FileResponse(os.path.join(WEB_DIR, "admin.html"), media_type="text/html",
-                        headers=_NOCACHE)
+    return _static_page("admin", "/admin")
 
 
 # Сторінки сайту (S19). Кожна — окремий файл у web/; спільні стилі й скрипти лежать
 # поруч і віддаються через /s/<файл>. УСІ ці маршрути мусять стояти ДО catch-all
 # `/{page}` — інакше він перехопить шлях і віддасть 404 (на це вже наступали з /admin).
 _PAGES = {"catalog", "login", "me"}
-_ASSETS = {"app.css", "app.js", "catalog.js"}   # білий список: жодного обходу шляхом
+# Білий список: жодного обходу шляхом. Зображення — ВЛАСНА брендова графіка
+# (scripts/make-brand-assets.py), не чужі фото: інваріант B не порушено.
+_ASSETS = {"app.css": "text/css; charset=utf-8",
+           "app.js": "application/javascript; charset=utf-8",
+           "catalog.js": "application/javascript; charset=utf-8",
+           "og.png": "image/png",
+           "icon-32.png": "image/png",
+           "icon-180.png": "image/png",
+           "favicon.ico": "image/x-icon"}
 
 # HTML і стилі їдуть у деплої РАЗОМ, а кешуються нарізно. FileResponse ставить лише
 # ETag/Last-Modified, без Cache-Control, — і браузер застосовує евристичне кешування
@@ -83,32 +133,90 @@ _NOCACHE = {"Cache-Control": "no-cache"}
 
 @app.get("/s/{name}")
 def asset(name: str):
-    """Спільні стилі/скрипти. Список статичний — «..» чи будь-що інше просто не збігається."""
-    if name not in _ASSETS:
+    """Спільні стилі/скрипти/іконки. Список статичний — «..» чи будь-що інше не збігається."""
+    kind = _ASSETS.get(name)
+    if kind is None:
         raise HTTPException(404, "не знайдено")
-    kind = "text/css" if name.endswith(".css") else "application/javascript"
-    return FileResponse(os.path.join(WEB_DIR, name), media_type=f"{kind}; charset=utf-8",
-                        headers=_NOCACHE)
+    return FileResponse(os.path.join(WEB_DIR, name), media_type=kind, headers=_NOCACHE)
+
+
+@app.get("/favicon.ico")
+def favicon():
+    """Окремим маршрутом: браузер просить саме /favicon.ico, а не /s/favicon.ico."""
+    return FileResponse(os.path.join(WEB_DIR, "favicon.ico"), media_type="image/x-icon")
+
+
+@app.get("/robots.txt")
+def robots():
+    return PlainTextResponse(qseo.ROBOTS, headers=_NOCACHE)
+
+
+# Мапа сайту велика (десятки тисяч URL) і за годину майже не змінюється — збирати її
+# на кожен запит краулера марно.
+_SITEMAP = qseo.Cached(ttl_s=3600)
+
+
+@app.get("/sitemap.xml")
+def sitemap(conn=Depends(get_conn)):
+    def build():
+        cats, prods = qdb.sitemap_rows(conn)
+        return qseo.sitemap(cats, prods)
+    return Response(_SITEMAP.get(build), media_type="application/xml", headers=_NOCACHE)
+
+
+@app.get("/.well-known/assetlinks.json")
+def assetlinks():
+    """Android App Links: без цього файлу посилання hapay.today НЕ відкриє застосунок
+    (Android 12+ не питає користувача — мовчки веде в браузер). Відбиток підпису дає
+    лише той, у кого ключ, тобто оператор; поки змінної немає — чесний 404, а не
+    порожній файл, який виглядав би налаштованим."""
+    fp = os.environ.get("ANDROID_CERT_SHA256", "").strip()
+    if not fp:
+        raise HTTPException(404, "не налаштовано")
+    return JSONResponse([{
+        "relation": ["delegate_permission/common.handle_all_urls"],
+        "target": {"namespace": "android_app", "package_name": "com.companyname.hapay",
+                   "sha256_cert_fingerprints": [f.strip() for f in fp.split(",") if f.strip()]},
+    }], headers=_NOCACHE)
 
 
 @app.get("/product/{store_product_id}")
-def product_page(store_product_id: int):
-    """Сторінка товару окремим URL — щоб на неї можна було послатись і поділитись
-    (у шторці каталогу такої адреси не існує). Дані тягне той самий JS."""
-    return FileResponse(os.path.join(WEB_DIR, "product.html"), media_type="text/html",
-                        headers=_NOCACHE)
+def product_page(store_product_id: int, conn=Depends(get_conn)):
+    """Сторінка товару окремим URL — щоб на неї можна було послатись і поділитись.
+
+    Прев'ю й JSON-LD збираємо ТУТ: бот, який будує картку посилання в чаті, JS не
+    виконує, тож усе намальоване клієнтом для нього не існує. Заразом кладемо в
+    розмітку назву й ціну — сторінка приїжджає не порожньою."""
+    card = qdb.product_card(conn, store_product_id)
+    if card is None:                       # неіснуючий товар не має потрапляти в індекс
+        return _page("product", qseo.page_head("Товар не знайдено — Хапай",
+                                               "Такого товару в нас немає.",
+                                               f"/product/{store_product_id}", noindex=True))
+    return _page("product", qseo.product_head(card), qseo.product_summary(card))
 
 
 @app.get("/{page}")
 def legal(page: str):
     """Сторінки сайту (S19) + юр-сторінки /privacy, /terms, /support (вимога сторів)."""
-    if page in _PAGES:
-        return FileResponse(os.path.join(WEB_DIR, f"{page}.html"), media_type="text/html",
-                            headers=_NOCACHE)
-    if page not in _LEGAL:
+    if page not in _PAGES and page not in _LEGAL:
         raise HTTPException(404, "не знайдено")
-    return FileResponse(os.path.join(WEB_DIR, f"{page}.html"), media_type="text/html",
-                        headers=_NOCACHE)
+    return _static_page(page, f"/{page}")
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_error(request: Request, exc: StarletteHTTPException):
+    """404 для ЛЮДИНИ мусить бути сторінкою, а не `{"detail":"не знайдено"}`.
+
+    До 2026-07-27 будь-яка одруківка в адресі чи стале посилання віддавали сирий JSON
+    із `application/json` — тобто браузер показував рядок коду. Розрізняємо за тим, чого
+    просить клієнт: `Accept: text/html` і шлях поза /api — сторінка; усе інше (застосунок,
+    fetch зі сторінки, curl) — як було, JSON, бо на нього там і чекають."""
+    wants_html = "text/html" in (request.headers.get("accept") or "")
+    if exc.status_code == 404 and wants_html and not request.url.path.startswith("/api/"):
+        title, desc, noindex = _META["404"]
+        return _page("404", qseo.page_head(title, desc, "/404", noindex=noindex), status=404)
+    return JSONResponse({"detail": exc.detail}, status_code=exc.status_code,
+                        headers=getattr(exc, "headers", None))
 
 
 @app.get("/api/health")
