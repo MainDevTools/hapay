@@ -54,7 +54,7 @@ def require_user(x_init_data: str | None = Header(default=None)):
 
 @app.get("/")
 def index():
-    return FileResponse(WEB_INDEX)
+    return FileResponse(WEB_INDEX, headers=_NOCACHE)
 
 
 @app.get("/admin")
@@ -62,7 +62,8 @@ def admin_page():
     """Веб-панель (S16). Реєструється ДО catch-all `/{page}` — інакше той перехопив би
     шлях і віддав 404. Сторінка статична й без секретів: усі дані тягне через ті самі
     гейтовані /api/admin/*, токен бере з логіну й тримає в sessionStorage."""
-    return FileResponse(os.path.join(WEB_DIR, "admin.html"), media_type="text/html")
+    return FileResponse(os.path.join(WEB_DIR, "admin.html"), media_type="text/html",
+                        headers=_NOCACHE)
 
 
 # Сторінки сайту (S19). Кожна — окремий файл у web/; спільні стилі й скрипти лежать
@@ -71,6 +72,14 @@ def admin_page():
 _PAGES = {"catalog", "login", "me"}
 _ASSETS = {"app.css", "app.js", "catalog.js"}   # білий список: жодного обходу шляхом
 
+# HTML і стилі їдуть у деплої РАЗОМ, а кешуються нарізно. FileResponse ставить лише
+# ETag/Last-Modified, без Cache-Control, — і браузер застосовує евристичне кешування
+# (частку від віку файлу). Наслідок бачив на собі 2026-07-27: після деплою сторінка
+# приїхала НОВА, а app.css лишився старий, тобто нова розмітка малювалась старими
+# правилами. `no-cache` не забороняє кеш — він вимагає ЩОРАЗУ перепитати; при збігу
+# ETag відповідь буде 304 без тіла. Три файли, ціна — один умовний запит.
+_NOCACHE = {"Cache-Control": "no-cache"}
+
 
 @app.get("/s/{name}")
 def asset(name: str):
@@ -78,24 +87,28 @@ def asset(name: str):
     if name not in _ASSETS:
         raise HTTPException(404, "не знайдено")
     kind = "text/css" if name.endswith(".css") else "application/javascript"
-    return FileResponse(os.path.join(WEB_DIR, name), media_type=f"{kind}; charset=utf-8")
+    return FileResponse(os.path.join(WEB_DIR, name), media_type=f"{kind}; charset=utf-8",
+                        headers=_NOCACHE)
 
 
 @app.get("/product/{store_product_id}")
 def product_page(store_product_id: int):
     """Сторінка товару окремим URL — щоб на неї можна було послатись і поділитись
     (у шторці каталогу такої адреси не існує). Дані тягне той самий JS."""
-    return FileResponse(os.path.join(WEB_DIR, "product.html"), media_type="text/html")
+    return FileResponse(os.path.join(WEB_DIR, "product.html"), media_type="text/html",
+                        headers=_NOCACHE)
 
 
 @app.get("/{page}")
 def legal(page: str):
     """Сторінки сайту (S19) + юр-сторінки /privacy, /terms, /support (вимога сторів)."""
     if page in _PAGES:
-        return FileResponse(os.path.join(WEB_DIR, f"{page}.html"), media_type="text/html")
+        return FileResponse(os.path.join(WEB_DIR, f"{page}.html"), media_type="text/html",
+                            headers=_NOCACHE)
     if page not in _LEGAL:
         raise HTTPException(404, "не знайдено")
-    return FileResponse(os.path.join(WEB_DIR, f"{page}.html"), media_type="text/html")
+    return FileResponse(os.path.join(WEB_DIR, f"{page}.html"), media_type="text/html",
+                        headers=_NOCACHE)
 
 
 @app.get("/api/health")
