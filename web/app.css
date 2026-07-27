@@ -79,7 +79,9 @@
   .chip:active{transform:scale(.96)}
   .chip.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 
-  main{padding:8px 14px 8px}
+  /* 16px — той самий відступ, що в шапки, крихт, панелі й фільтра. Було 14: картки
+     стояли на 2px лівіше за все інше на телефоні. */
+  main{padding:8px 16px 8px}
 
   /* card */
   .card{display:flex;gap:12px;background:var(--surface);border:1px solid var(--line);
