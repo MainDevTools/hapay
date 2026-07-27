@@ -1656,7 +1656,9 @@ def main():
                    miss.status_code == 404 and "noindex" in miss.text, miss.status_code))
 
     # ── самостійне видалення акаунта (вимога Google Play) ────────────────────────
-    dele = signup("bye@hapay.today", "byepassword")
+    # signup() повертає ВІДПОВІДЬ ЛОГІНУ (dict), не голий токен — сюди я підставив
+    # рядок із голови, і CI спіймав це TypeError-ом за 30 рядків від причини.
+    dele = signup("bye@hapay.today", "byepassword")["token"]
     delh = {"Authorization": "Bearer " + dele}
     checks.append(("своє видалення без токена → 401",
                    client.delete("/api/me").status_code == 401, None))
