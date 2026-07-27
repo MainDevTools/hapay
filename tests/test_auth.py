@@ -111,6 +111,19 @@ def test_bearer_claims_helper():
     assert auth.bearer_claims("Bearer garbage") is None
 
 
+
+def test_dummy_hash_is_real_and_same_cost():
+    """Пустушка для неіснуючого email мусить коштувати РІВНО стільки ж, скільки
+    справжній хеш — інакше таймінг знову видає, чи є акаунт. Перевіряємо форму й
+    к-сть ітерацій, а не час: заміри часу в CI нестабільні."""
+    assert auth.DUMMY_HASH.startswith("pbkdf2_sha256$")
+    real = auth.hash_password("будь-який")
+    assert auth.DUMMY_HASH.split("$")[1] == real.split("$")[1], "інша к-сть ітерацій"
+    assert auth.verify_password("будь-що", auth.DUMMY_HASH) is False
+    # у коді пустушки немає — вона від випадкового пароля, тож і підбирати нічого
+    assert auth.DUMMY_HASH != auth.hash_password("будь-який")
+
+
 def _main():
     fns = [v for k, v in sorted(globals().items())
            if k.startswith("test_") and callable(v) and getattr(v, "__module__", None) == __name__]

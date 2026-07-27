@@ -403,8 +403,14 @@ def login(body: dict, request: Request, conn=Depends(get_conn)):
     email = (body.get("email") or "").strip().lower()
     password = body.get("password") or ""
     u = qdb.get_user_by_email(conn, email)
-    # constant-ish: перевіряємо пароль навіть якщо юзера нема (проти user-enumeration за таймінгом)
-    ok = u is not None and qauth.verify_password(password, u["password_hash"])
+    # Хеш рахуємо ЗАВЖДИ — і для неіснуючого email теж, проти пари за таймінгом.
+    # ⚠ Тут довго стояв коментар, що так і робиться, а код був
+    # `u is not None and verify_password(...)`: `and` коротко замикається, тож для
+    # неіснуючого юзера pbkdf2 не викликався взагалі. Заміряно на живому 2026-07-27:
+    # 245 мс проти 421 — «чи є акаунт» читалось із таймінгу. Порядок важливий:
+    # спершу хеш, і лише потім перевірка на None.
+    ok = qauth.verify_password(password, u["password_hash"] if u else qauth.DUMMY_HASH)
+    ok = ok and u is not None
     if not ok:
         raise HTTPException(401, "невірний email або пароль")
     if not u.get("is_active", True):                 # забанений акаунт (S15)
