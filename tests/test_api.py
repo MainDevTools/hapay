@@ -1701,6 +1701,98 @@ def main():
     checks.append(("сторінка попереджає про зміну варіанта товару",
                    "пакування" in dpg.text, None))
 
+    # ── цільова ціна, стеження за запитом, листи (S29) ───────────────────────────
+    wu = signup("watcher@hapay.today", "watcherpass")["token"]
+    wh = {"Authorization": "Bearer " + wu}
+    spid_w = client.get("/api/discounts").json()[0]["store_product_id"]
+
+    bad_t = client.post("/api/me/watchlist", headers=wh,
+                        json={"kind": "store_product", "ref_id": spid_w, "target_kop": 0})
+    checks.append(("ціль 0 → 400 (це помилка вводу, не намір)", bad_t.status_code == 400, None))
+
+    noq = client.post("/api/me/watchlist", headers=wh,
+                      json={"kind": "query", "query_text": "навушники"})
+    checks.append(("стеження за запитом БЕЗ цілі → 400 (це була б розсилка)",
+                   noq.status_code == 400, noq.text[:80]))
+    okq = client.post("/api/me/watchlist", headers=wh,
+                      json={"kind": "query", "query_text": "навушники", "target_kop": 100000})
+    checks.append(("стеження за запитом із ціллю → 200", okq.status_code == 200, okq.text[:80]))
+    checks.append(("повторний той самий запит не дублюється",
+                   client.post("/api/me/watchlist", headers=wh,
+                               json={"kind": "query", "query_text": "навушники",
+                                     "target_kop": 100000}).json()["watchlist_id"]
+                   == okq.json()["watchlist_id"], None))
+
+    w1 = client.post("/api/me/watchlist", headers=wh,
+                     json={"kind": "store_product", "ref_id": spid_w,
+                           "target_kop": 1}).json()
+    checks.append(("ціль повертається у відповіді", w1.get("target_kop") == 1, w1))
+    checks.append(("ціль видно у списку стеження",
+                   any(x.get("target_kop") == 1 for x in
+                       client.get("/api/me/watchlist", headers=wh).json()), None))
+
+    # ГОЛОВНЕ: з ціллю 1 копійка жодне реальне зниження не має «спрацювати»
+    with psycopg.connect(URL, autocommit=True) as c:
+        c.execute("UPDATE watchlist SET price_at_add_kop = 999999999 WHERE watchlist_id = %s",
+                  (w1["watchlist_id"],))
+    checks.append(("зниження НЕ повідомляється, поки не досягнуто цілі",
+                   not any(d["watchlist_id"] == w1["watchlist_id"]
+                           for d in client.get("/api/me/watchlist/drops", headers=wh).json()),
+                   None))
+    pt = client.patch(f"/api/me/watchlist/{w1['watchlist_id']}", headers=wh,
+                      json={"target_kop": 999999999})
+    checks.append(("PATCH міняє ціль", pt.status_code == 200
+                   and pt.json()["target_kop"] == 999999999, pt.text[:80]))
+    checks.append(("після підняття цілі зниження зʼявляється",
+                   any(d["watchlist_id"] == w1["watchlist_id"]
+                       for d in client.get("/api/me/watchlist/drops", headers=wh).json()),
+                   None))
+    checks.append(("чужий запис не патчиться → 404",
+                   client.patch("/api/me/watchlist/999999", headers=wh,
+                                json={"target_kop": 100}).status_code == 404, None))
+
+    # ack мусить ставити і ЧАС — без нього запобіжник частоти листів сліпий
+    ids = [d["watchlist_id"] for d in client.get("/api/me/watchlist/drops", headers=wh).json()]
+    client.post("/api/me/watchlist/drops/ack", headers=wh, json={"watchlist_ids": ids})
+    with psycopg.connect(URL, autocommit=True) as c:
+        stamped = c.execute("SELECT last_notified_at IS NOT NULL FROM watchlist "
+                            " WHERE watchlist_id = %s", (w1["watchlist_id"],)).fetchone()[0]
+    checks.append(("ack ставить last_notified_at (частота листів на нього спирається)",
+                   stamped, None))
+
+    # згода на листи
+    checks.append(("/api/me віддає email_alerts (інакше вимикач бреше про стан)",
+                   "email_alerts" in client.get("/api/me", headers=wh).json(), None))
+    off = client.post("/api/me/alerts", headers=wh, json={"enabled": False})
+    checks.append(("вимкнення листів → 200", off.status_code == 200
+                   and off.json()["email_alerts"] is False, off.text[:60]))
+    checks.append(("вимкнені листи → акаунт не потрапляє в розсилку",
+                   not any(u["email"] == "watcher@hapay.today"
+                           for u in _qdb.users_for_alerts(
+                               psycopg.connect(URL, autocommit=True))), None))
+    checks.append(("enabled не-булеве → 400",
+                   client.post("/api/me/alerts", headers=wh,
+                               json={"enabled": "так"}).status_code == 400, None))
+
+    # відписка одним кліком: підпис прив'язаний до конкретного акаунта
+    from api import auth as _qauth
+    uid_w = client.get("/api/me", headers=wh).json()["user_id"]
+    sig = _qauth.unsub_link(uid_w).split("s=")[1]
+    checks.append(("підпис відписки не підходить до чужого id",
+                   not _qauth.verify_unsub(uid_w + 1, sig), None))
+    checks.append(("/unsubscribe без підпису → сторінка «недійсне», не виняток",
+                   client.get("/unsubscribe", headers={"accept": "text/html"}).status_code == 200,
+                   None))
+
+    low = client.get(f"/api/product/{spid_w}/low")
+    checks.append(("/low → мінімум РАЗОМ із вікном спостережень",
+                   low.status_code == 200
+                   and all(k in low.json() for k in ("low_kop", "days", "measurements",
+                                                     "first_day")),
+                   low.status_code))
+    checks.append(("/low для неіснуючого товару → 404",
+                   client.get("/api/product/999999999/low").status_code == 404, None))
+
     al = client.get("/.well-known/assetlinks.json")
     checks.append(("assetlinks без ANDROID_CERT_SHA256 → 404, а не порожній файл",
                    al.status_code == 404, al.status_code))
