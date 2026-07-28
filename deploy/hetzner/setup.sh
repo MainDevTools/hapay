@@ -236,10 +236,38 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
+# ── листи про зниження цін (S29) ──────────────────────────────────────────────────
+# Ходить ПІСЛЯ збору, а не за власним розкладом: писати людям про ціни, поки нові ціни
+# ще не приїхали, — це лист ні про що. 06:10 і 18:10 — за ~45 хв після збору 05:23/17:23.
+#
+# Сам скрипт має власні запобіжники (не частіше разу на 12 год на людину, лише
+# підтверджена пошта + згода), тож зайвий запуск нікому не нашкодить.
+cat > /etc/systemd/system/hapay-mail.service <<EOF
+[Unit]
+Description=Хапай — листи про зниження цін
+After=network-online.target
+[Service]
+Type=oneshot
+User=$APP_USER
+WorkingDirectory=$REPO_DIR
+EnvironmentFile=$ENV_FILE
+ExecStart=$VENV/bin/python alerts.py
+EOF
+cat > /etc/systemd/system/hapay-mail.timer <<'EOF'
+[Unit]
+Description=Хапай — листи про зниження, після збору
+[Timer]
+OnCalendar=*-*-* 06:10:00
+OnCalendar=*-*-* 18:10:00
+Persistent=true
+[Install]
+WantedBy=timers.target
+EOF
+
 systemctl daemon-reload
 systemctl enable --now hapay-api.service
 systemctl enable --now hapay-collect-server.timer
-systemctl enable hapay-collect.timer hapay-backup.timer
+systemctl enable hapay-collect.timer hapay-backup.timer hapay-mail.timer
 
 log "9/9 Caddy (TLS + зворотний проксі на 127.0.0.1:8080)"
 if ! command -v caddy &>/dev/null; then
