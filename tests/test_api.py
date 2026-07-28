@@ -307,7 +307,16 @@ def main():
     # відновлюємо пароль для решти тесту (нижче login під supersecret не потрібен, але
     # ahdr-токен лишається валідним — JWT не залежить від пароля)
 
-    wa = client.post("/api/me/watchlist", json={"kind": "query", "query_text": "iphone"}, headers=ahdr)
+    # ⚠ ЗМІНА КОНТРАКТУ (S29): стеження за запитом тепер ВИМАГАЄ цільову ціну.
+    # Раніше такий запис створювався, але сповіщати по ньому не було чим — «повідом про
+    # будь-яке зниження серед усього, що підходить під слово» це розсилка, а не
+    # сповіщення. Клієнтів це не зачепило: kind='query' не створював ЖОДЕН із них
+    # (перевірено пошуком по web/ і app-maui/ перед зміною).
+    checks.append(("query без цілі → 400 (свідома зміна контракту)",
+                   client.post("/api/me/watchlist", json={"kind": "query", "query_text": "iphone"},
+                               headers=ahdr).status_code == 400, None))
+    wa = client.post("/api/me/watchlist", headers=ahdr,
+                     json={"kind": "query", "query_text": "iphone", "target_kop": 5000000})
     checks.append(("POST /api/me/watchlist → 200", wa.status_code == 200, wa.status_code))
     mwl = client.get("/api/me/watchlist", headers=ahdr).json()
     checks.append(("/api/me/watchlist повертає запис юзера",
