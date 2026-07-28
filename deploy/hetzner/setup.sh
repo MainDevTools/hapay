@@ -267,7 +267,13 @@ EOF
 systemctl daemon-reload
 systemctl enable --now hapay-api.service
 systemctl enable --now hapay-collect-server.timer
-systemctl enable hapay-collect.timer hapay-backup.timer hapay-mail.timer
+# ⚠ --now ОБОВʼЯЗКОВО. Без нього `enable` лише планує юніт на НАСТУПНЕ завантаження,
+# а не запускає його зараз. Заміряно 2026-07-28: hapay-backup.timer був enabled із
+# 25.07, машина не перезавантажувалась із 18.07 — і нічний бекап НЕ виконався ЖОДНОГО
+# разу. Останній дамп був той, що запустили руками під час налаштування, тобто база
+# з незамінною append-only історією три доби жила без бекапу.
+systemctl enable --now hapay-backup.timer hapay-mail.timer
+systemctl enable hapay-collect.timer
 
 log "9/9 Caddy (TLS + зворотний проксі на 127.0.0.1:8080)"
 if ! command -v caddy &>/dev/null; then
