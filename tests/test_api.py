@@ -1802,6 +1802,42 @@ def main():
     checks.append(("/low для неіснуючого товару → 404",
                    client.get("/api/product/999999999/low").status_code == 404, None))
 
+    # ── канонічна модель (S30) ───────────────────────────────────────────────────
+    mod = client.get("/api/model/1")
+    checks.append(("/api/model/{id} → 200 або 404, не виняток",
+                   mod.status_code in (200, 404), mod.status_code))
+    with psycopg.connect(URL, autocommit=True) as c:
+        row = c.execute(
+            "SELECT p.product_id, count(DISTINCT sp.source_id) FROM product p "
+            "  JOIN store_product sp ON sp.match_key = p.match_key "
+            " GROUP BY 1 ORDER BY 2 DESC LIMIT 1").fetchone()
+    checks.append(("бекфіл звʼязав сторінки з моделями (не 0, як у першій спробі)",
+                   row is not None, row))
+    if row:
+        pid, n_stores = row
+        m = client.get(f"/api/model/{pid}")
+        checks.append(("модель віддає пропозиції й діапазон",
+                       m.status_code == 200 and len(m.json()["offers"]) >= 1
+                       and "min_kop" in m.json(), m.status_code))
+        # ГОЛОВНЕ юридично: бейдж лишається ПОСТОРІНКОВИМ, а не «на модель»
+        checks.append(("бейдж стоїть у рядку крамниці, а не на моделі",
+                       "badge_state" not in m.json()
+                       and all("badge_state" in o for o in m.json()["offers"]),
+                       list(m.json())))
+        mp = client.get(f"/model/{pid}", headers={"accept": "text/html"})
+        checks.append(("/model/{id} → сторінка", mp.status_code == 200, mp.status_code))
+    checks.append(("неіснуюча модель → 404",
+                   client.get("/api/model/999999999").status_code == 404, None))
+    checks.append(("сторінка неіснуючої моделі → 404 і noindex",
+                   client.get("/model/999999999", headers={"accept": "text/html"}
+                              ).status_code == 404, None))
+
+    # фід знижень не повторює ту саму модель
+    dj = client.get("/api/drops?days=30").json()
+    pids = [i["product_id"] for i in dj["items"] if i.get("product_id")]
+    checks.append(("фід знижень не дублює модель", len(pids) == len(set(pids)),
+                   f"{len(pids)} з моделлю, {len(set(pids))} унікальних"))
+
     al = client.get("/.well-known/assetlinks.json")
     checks.append(("assetlinks без ANDROID_CERT_SHA256 → 404, а не порожній файл",
                    al.status_code == 404, al.status_code))
