@@ -38,7 +38,7 @@ def product_card(conn, store_product_id: int):
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(
             """SELECT sp.store_product_id, sp.title, sp.url, sp.image_url, sp.variant_note,
-                      sp.product_id, s.name AS store, c.slug AS category_slug, c.name AS category,
+                      pr.product_id, s.name AS store, c.slug AS category_slug, c.name AS category,
                       COALESCE(de.current_kop, ps.price_now_kop) AS current_kop,
                       COALESCE(de.old_declared_kop, ps.price_old_kop) AS old_declared_kop,
                       de.reference_kop, de.declared_pct, de.verified_pct, de.badge_state,
@@ -48,6 +48,7 @@ def product_card(conn, store_product_id: int):
                FROM store_product sp
                JOIN source s USING (source_id)
                JOIN category c ON c.category_id = sp.category_id
+               LEFT JOIN product pr ON pr.match_key = sp.match_key
                LEFT JOIN discount_event de
                       ON de.store_product_id = sp.store_product_id AND de.ended_at IS NULL
                LEFT JOIN LATERAL (
@@ -1196,7 +1197,7 @@ def sitemap_rows(conn, limit: int = 20000):
         " LIMIT %s", (limit,)).fetchall()]
     models = [r[0] for r in conn.execute(
         "SELECT p.product_id FROM product p "
-        "  JOIN store_product sp ON sp.product_id = p.product_id "
+        "  JOIN store_product sp ON sp.match_key = p.match_key "
         " GROUP BY p.product_id HAVING count(DISTINCT sp.source_id) >= 2 "
         " ORDER BY count(DISTINCT sp.source_id) DESC, p.product_id LIMIT 10000").fetchall()]
     return cats, prods, models
@@ -1349,14 +1350,15 @@ def price_drops(conn, days: int = 1, limit: int = 50, offset: int = 0,
                    round(100.0 * (p.price_now_kop - cur.price_now_kop)
                          / p.price_now_kop)::int AS drop_pct,
                    p.seen_at AS was_at, cur.seen_at AS now_at,
-                   de.badge_state, sp.product_id,
+                   de.badge_state, pr.product_id,
                    (SELECT count(DISTINCT s2.source_id) FROM store_product s2
-                     WHERE s2.product_id = sp.product_id) AS stores_n
+                     WHERE s2.match_key = sp.match_key) AS stores_n
               FROM cur
               JOIN prev p USING (store_product_id)
               JOIN store_product sp ON sp.store_product_id = cur.store_product_id
               JOIN source s USING (source_id)
               JOIN category c ON c.category_id = sp.category_id
+              LEFT JOIN product pr ON pr.match_key = sp.match_key
               LEFT JOIN discount_event de ON de.store_product_id = sp.store_product_id
                                          AND de.ended_at IS NULL
              WHERE cur.in_stock
@@ -1366,10 +1368,10 @@ def price_drops(conn, days: int = 1, limit: int = 50, offset: int = 0,
                -- давав пʼять рядків поспіль — фід виглядав як помилка. Лишаємо
                -- НАЙДЕШЕВШУ сторінку моделі; товари без моделі (48%, немає match_key)
                -- проходять як були — їх нема з чим групувати.
-               AND (sp.product_id IS NULL OR cur.price_now_kop = (
+               AND (sp.match_key IS NULL OR cur.price_now_kop = (
                      SELECT min(l2.price_now_kop) FROM cur l2
                        JOIN store_product s2 ON s2.store_product_id = l2.store_product_id
-                      WHERE s2.product_id = sp.product_id))
+                      WHERE s2.match_key = sp.match_key))
              ORDER BY """ + _DROP_ORDER.get(order, _DROP_ORDER["fresh"]) + """,
                       sp.store_product_id
              LIMIT %s OFFSET %s""",
@@ -1526,7 +1528,7 @@ def model_card(conn, product_id: int):
             "         ps.price_now_kop, ps.seen_at, ps.in_stock"
             "    FROM price_snapshot ps"
             "   WHERE ps.store_product_id IN (SELECT store_product_id FROM store_product"
-            "                                  WHERE product_id = %s)"
+            "                                  WHERE match_key = %s)"
             "   ORDER BY ps.store_product_id, ps.seen_at DESC) "
             "SELECT sp.store_product_id, sp.title, sp.url, sp.image_url,"
             "       s.name AS store, l.price_now_kop AS current_kop, l.seen_at,"
@@ -1536,8 +1538,8 @@ def model_card(conn, product_id: int):
             "  LEFT JOIN latest l ON l.store_product_id = sp.store_product_id"
             "  LEFT JOIN discount_event de ON de.store_product_id = sp.store_product_id"
             "                             AND de.ended_at IS NULL"
-            " WHERE sp.product_id = %s"
-            " ORDER BY l.price_now_kop NULLS LAST, s.name", (product_id, product_id)).fetchall()
+            " WHERE sp.match_key = %s"
+            " ORDER BY l.price_now_kop NULLS LAST, s.name", (head["match_key"], head["match_key"])).fetchall()
     prices = [o["current_kop"] for o in head["offers"] if o["current_kop"] is not None]
     head["min_kop"] = min(prices) if prices else None
     head["max_kop"] = max(prices) if prices else None
@@ -1549,6 +1551,30 @@ def model_card(conn, product_id: int):
 
 def model_of_store_product(conn, store_product_id: int):
     """product_id сторінки крамниці; None — коли модель не впізнана (немає match_key)."""
-    row = conn.execute("SELECT product_id FROM store_product WHERE store_product_id = %s",
-                       (store_product_id,)).fetchone()
+    row = conn.execute(
+        "SELECT p.product_id FROM store_product sp "
+        "  JOIN product p ON p.match_key = sp.match_key "
+        " WHERE sp.store_product_id = %s", (store_product_id,)).fetchone()
     return row[0] if row and row[0] is not None else None
+
+
+def refresh_models(conn) -> int:
+    """Створити нові моделі й підтягнути канонічні назви. Ходить після інджесту.
+
+    Тригера більше немає (0176): у PostgreSQL BEFORE-тригер НЕ БАЧИТЬ генерованих
+    колонок — `NEW.match_key` там завжди NULL, і саме через це перший варіант звʼязав
+    рівно нуль сторінок. Звʼязок тепер живе в самих даних (join за `match_key`), а ця
+    функція лише тримає довідник моделей свіжим."""
+    n = conn.execute(
+        "INSERT INTO product (match_key, title, category_id) "
+        "SELECT DISTINCT ON (match_key) match_key, title, category_id "
+        "  FROM store_product WHERE match_key IS NOT NULL "
+        " ORDER BY match_key, length(title), store_product_id "
+        "ON CONFLICT (match_key) DO NOTHING").rowcount
+    conn.execute(
+        "UPDATE product p SET title = best.title "
+        "  FROM (SELECT DISTINCT ON (match_key) match_key, title FROM store_product "
+        "         WHERE match_key IS NOT NULL "
+        "         ORDER BY match_key, length(title), store_product_id) best "
+        " WHERE p.match_key = best.match_key AND p.title IS DISTINCT FROM best.title")
+    return n
