@@ -1806,15 +1806,30 @@ def main():
     mod = client.get("/api/model/1")
     checks.append(("/api/model/{id} → 200 або 404, не виняток",
                    mod.status_code in (200, 404), mod.status_code))
+    # ⚠ У касеті CI (зоо-товари) артикулів у назвах немає, тож моделі самі не
+    # зʼявляться — перша версія цього тесту саме тому й упала. Створюємо модель
+    # СПРАВЖНІМ механізмом: пишемо gtin двом сторінкам, `match_key` перераховується
+    # базою (генерована колонка), далі refresh_models() робить довідник.
     with psycopg.connect(URL, autocommit=True) as c:
+        two = [r[0] for r in c.execute(
+            "SELECT store_product_id FROM store_product ORDER BY store_product_id LIMIT 2"
+        ).fetchall()]
+        for sp_id in two:
+            c.execute("UPDATE store_product SET gtin = %s WHERE store_product_id = %s",
+                      ("TESTGTIN0001", sp_id))
+        gen = c.execute("SELECT match_key FROM store_product WHERE store_product_id = %s",
+                        (two[0],)).fetchone()[0]
+        checks.append(("генерована колонка перерахувалась після запису gtin",
+                       gen == "TESTGTIN0001", gen))
+        _qdb.refresh_models(c)
         row = c.execute(
-            "SELECT p.product_id, count(DISTINCT sp.source_id) FROM product p "
+            "SELECT p.product_id, count(*) FROM product p "
             "  JOIN store_product sp ON sp.match_key = p.match_key "
-            " GROUP BY 1 ORDER BY 2 DESC LIMIT 1").fetchone()
-    checks.append(("бекфіл звʼязав сторінки з моделями (не 0, як у першій спробі)",
-                   row is not None, row))
+            " WHERE p.match_key = 'TESTGTIN0001' GROUP BY 1").fetchone()
+    checks.append(("модель звʼязала обидві сторінки (у першій спробі було 0)",
+                   row is not None and row[1] == 2, row))
     if row:
-        pid, n_stores = row
+        pid = row[0]
         m = client.get(f"/api/model/{pid}")
         checks.append(("модель віддає пропозиції й діапазон",
                        m.status_code == 200 and len(m.json()["offers"]) >= 1
