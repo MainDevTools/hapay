@@ -667,7 +667,8 @@ def touch_login(conn, user_id: int):
 def get_user(conn, user_id: int):
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(
-            "SELECT user_id, email, role, created_at, email_verified, is_active "
+            "SELECT user_id, email, role, created_at, email_verified, is_active, "
+            "       email_alerts "
             "FROM app_user WHERE user_id = %s", (user_id,)).fetchone()
 
 

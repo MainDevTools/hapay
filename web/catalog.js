@@ -200,6 +200,38 @@ const _srch = document.getElementById('search');
 if (_srch) {
   _srch.value = query;             // пошук із адреси має бути видно в полі
   _srch.oninput = e => { clearTimeout(searchT);
-    searchT = setTimeout(() => { query = e.target.value.trim(); syncUrl(); load(); }, 300); };
+    searchT = setTimeout(() => { query = e.target.value.trim(); syncUrl();
+      drawQueryWatch(); load(); }, 300); };
 }
-crumbs(); drawPrice(); renderChips(); renderCmpBar(); loadCats(); load();
+/* ── стеження за ЗАПИТОМ (S29) ────────────────────────────────────────────────────
+   Схема дозволяла `kind='query'` з 0001, але жоден клієнт такого не створював. Для
+   радара знижок це сильніше за стеження за карткою: ловить і товари, яких ще немає.
+   ⚠ ТІЛЬКИ з цільовою ціною — «повідом про будь-яке зниження серед усього, що
+   підходить під слово „навушники“» це не сповіщення, а розсилка (сервер теж вимагає). */
+function drawQueryWatch(){
+  const box = document.getElementById('qwatch');
+  if (!box) return;
+  if (!query){ box.innerHTML = ''; return; }
+  box.className = 'pricef';
+  box.innerHTML = `<div class="ttl">Стежити за запитом</div>
+    <div class="sub" style="color:var(--muted);font-size:var(--f2);margin-bottom:8px">
+      Напишемо, щойно щось за запитом «${esc(query)}» подешевшає до вашої ціни.</div>
+    <div class="fields">
+      <input class="qt" inputmode="numeric" placeholder="ціна, ₴">
+      <button class="go" type="button">Стежити</button>
+    </div>
+    <div class="qmsg" style="font-size:var(--f2);color:var(--muted);margin-top:8px"></div>`;
+  const msg = box.querySelector('.qmsg');
+  box.querySelector('.go').onclick = async () => {
+    if (!AUTH.in){ location.href = '/login'; return; }
+    const raw = box.querySelector('.qt').value.replace(/[^\d]/g,'');
+    if (!raw){ msg.textContent = 'Вкажіть ціну — без неї це була б розсилка, а не сповіщення.'; return; }
+    try{
+      await api('/api/me/watchlist', {method:'POST', body: JSON.stringify(
+        {kind:'query', query_text: query, target_kop: parseInt(raw,10)*100})});
+      msg.textContent = `Стежимо за «${query}» до ${grn(parseInt(raw,10)*100)}.`;
+    }catch(e){ msg.textContent = e.message; }
+  };
+}
+
+crumbs(); drawPrice(); renderChips(); renderCmpBar(); drawQueryWatch(); loadCats(); load();

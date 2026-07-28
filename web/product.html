@@ -87,6 +87,7 @@ async function load(){
     {label: me.title},
   ]);
   const off = pct(me);
+  window.__cur = me.current_kop;                 // щоб мінімум міг сказати «зараз саме така»
   const bt = BADGE_TEXT[me.badge_state] || '';   // порожньо = мітки нема
   document.getElementById('head').innerHTML = `
     ${me.image_url ? `<img class="pic" src="${esc(me.image_url)}" alt="${esc(me.title)}">`
@@ -104,16 +105,40 @@ async function load(){
         <a class="btn btn-main" href="${esc(me.url)}" target="_blank" rel="noopener">Відкрити в крамниці →</a>
         <button class="btn btn-ghost" id="watch">Стежити за ціною</button>
       </div>
+      <div id="watchbox" hidden style="margin-top:10px">
+        <label for="tgt" style="display:block;font-size:var(--f2);font-weight:600;
+          color:var(--muted);margin-bottom:5px">Сповістити, коли ціна впаде до (₴)</label>
+        <input id="tgt" class="search" inputmode="numeric" placeholder="необовʼязково"
+               style="max-width:220px;display:inline-block">
+        <button class="mini" id="watchgo" style="margin-left:8px">Стежити</button>
+      </div>
+      <div id="low" class="prov" style="margin-top:10px"></div>
     </div>`;
 
+  /* Цільова ціна (S29): «повідом, коли впаде нижче X». Досі ми сповіщали про будь-яке
+     зниження — це шум: людина хоче знати не «подешевшало на 40 грн», а «дійшло до моєї
+     ціни». Порожнє поле = стара поведінка, тож нікого не змушуємо називати число. */
   document.getElementById('watch').onclick = async () => {
     if (!AUTH.in){ location.href = '/login'; return; }
+    const box = document.getElementById('watchbox');
+    if (box && box.hidden){ box.hidden = false;
+      const f = box.querySelector('input'); if (f) f.focus(); return; }
+    const raw = box ? box.querySelector('input').value.replace(/[^\d]/g,'') : '';
+    const target = raw ? parseInt(raw, 10) * 100 : null;   // гривні → копійки (інв. A)
     try{
       await api('/api/me/watchlist', {method:'POST',
-        body: JSON.stringify({kind:'store_product', ref_id: SPID})});
-      say('Стежимо. Повідомимо, коли ціна знизиться — у кабінеті.', 'ok');
+        body: JSON.stringify({kind:'store_product', ref_id: SPID, target_kop: target})});
+      say(target
+        ? `Стежимо. Напишемо, щойно ціна впаде до ${grn(target)} або нижче.`
+        : 'Стежимо. Напишемо, щойно ціна знизиться.', 'ok');
+      if (box) box.hidden = true;
     }catch(e){ say(e.message, 'err'); }
   };
+
+  loadLow();
+
+  const wg = document.getElementById('watchgo');
+  if (wg) wg.onclick = () => document.getElementById('watch').click();
 
   renderOffers(offers, me);
   loadHistory(me);
@@ -178,6 +203,24 @@ async function loadHistory(me){
   }catch(e){
     box.innerHTML = `<h2>Історія ціни</h2><div class="sub">Не вдалося завантажити історію.</div>`;
   }
+}
+
+/* Історичний мінімум (S29). ⚠ Формулювання НЕСЕ ВІКНО: «за 11 днів спостережень», а
+   не «за весь час». Історія почалась 18.07, і «найнижча за весь час» було б самообманом
+   того самого сорту, який ми ловимо в крамниць — твердження без власного вікна не
+   перевірити (T12). */
+async function loadLow(){
+  const box = document.getElementById('low');
+  if (!box) return;
+  try{
+    const l = await api(`/api/product/${SPID}/low`);
+    if (l.low_kop == null || !l.days) { box.remove(); return; }
+    const isLow = l.low_kop === (window.__cur ?? null);
+    box.innerHTML = `За <b>${plu(l.days,'день','дні','днів')}</b> наших спостережень
+      (${plu(l.measurements,'вимір','виміри','вимірів')} з ${esc(l.first_day)})
+      найнижча ціна була <b>${grn(l.low_kop)}</b>${l.low_day ? ' — ' + esc(l.low_day) : ''}.
+      ${isLow ? '<b>Зараз ціна саме така.</b>' : ''}`;
+  }catch(e){ box.remove(); }
 }
 
 async function loadSpecs(){

@@ -45,6 +45,10 @@ async function loadMe(){
       <h2>Акаунт</h2>
       <div class="row"><div><div class="t">${esc(u.email)}</div>${ver}</div>
         <button class="mini danger" id="out">Вийти</button></div>
+      <div class="row"><div><div class="t">Листи про зниження цін</div>
+        <div class="s">Пишемо, коли ціна відстежуваного товару впала${
+          u.email_alerts === false ? '' : ' — не частіше разу на 12 годин'}.</div></div>
+        <button class="mini" id="mail">${u.email_alerts === false ? 'Увімкнути' : 'Вимкнути'}</button></div>
       ${u.email_verified ? '' : `
       <div class="row"><div><div class="t">Підтвердження пошти</div>
         <div class="s">Без нього не вийде відновити пароль, якщо забудеш.</div></div>
@@ -58,6 +62,16 @@ async function loadMe(){
       </div>`}`;
 
     document.getElementById('out').onclick = () => { AUTH.out(); location.href = '/'; };
+    const ml = document.getElementById('mail');
+    if (ml) ml.onclick = async () => {
+      try{
+        const r = await api('/api/me/alerts', {method:'POST',
+          body: JSON.stringify({enabled: u.email_alerts === false})});
+        say(r.email_alerts ? 'Листи про зниження увімкнено.'
+                           : 'Листів про зниження більше не буде.', 'ok');
+        loadMe();
+      }catch(e){ say(e.message, 'err'); }
+    };
     const rs = document.getElementById('resend');
     if (rs) rs.onclick = async () => {
       try{ await api('/api/auth/verify/resend', {method:'POST'});
@@ -101,13 +115,32 @@ async function loadWatch(){
           : `<span class="s">↑ ${grn(w.delta_kop)} від додавання</span>`) : '';
         const link = w.kind === 'store_product' && w.ref_id
           ? `<a class="mini" href="/product/${w.ref_id}">Відкрити</a>` : '';
+        // Ціль — головне, що людина хоче бачити й міняти: без неї сповіщення
+        // приходить на будь-яке зниження, тобто здебільшого не тоді, коли треба.
+        const goal = w.target_kop
+          ? `<span class="s">ціль: <b>${grn(w.target_kop)}</b></span>`
+          : `<span class="s">будь-яке зниження</span>`;
         return `<div class="row"><div>
             <div class="t">${name}</div>
-            <div class="s">${KIND[w.kind] || w.kind}${price ? ' · ' + price : ''}</div>${delta}
-          </div><div style="display:flex;gap:8px">
-            ${link}<button class="mini danger" data-del="${w.watchlist_id}">Прибрати</button>
+            <div class="s">${KIND[w.kind] || w.kind}${price ? ' · ' + price : ''}</div>
+            ${goal}${delta}
+          </div><div style="display:flex;gap:8px;flex-wrap:wrap">
+            ${link}<button class="mini" data-goal="${w.watchlist_id}"
+              data-cur="${w.target_kop || ''}">Ціль</button>
+            <button class="mini danger" data-del="${w.watchlist_id}">Прибрати</button>
           </div></div>`;
       }).join('');
+    box.querySelectorAll('[data-goal]').forEach(b => b.onclick = async () => {
+      const cur = b.dataset.cur ? Math.round(b.dataset.cur / 100) : '';
+      const v = prompt('Сповістити, коли ціна впаде до (₴). Порожньо — будь-яке зниження:', cur);
+      if (v === null) return;
+      const digits = String(v).replace(/[^\d]/g, '');
+      try{
+        await api('/api/me/watchlist/' + b.dataset.goal, {method:'PATCH',
+          body: JSON.stringify({target_kop: digits ? parseInt(digits,10)*100 : null})});
+        loadWatch();
+      }catch(e){ say(e.message, 'err'); }
+    });
     box.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
       if (!confirm('Прибрати зі стеження?')) return;
       try{ await api('/api/me/watchlist/' + b.dataset.del, {method:'DELETE'});
