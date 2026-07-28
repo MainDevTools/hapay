@@ -47,6 +47,14 @@
 </section>
 
 <section class="sec">
+  <div class="sec-h"><h2>Що подешевшало за добу</h2>
+    <a href="/drops">Усі зниження →</a></div>
+  <p style="color:var(--muted);font-size:var(--f3);margin:0 0 12px">Це не оголошення
+    крамниць, а різниця між двома нашими вимірами.</p>
+  <div id="dropsbox"></div>
+</section>
+
+<section class="sec">
   <div class="sec-h"><h2>Розділи каталогу</h2><a href="/catalog">Весь каталог →</a></div>
   <div class="sects" id="sects"></div>
 </section>
@@ -183,7 +191,31 @@ async function loadHeroExample(){
   }catch(e){ box.remove(); }
 }
 
-if (!IN_TG) { loadStats(); loadTop(); loadSections(); loadHeroExample(); renderCmpBar(); }
+/* Три виміряні зниження на головній: це єдине твердження, якого нема ні в кого
+   іншого, тож воно мусить бути ВИДНО, а не жити за посиланням у підвалі. */
+async function loadDrops(){
+  const box = document.getElementById('dropsbox');
+  try{
+    const r = await api('/api/drops?days=1&page=0');
+    const top = (r.items || []).slice(0, 3);
+    if (!top.length){ box.closest('.sec').remove(); return; }
+    box.innerHTML = top.map(d => `<a class="ex" href="/product/${d.store_product_id}"
+        style="margin-bottom:10px">
+        <div class="top">
+          ${d.image_url ? `<img src="${esc(d.image_url)}" alt="" loading="lazy">` : ''}
+          <div style="min-width:0">
+            <div class="t">${esc(d.title)}</div>
+            <div class="p"><span class="now">${grn(d.current_kop)}</span>
+              <span class="old">${grn(d.was_kop)}</span>
+              <span class="off" style="position:static;box-shadow:none">−${d.drop_pct}%</span></div>
+            <div class="cap">${esc(d.store||'')} · подешевшав на <b>${grn(d.drop_kop)}</b>
+              за нашими вимірами</div>
+          </div>
+        </div></a>`).join('');
+  }catch(e){ const sec = box.closest('.sec'); if (sec) sec.remove(); }
+}
+
+if (!IN_TG) { loadStats(); loadTop(); loadSections(); loadHeroExample(); loadDrops(); renderCmpBar(); }
 </script>
 </body>
 </html>

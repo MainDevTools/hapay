@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--SEO-->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="/s/app.css">
+</head>
+<body>
+<div class="app wide">
+<header id="hdr"></header>
+<nav id="crumbs" hidden></nav>
+
+<div class="page">
+  <h1>Що подешевшало</h1>
+  <p class="lead">Тут не оголошення крамниць, а <b>різниця між двома нашими вимірами</b>.
+    Знижку можна намалювати — зниження ціни ми бачимо самі.
+    <a href="/how">Як ми міряємо →</a></p>
+
+  <div class="toolbar">
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div id="sum"></div>
+  <main id="list"></main>
+  <div id="morewrap" class="morewrap" hidden>
+    <button id="moreBtn" class="morebtn">Показати ще</button></div>
+</div>
+
+<div id="ftr"></div>
+</div>
+
+<script src="/s/app.js"></script>
+<script>
+renderHeader('/drops');
+renderFooter();
+renderCrumbs([{href:'/', label:'Головна'}, {label:'Що подешевшало'}]);
+
+const WINDOWS = [[1,'За добу'], [3,'За 3 дні'], [7,'За тиждень']];
+let DAYS = parseInt(new URLSearchParams(location.search).get('d'), 10);
+if (!WINDOWS.some(w => w[0] === DAYS)) DAYS = 1;
+let PAGE = 0;
+
+const nfmt = n => Number(n||0).toLocaleString('uk-UA');
+const dt = s => new Date(s).toLocaleString('uk-UA',
+  {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+
+function renderChips(){
+  const c = document.getElementById('chips'); c.innerHTML = '';
+  WINDOWS.forEach(([d,label]) => {
+    const on = d === DAYS;
+    const b = el(`<button type="button" class="chip ${on?'on':''}" aria-pressed="${on}">${label}</button>`);
+    b.onclick = () => { DAYS = d; PAGE = 0;
+      history.replaceState(null,'', d === 1 ? '/drops' : '/drops?d=' + d);
+      renderChips(); load(); };
+    c.appendChild(b);
+  });
+}
+
+/* Картка зниження: стара ціна → нова, різниця й коли саме ми це побачили. Дати
+   обов'язкові: без них «подешевшало» — просто слово, а з ними це вимір. */
+function dropCard(d){
+  const href = '/product/' + d.store_product_id;
+  const bt = BADGE_TEXT[d.badge_state];
+  const c = el(`<div class="card">
+    <div class="thumb">
+      ${d.image_url?`<img src="${esc(d.image_url)}" loading="lazy" alt="${esc(d.title)}" onerror="this.outerHTML=PH_HTML">`:PH_HTML}
+      <span class="off">−${d.drop_pct}%</span>
+    </div>
+    <div class="body">
+      <a class="title" href="${href}">${esc(d.title)}</a>
+      <div class="meta"><b>${esc(d.store||'')}</b> · ${esc(d.category||'')}</div>
+      ${bt?`<span class="badge"><span class="dot"></span>${bt}</span>`:''}
+    </div>
+    <div class="pricebox">
+      <div class="prices"><span class="now">${grn(d.current_kop)}</span>
+        <span class="old">${grn(d.was_kop)}</span></div>
+      <div class="offers">−${grn(d.drop_kop)}</div>
+      <div class="meta" style="text-align:right">${esc(dt(d.was_at))} → ${esc(dt(d.now_at))}</div>
+      ${cmpButton(d.store_product_id)}
+    </div></div>`);
+  c.querySelectorAll('a').forEach(a => a.addEventListener('click', e => e.stopPropagation()));
+  cmpBind(c);
+  c.onclick = () => { location.href = href; };
+  return c;
+}
+
+/* Подорожчання показуємо НАВМИСНО. Без нього сторінка читалась би як «усе дешевшає»,
+   хоча за добу ми зазвичай бачимо більше підвищень, ніж знижень. Це та сама чесність,
+   що й «мовчимо, коли історії замало»: інакше ми робили б власну накачану знижку. */
+function renderSummary(s){
+  const box = document.getElementById('sum');
+  if (!s || !s.compared){ box.innerHTML = ''; return; }
+  box.className = 'panel';
+  box.innerHTML = `<div class="sub">За цей проміжок ми змогли порівняти два виміри для
+    <b>${nfmt(s.compared)}</b> товарів: <b>${nfmt(s.down)}</b> подешевшали,
+    <b>${nfmt(s.up)}</b> подорожчали. Показуємо перші — але цифра поруч існує, щоб
+    сторінка не вдавала, ніби ціни лише падають.</div>`;
+}
+
+async function load(more){
+  const list = document.getElementById('list');
+  if (!more){ PAGE = 0; list.innerHTML = '';
+    for(let i=0;i<4;i++) list.appendChild(el(
+      `<div class="skel"><div class="s-img sk"></div><div class="s-body">
+        <div class="sk" style="height:13px;width:80%"></div>
+        <div class="sk" style="height:11px;width:45%"></div>
+        <div class="sk" style="height:18px;width:55%;margin-top:6px"></div></div></div>`)); }
+  try{
+    const r = await api(`/api/drops?days=${DAYS}&page=${PAGE}`);
+    if (!more){ list.innerHTML = ''; renderSummary(r.summary); }
+    if (!r.items.length && !more){
+      list.innerHTML = `<div class="empty"><div class="ic">📉</div>
+        <div class="t">Знижень за цей проміжок не бачили</div>
+        <div>Ми показуємо лише те, що виміряли самі. Спробуй ширший проміжок або
+          <a href="/catalog">подивись знижки, заявлені крамницями →</a></div></div>`;
+    }
+    r.items.forEach(d => list.appendChild(dropCard(d)));
+    document.getElementById('morewrap').hidden = r.items.length !== 50;
+  }catch(e){
+    if (!more) list.innerHTML = `<div class="empty"><div class="ic">⚠️</div>
+      <div class="t">Не вдалося завантажити</div><div>${esc(e.message)}</div></div>`;
+  }
+}
+
+document.getElementById('moreBtn').onclick = () => { PAGE++; load(true); };
+renderChips(); load(); renderCmpBar();
+</script>
+</body>
+</html>

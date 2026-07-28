@@ -1275,3 +1275,77 @@ def delete_own_account(conn, user_id: int) -> dict:
            f"самостійне видалення акаунта {u['email']}")
     conn.execute("DELETE FROM app_user WHERE user_id = %s", (user_id,))
     return {"deleted": user_id}
+
+
+# ─────────────────────── виміряні зниження цін (S28) ───────────────────────
+# Наш ЄДИНИЙ актив, який неможливо підробити: знижку оголошує крамниця (її можна
+# намалювати), а зниження ціни МІРЯЄМО МИ. До 2026-07-27 воно існувало лише
+# персонально (watchlist), тобто вимагало реєстрації й ручного додавання товару.
+#
+# Порівнюємо останній вимір із останнім виміром ДО вікна — не з максимумом усередині.
+# Максимум перебільшував би: «ціна впала на 40%», якщо всередині доби був стрибок.
+# Товар, який ми вперше побачили всередині вікна, у видачу не потрапляє: сказати
+# «подешевшав» про нього ми не маємо права — не було з чим порівнювати.
+_MOVES_CTE = """
+    WITH cur AS (
+        SELECT DISTINCT ON (store_product_id)
+               store_product_id, price_now_kop, seen_at, in_stock
+          FROM price_snapshot
+         WHERE seen_at > now() - make_interval(days => %s)
+         ORDER BY store_product_id, seen_at DESC),
+    prev AS (
+        SELECT DISTINCT ON (ps.store_product_id)
+               ps.store_product_id, ps.price_now_kop, ps.seen_at
+          FROM price_snapshot ps
+          JOIN cur c ON c.store_product_id = ps.store_product_id
+         WHERE ps.seen_at <= now() - make_interval(days => %s)
+         ORDER BY ps.store_product_id, ps.seen_at DESC)
+"""
+
+# Поріг 1 грн: рух на копійки — це не подія, а шум округлення в крамниці.
+_MIN_DROP_KOP = 100
+
+
+def price_drops(conn, days: int = 1, limit: int = 50, offset: int = 0):
+    """Товари, які за нашими вимірами ПОДЕШЕВШАЛИ. Сортування — за часткою зниження."""
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(_MOVES_CTE + """
+            SELECT sp.store_product_id, sp.title, sp.url, sp.image_url,
+                   s.name AS store, c.name AS category, c.slug AS category_slug,
+                   cur.price_now_kop AS current_kop, p.price_now_kop AS was_kop,
+                   (p.price_now_kop - cur.price_now_kop) AS drop_kop,
+                   round(100.0 * (p.price_now_kop - cur.price_now_kop)
+                         / p.price_now_kop)::int AS drop_pct,
+                   p.seen_at AS was_at, cur.seen_at AS now_at,
+                   de.badge_state
+              FROM cur
+              JOIN prev p USING (store_product_id)
+              JOIN store_product sp ON sp.store_product_id = cur.store_product_id
+              JOIN source s USING (source_id)
+              JOIN category c ON c.category_id = sp.category_id
+              LEFT JOIN discount_event de ON de.store_product_id = sp.store_product_id
+                                         AND de.ended_at IS NULL
+             WHERE cur.in_stock
+               AND cur.price_now_kop < p.price_now_kop
+               AND p.price_now_kop - cur.price_now_kop >= %s
+             ORDER BY drop_pct DESC, drop_kop DESC, sp.store_product_id
+             LIMIT %s OFFSET %s""",
+            (days, days, _MIN_DROP_KOP, limit, offset)).fetchall()
+
+
+def price_moves_summary(conn, days: int = 1):
+    """Скільки подешевшало / подорожчало / скільки взагалі було з чим порівняти.
+
+    Подорожчання показуємо НАВМИСНО: без нього сторінка читалась би як «усе дешевшає»,
+    хоча за добу 27.07 ми бачили 258 знижень проти 658 підвищень. Це та сама чесність,
+    що й «мовчимо, коли історії замало» — інакше ми б робили власну накачану знижку."""
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(_MOVES_CTE + """
+            SELECT count(*) FILTER (WHERE cur.price_now_kop < p.price_now_kop
+                                      AND p.price_now_kop - cur.price_now_kop >= %s)::int AS down,
+                   count(*) FILTER (WHERE cur.price_now_kop > p.price_now_kop
+                                      AND cur.price_now_kop - p.price_now_kop >= %s)::int AS up,
+                   count(*)::int AS compared
+              FROM cur JOIN prev p USING (store_product_id)
+             WHERE cur.in_stock""",
+            (days, days, _MIN_DROP_KOP, _MIN_DROP_KOP)).fetchone()

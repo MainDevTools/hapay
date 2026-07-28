@@ -165,7 +165,7 @@ function renderHeader(active, opts){
   opts = opts || {};
   const h = document.getElementById('hdr');
   if (!h || IN_TG) { if (h && IN_TG) h.remove(); return; }
-  const nav = [['/', 'Головна'], ['/catalog', 'Знижки']];
+  const nav = [['/', 'Головна'], ['/catalog', 'Знижки'], ['/drops', 'Подешевшало']];
   // «Перейти до вмісту» — перше, на що потрапляє Tab: інакше клавіатурі доводиться
   // проходити всю шапку й фільтри перед кожним переглядом стрічки.
   h.innerHTML = `<a class="skip" href="#list">Перейти до вмісту</a><div class="hrow">
