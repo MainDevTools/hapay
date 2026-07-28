@@ -1370,10 +1370,15 @@ def price_drops(conn, days: int = 1, limit: int = 50, offset: int = 0,
                -- проходять як були — їх нема з чим групувати.
                -- ⚠ Без знака відсотка в тексті: psycopg сканує на плейсхолдери ВЕСЬ
                -- запит, включно з коментарями (див. test_sqlsafe).
-               AND (sp.match_key IS NULL OR cur.price_now_kop = (
-                     SELECT min(l2.price_now_kop) FROM cur l2
+               -- ⚠ Порівняння «ціна = мінімум» лишало ДВА рядки, коли дві сторінки
+               -- моделі коштують однаково (той самий товар двічі в одній крамниці —
+               -- заміряно на живому: XFX Quicksilver). Тому обираємо КОНКРЕТНИЙ рядок
+               -- за (ціна, id), а не всі, що дорівнюють мінімуму.
+               AND (sp.match_key IS NULL OR sp.store_product_id = (
+                     SELECT s2.store_product_id FROM cur l2
                        JOIN store_product s2 ON s2.store_product_id = l2.store_product_id
-                      WHERE s2.match_key = sp.match_key))
+                      WHERE s2.match_key = sp.match_key
+                      ORDER BY l2.price_now_kop, s2.store_product_id LIMIT 1))
              ORDER BY """ + _DROP_ORDER.get(order, _DROP_ORDER["fresh"]) + """,
                       sp.store_product_id
              LIMIT %s OFFSET %s""",
