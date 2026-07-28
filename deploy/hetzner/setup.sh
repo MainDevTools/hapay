@@ -264,6 +264,32 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
+# ── синтетична перевірка «чи продукт живий» (S30) ─────────────────────────────────
+# Окремо від hapay-alert (той про ЗБІР) і від /api/health (той лише «процес живий»).
+# Перевіряє НАСЛІДКИ: коли бекап відпрацював, чи стрічка віддає позиції, чи свіжі дані.
+# 28.07 бекап не виконувався три доби, і жоден сторож цього не бачив — бо всі дивились
+# на конфігурацію, а не на результат.
+cat > /etc/systemd/system/hapay-health.service <<EOF
+[Unit]
+Description=Хапай — синтетична перевірка стану
+After=network-online.target
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=$REPO_DIR
+EnvironmentFile=$ENV_FILE
+ExecStart=$VENV/bin/python healthcheck.py
+EOF
+cat > /etc/systemd/system/hapay-health.timer <<'EOF'
+[Unit]
+Description=Хапай — перевірка стану щогодини
+[Timer]
+OnCalendar=hourly
+Persistent=true
+[Install]
+WantedBy=timers.target
+EOF
+
 systemctl daemon-reload
 systemctl enable --now hapay-api.service
 systemctl enable --now hapay-collect-server.timer
@@ -272,7 +298,7 @@ systemctl enable --now hapay-collect-server.timer
 # 25.07, машина не перезавантажувалась із 18.07 — і нічний бекап НЕ виконався ЖОДНОГО
 # разу. Останній дамп був той, що запустили руками під час налаштування, тобто база
 # з незамінною append-only історією три доби жила без бекапу.
-systemctl enable --now hapay-backup.timer hapay-mail.timer
+systemctl enable --now hapay-backup.timer hapay-mail.timer hapay-health.timer
 systemctl enable hapay-collect.timer
 
 log "9/9 Caddy (TLS + зворотний проксі на 127.0.0.1:8080)"
