@@ -37,6 +37,12 @@ public static class MauiProgram
         builder.Services.AddSingleton<IPriceNotifier, NoopPriceNotifier>();
         builder.Services.AddSingleton<IWebRenderer, NoopWebRenderer>();
 #endif
+        builder.Services.AddTransient<DropsViewModel>();
+        builder.Services.AddTransient<DropsPage>();
+        builder.Services.AddTransient<StoresViewModel>();
+        builder.Services.AddTransient<StoresPage>();
+        builder.Services.AddTransient<StoreViewModel>();
+        builder.Services.AddTransient<StorePage>();
         builder.Services.AddTransient<CatalogViewModel>();
         builder.Services.AddTransient<CatalogPage>();
         builder.Services.AddTransient<HomeViewModel>();

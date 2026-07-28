@@ -187,6 +187,14 @@ public partial class CatalogViewModel : ObservableObject
             new Dictionary<string, object> { ["Discount"] = d });
     }
 
+    /// Виміряні зниження (S28) — окремий екран, бо це інше твердження, ніж «знижки»:
+    /// там оголошення крамниць, тут різниця між двома нашими вимірами.
+    [RelayCommand]
+    private async Task OpenDrops() => await Shell.Current.GoToAsync(nameof(DropsPage));
+
+    [RelayCommand]
+    private async Task OpenStores() => await Shell.Current.GoToAsync(nameof(StoresPage));
+
     [RelayCommand]
     private async Task OpenCategory(Category? c)
     {

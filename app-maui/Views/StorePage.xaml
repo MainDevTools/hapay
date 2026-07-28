@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Hapay.Views.StorePage"
+    x:Name="Page"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:Hapay.ViewModels"
+    xmlns:models="clr-namespace:Hapay.Models"
+    xmlns:conv="clr-namespace:Hapay.Converters"
+    x:DataType="vm:StoreViewModel"
+    Title="{Binding Title}">
+
+    <ContentPage.Resources>
+        <conv:StringNotEmptyConverter x:Key="NotEmpty" />
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="14,12,14,28" Spacing="12">
+
+            <Label Text="{Binding ErrorMessage}"
+                   TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}"
+                   IsVisible="{Binding ErrorMessage, Converter={StaticResource NotEmpty}}" />
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+
+            <VerticalStackLayout Spacing="12" IsVisible="{Binding HasStore}"
+                                 BindingContext="{Binding Store}" x:DataType="models:Store">
+
+                <Label Text="Ми щодня записуємо ціни цієї крамниці й звіряємо кожну знижку з власною історією спостережень."
+                       Style="{StaticResource Caption}" />
+
+                <!-- Чотири числа. НЕ рахуємо «частку накачаних» і не сортуємо за нею:
+                     це був би вердикт про продавця, а видимий шар не оцінює (T12). -->
+                <Border Style="{StaticResource Card}" Padding="14,12">
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" RowSpacing="10">
+                        <VerticalStackLayout Grid.Row="0" Grid.Column="0">
+                            <Label Text="{Binding Products}" FontAttributes="Bold" FontSize="20" />
+                            <Label Text="товарів бачимо" Style="{StaticResource Caption}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Row="0" Grid.Column="1">
+                            <Label Text="{Binding Discounts}" FontAttributes="Bold" FontSize="20" />
+                            <Label Text="активних знижок" Style="{StaticResource Caption}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Row="1" Grid.Column="0">
+                            <Label Text="{Binding Verified}" FontAttributes="Bold" FontSize="20" />
+                            <Label Text="пройшли перевірку" Style="{StaticResource Caption}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Row="1" Grid.Column="1">
+                            <Label Text="{Binding Pumped}" FontAttributes="Bold" FontSize="20" />
+                            <Label Text="«стара» ціна завищена" Style="{StaticResource Caption}" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+                <Label Text="Числа — з наших спостережень, не з даних крамниці. Це не оцінка продавця: мітка стосується окремої знижки, а «без мітки» означає лише те, що історії ще замало."
+                       Style="{StaticResource Caption}" />
+
+                <Button Text="Сайт крамниці"
+                        Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenSiteCommand}" />
+
+                <Label Text="Найбільші категорії" FontAttributes="Bold" FontSize="15"
+                       IsVisible="{Binding HasCategories}" Margin="0,6,0,0" />
+                <VerticalStackLayout Spacing="6" BindableLayout.ItemsSource="{Binding Categories}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="models:Category">
+                            <Border Style="{StaticResource Card}" Padding="12,10">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenCategoryCommand}"
+                                        CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Grid.Column="0" Text="{Binding Name}" FontSize="14" />
+                                    <Label Grid.Column="1" Text="{Binding N}" Style="{StaticResource Caption}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

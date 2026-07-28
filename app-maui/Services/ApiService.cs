@@ -107,6 +107,21 @@ public class ApiService
         (await _http.GetFromJsonAsync<ChoiceEnvelope>(
             $"{Base}/api/product/{storeProductId}/choice", _json, ct))?.Choice;
 
+    /// Крамниці, за якими стежимо (S28). Ті самі числа, що на hapay.today/stores.
+    public async Task<List<Store>> StoresAsync(CancellationToken ct = default) =>
+        await _http.GetFromJsonAsync<List<Store>>($"{Base}/api/stores", _json, ct) ?? new();
+
+    public async Task<Store?> StoreAsync(string slug, CancellationToken ct = default) =>
+        await _http.GetFromJsonAsync<Store>(
+            $"{Base}/api/store/{Uri.EscapeDataString(slug)}", _json, ct);
+
+    /// ВИМІРЯНІ зниження цін (S28) — не плутати з `DropsAsync`, який про watchlist.
+    /// `order`: fresh (щойно виміряні) або deep (найбільші).
+    public async Task<DropsResult?> MeasuredDropsAsync(int days = 1, string order = "fresh",
+                                                       CancellationToken ct = default) =>
+        await _http.GetFromJsonAsync<DropsResult>(
+            $"{Base}/api/drops?days={days}&order={order}", _json, ct);
+
     /// Самостійне видалення акаунта (вимога Google Play: шлях у застосунку + веб-адреса).
     /// Незворотно; сервер віддає 400 з поясненням, якщо це останній активний адмін.
     public async Task DeleteAccountAsync(CancellationToken ct = default)

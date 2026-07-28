@@ -1678,6 +1678,29 @@ def main():
         except _qdb.AdminError:
             checks.append(("останній адмін видаляє себе → AdminError", True, None))
 
+    # ── виміряні зниження цін (S28) ──────────────────────────────────────────────
+    dr = client.get("/api/drops?days=1")
+    checks.append(("/api/drops → 200 зі зведенням і списком",
+                   dr.status_code == 200 and "summary" in dr.json() and "items" in dr.json(),
+                   dr.status_code))
+    dsum = dr.json().get("summary") or {}
+    checks.append(("зведення має down/up/compared — подорожчання показуємо навмисно",
+                   all(k in dsum for k in ("down", "up", "compared")), list(dsum)))
+    checks.append(("порядок за замовчуванням — fresh (за відсотком артефакти йдуть першими)",
+                   dr.json().get("order") == "fresh", dr.json().get("order")))
+    checks.append(("order=deep приймається",
+                   client.get("/api/drops?days=1&order=deep").status_code == 200, None))
+    checks.append(("невідомий order → 400, а не тихий фолбек",
+                   client.get("/api/drops?order=abyrvalg").status_code == 400, None))
+    checks.append(("days поза межами → 422",
+                   client.get("/api/drops?days=99").status_code == 422, None))
+    dpg = client.get("/drops", headers={"accept": "text/html"})
+    checks.append(("/drops → сторінка", dpg.status_code == 200
+                   and "подешевшало" in dpg.text.lower(), dpg.status_code))
+    # застереження про фасування мусить бути на сторінці, а не лише в коментарі
+    checks.append(("сторінка попереджає про зміну варіанта товару",
+                   "пакування" in dpg.text, None))
+
     al = client.get("/.well-known/assetlinks.json")
     checks.append(("assetlinks без ANDROID_CERT_SHA256 → 404, а не порожній файл",
                    al.status_code == 404, al.status_code))

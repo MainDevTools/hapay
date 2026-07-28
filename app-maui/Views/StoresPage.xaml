@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Hapay.Views.StoresPage"
+    x:Name="Page"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:Hapay.ViewModels"
+    xmlns:models="clr-namespace:Hapay.Models"
+    xmlns:conv="clr-namespace:Hapay.Converters"
+    x:DataType="vm:StoresViewModel"
+    Title="Крамниці">
+
+    <ContentPage.Resources>
+        <conv:StringNotEmptyConverter x:Key="NotEmpty" />
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*">
+
+        <VerticalStackLayout Grid.Row="0" Padding="14,10" Spacing="6">
+            <!-- Це НЕ рейтинг — і сказати це треба до того, як людина побачить числа.
+                 Мітка стосується окремої знижки, а не продавця (T12). -->
+            <Label Text="Тут лише факти наших спостережень: скільки товарів бачимо і скільки знижок. Це не рейтинг чесності — мітка стосується окремої знижки, а не крамниці."
+                   Style="{StaticResource Caption}" />
+            <Label Text="{Binding ErrorMessage}"
+                   TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}"
+                   IsVisible="{Binding ErrorMessage, Converter={StaticResource NotEmpty}}" />
+        </VerticalStackLayout>
+
+        <RefreshView Grid.Row="1" IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefreshCommand}">
+            <CollectionView ItemsSource="{Binding Items}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:Store">
+                        <Border Style="{StaticResource Card}" Padding="14,12" Margin="12,4">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenStoreCommand}"
+                                    CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                    <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="15" />
+                                    <Label Text="{Binding DiscountsLine}" Style="{StaticResource Caption}" />
+                                </VerticalStackLayout>
+                                <Label Grid.Column="1" Text="›" FontSize="20" VerticalOptions="Center"
+                                       TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}"
+                                       AutomationProperties.IsInAccessibleTree="False" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="32" Spacing="8" VerticalOptions="Center">
+                        <Label Text="Поки порожньо" FontAttributes="Bold" HorizontalOptions="Center" />
+                        <Label Text="Колектор ще накопичує дані." Style="{StaticResource Caption}"
+                               HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+            </CollectionView>
+        </RefreshView>
+
+        <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+                           VerticalOptions="Center" />
+    </Grid>
+</ContentPage>

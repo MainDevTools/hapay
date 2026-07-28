@@ -719,3 +719,71 @@ public class AuditEntry
     [JsonIgnore] public string DetailText =>
         string.IsNullOrWhiteSpace(Detail) ? ActionLabel : $"{ActionLabel} · {Detail}";
 }
+
+// ─────────────────────── крамниці та виміряні зниження (S28) ───────────────────
+/// Крамниця з ФАКТАМИ спостережень. Свідомо без «частки накачаних» і без рейтингу:
+/// видимий шар не оцінює продавця (T12) — сайт показує рівно ці ж числа.
+public class Store
+{
+    [JsonPropertyName("slug")] public string Slug { get; set; } = "";
+    [JsonPropertyName("name")] public string Name { get; set; } = "";
+    [JsonPropertyName("base_url")] public string BaseUrl { get; set; } = "";
+    [JsonPropertyName("products")] public int Products { get; set; }
+    [JsonPropertyName("discounts")] public int Discounts { get; set; }
+    [JsonPropertyName("verified")] public int Verified { get; set; }
+    [JsonPropertyName("pumped")] public int Pumped { get; set; }
+    [JsonPropertyName("last_seen")] public DateTimeOffset? LastSeen { get; set; }
+    [JsonPropertyName("categories")] public List<Category> Categories { get; set; } = new();
+
+    [JsonIgnore] public string DiscountsLine =>
+        $"{Discounts} {Plural(Discounts, "знижка", "знижки", "знижок")}";
+    [JsonIgnore] public bool HasCategories => Categories.Count > 0;
+
+    private static string Plural(int n, string one, string few, string many)
+    {
+        int m = n % 100, k = n % 10;
+        return m >= 11 && m <= 14 ? many : k == 1 ? one : k >= 2 && k <= 4 ? few : many;
+    }
+}
+
+/// ВИМІРЯНЕ зниження ціни — різниця між двома нашими спостереженнями.
+/// Не плутати з `PriceDrop`: той про watchlist конкретної людини.
+public class MeasuredDrop
+{
+    [JsonPropertyName("store_product_id")] public int StoreProductId { get; set; }
+    [JsonPropertyName("title")] public string Title { get; set; } = "";
+    [JsonPropertyName("image_url")] public string? ImageUrl { get; set; }
+    [JsonPropertyName("store")] public string Store { get; set; } = "";
+    [JsonPropertyName("category")] public string Category { get; set; } = "";
+    [JsonPropertyName("current_kop")] public int CurrentKop { get; set; }
+    [JsonPropertyName("was_kop")] public int WasKop { get; set; }
+    [JsonPropertyName("drop_kop")] public int DropKop { get; set; }
+    [JsonPropertyName("drop_pct")] public int DropPct { get; set; }
+    [JsonPropertyName("was_at")] public DateTimeOffset WasAt { get; set; }
+    [JsonPropertyName("now_at")] public DateTimeOffset NowAt { get; set; }
+    [JsonPropertyName("badge_state")] public string? BadgeState { get; set; }
+
+    [JsonIgnore] public string NowGrn => Money.Grn(CurrentKop);
+    [JsonIgnore] public string WasGrn => Money.Grn(WasKop);
+    [JsonIgnore] public string DropGrn => $"−{Money.Grn(DropKop)}";
+    [JsonIgnore] public string PctText => $"−{DropPct}%";
+    /// Дати обовʼязкові: без них «подешевшав» — просто слово, а з ними це вимір.
+    [JsonIgnore] public string WhenText =>
+        $"{WasAt.ToLocalTime():d MMM HH:mm} → {NowAt.ToLocalTime():d MMM HH:mm}";
+}
+
+/// Зведення над фідом. `Up` показуємо НАВМИСНО: без нього екран читався б як
+/// «усе дешевшає», хоча підвищень зазвичай більше — це була б наша власна накачана
+/// знижка. Та сама чесність, що й «мовчимо, коли історії замало».
+public class DropsSummary
+{
+    [JsonPropertyName("down")] public int Down { get; set; }
+    [JsonPropertyName("up")] public int Up { get; set; }
+    [JsonPropertyName("compared")] public int Compared { get; set; }
+}
+
+public class DropsResult
+{
+    [JsonPropertyName("summary")] public DropsSummary? Summary { get; set; }
+    [JsonPropertyName("items")] public List<MeasuredDrop> Items { get; set; } = new();
+}
