@@ -1306,8 +1306,26 @@ _MOVES_CTE = """
 _MIN_DROP_KOP = 100
 
 
-def price_drops(conn, days: int = 1, limit: int = 50, offset: int = 0):
-    """Товари, які за нашими вимірами ПОДЕШЕВШАЛИ. Сортування — за часткою зниження."""
+# ⚠ ПОРЯДОК ЗА ВІДСОТКОМ СТАВИТЬ АРТЕФАКТ ПЕРШИМ — заміряно 2026-07-28.
+# Перша ж видача очолювалась «−86%: 3133 → 449 грн» на кормі. Перевірка історії
+# показала три виміри тієї самої сторінки й стрибок у 7 разів: це майже напевно зміна
+# фасування/варіанта на сторінці крамниці, а не зниження ціни (прапорець
+# needs_variant_resolution на товарі НЕ стоїть, тож фільтром по ньому таке не спіймати).
+# Розподіл підтверджує: 199 знижень у межах 10%, 42 до 20%, 10 до 30%, далі поодинокі —
+# і один самотній на 86% із порожнечею між 50% і 80%. Класична ознака чужої популяції.
+#
+# Тому за замовчуванням сортуємо ЗА ЧАСОМ ВИМІРУ: сторінка обіцяє «що подешевшало», а
+# не «найбільші знижки», і хронологія нікого не підіймає штучно. Поріг «понад скільки
+# відсотків вважати артефактом» я НЕ вигадую: пороги — під людським ревʼю (інваріант C).
+_DROP_ORDER = {
+    "fresh": "cur.seen_at DESC, drop_pct DESC",
+    "deep": "drop_pct DESC, drop_kop DESC",
+}
+
+
+def price_drops(conn, days: int = 1, limit: int = 50, offset: int = 0,
+                order: str = "fresh"):
+    """Товари, які за нашими вимірами ПОДЕШЕВШАЛИ."""
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(_MOVES_CTE + """
             SELECT sp.store_product_id, sp.title, sp.url, sp.image_url,
@@ -1328,7 +1346,8 @@ def price_drops(conn, days: int = 1, limit: int = 50, offset: int = 0):
              WHERE cur.in_stock
                AND cur.price_now_kop < p.price_now_kop
                AND p.price_now_kop - cur.price_now_kop >= %s
-             ORDER BY drop_pct DESC, drop_kop DESC, sp.store_product_id
+             ORDER BY """ + _DROP_ORDER.get(order, _DROP_ORDER["fresh"]) + """,
+                      sp.store_product_id
              LIMIT %s OFFSET %s""",
             (days, days, _MIN_DROP_KOP, limit, offset)).fetchall()
 

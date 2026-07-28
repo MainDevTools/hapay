@@ -253,14 +253,16 @@ def store_page(slug: str, conn=Depends(get_conn)):
 
 @app.get("/api/drops")
 def api_drops(days: int = Query(1, ge=1, le=30), page: int = Query(0, ge=0),
-              conn=Depends(get_conn)):
+              order: str = Query("fresh"), conn=Depends(get_conn)):
     """Що ПОДЕШЕВШАЛО за нашими вимірами (S28).
 
     Не плутати з `/api/discounts`: там знижки, ЗАЯВЛЕНІ крамницями. Тут — різниця між
     двома нашими вимірами, тобто єдине твердження продукту, яке неможливо намалювати."""
+    if order not in qdb._DROP_ORDER:
+        raise HTTPException(400, f"order ∈ {', '.join(qdb._DROP_ORDER)}")
     return {"summary": qdb.price_moves_summary(conn, days),
-            "items": qdb.price_drops(conn, days, limit=50, offset=page * 50),
-            "days": days}
+            "items": qdb.price_drops(conn, days, limit=50, offset=page * 50, order=order),
+            "days": days, "order": order}
 
 
 @app.get("/api/stores")
