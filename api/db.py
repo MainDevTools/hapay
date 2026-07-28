@@ -1366,8 +1366,10 @@ def price_drops(conn, days: int = 1, limit: int = 50, offset: int = 0,
                AND p.price_now_kop - cur.price_now_kop >= %s
                -- ДЕДУПЛІКАЦІЯ ЗА МОДЕЛЛЮ (S30): той самий телефон у пʼяти крамницях
                -- давав пʼять рядків поспіль — фід виглядав як помилка. Лишаємо
-               -- НАЙДЕШЕВШУ сторінку моделі; товари без моделі (48%, немає match_key)
+               -- НАЙДЕШЕВШУ сторінку моделі; товари без ключа (майже половина бази)
                -- проходять як були — їх нема з чим групувати.
+               -- ⚠ Без знака відсотка в тексті: psycopg сканує на плейсхолдери ВЕСЬ
+               -- запит, включно з коментарями (див. test_sqlsafe).
                AND (sp.match_key IS NULL OR cur.price_now_kop = (
                      SELECT min(l2.price_now_kop) FROM cur l2
                        JOIN store_product s2 ON s2.store_product_id = l2.store_product_id

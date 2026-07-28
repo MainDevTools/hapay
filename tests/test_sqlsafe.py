@@ -84,6 +84,25 @@ def test_admin_builders_no_stray_percent():
     _check(_sql_of(db.user_detail, 1), "user_detail")
 
 
+def test_new_builders_no_stray_percent():
+    """⚠ Цей запобіжник ловить лише те, що в НЬОМУ перелічено. 2026-07-28 `price_drops`
+    поїхав у прод із «48%» у коментарі й упав 500 — тест був зелений, бо тієї функції
+    в списку не було. Кожен новий білдер SQL додавати СЮДИ, інакше запобіжник охороняє
+    порожнє місце."""
+    for kw in ({}, {"days": 7}, {"order": "deep"}, {"limit": 10, "offset": 10}):
+        _check(_sql_of(db.price_drops, **kw), f"price_drops({kw})")
+    _check(_sql_of(db.price_moves_summary), "price_moves_summary")
+    _check(_sql_of(db.model_card, 1), "model_card")
+    _check(_sql_of(db.store_list), "store_list")
+    _check(_sql_of(db.store_meta, "comfy"), "store_meta")
+    _check(_sql_of(db.category_meta, "tv"), "category_meta")
+    _check(_sql_of(db.sitemap_rows), "sitemap_rows")
+    _check(_sql_of(db.historical_low, 1), "historical_low")
+    _check(_sql_of(db.query_watch_hits), "query_watch_hits")
+    _check(_sql_of(db.refresh_models), "refresh_models")
+    _check(_sql_of(db.users_for_alerts), "users_for_alerts")
+
+
 def test_other_builders_no_stray_percent():
     for fn, a, kw in ((db.list_discounts, (), {}),
                       (db.list_discounts, (), {"q": "acer", "category": "tv"}),
