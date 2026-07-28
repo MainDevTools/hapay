@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--SEO-->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="/s/app.css">
+<style>
+  .mhead{display:grid;gap:18px;margin:20px 0 0}
+  .mhead .pic{width:100%;max-width:260px;aspect-ratio:1;border-radius:var(--radius);
+    background:#fff;border:1px solid var(--line);object-fit:contain;padding:10px}
+  .mhead .pic.ph{display:flex;align-items:center;justify-content:center}
+  .mhead h1{margin:0 0 6px;font-size:var(--f5);line-height:1.25;letter-spacing:-.02em}
+  .range{font-weight:750;font-size:var(--f6);letter-spacing:-.02em;margin:10px 0 2px}
+  .oline{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:12px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .oline:last-child{border-bottom:none}
+  .oline .st{font-weight:650;font-size:var(--f3)}
+  .oline .pr{font-weight:750;font-size:var(--f4);margin-left:auto}
+  .best{color:var(--accent);font-size:var(--f1);font-weight:650}
+  @media (min-width:1000px){ .mhead{grid-template-columns:260px 1fr;align-items:start;gap:30px} }
+</style>
+</head>
+<body>
+<div class="app">
+<header id="hdr"></header>
+<nav id="crumbs" hidden></nav>
+
+<div class="page">
+  <div id="head" class="mhead"><!--SUMMARY--></div>
+  <div class="panel" id="offers"></div>
+</div>
+
+<div id="ftr"></div>
+</div>
+
+<script src="/s/app.js"></script>
+<script>
+renderHeader('/catalog');
+renderFooter();
+
+const PID = parseInt(location.pathname.split('/').pop(), 10);
+
+/* ⚠ Бейджі тут ПОСТОРІНКОВІ й такими лишаються. Стаття закону говорить про найнижчу
+   ціну за 30 днів У ЦЬОГО ПРОДАВЦЯ — отже «модельного» вердикту не існує, і зводити
+   пʼять крамниць до однієї мітки означало б винести оцінку, якої закон не передбачає.
+   Тому мітка стоїть у рядку крамниці, а не під назвою моделі. */
+async function load(){
+  let m;
+  try { m = await api(`/api/model/${PID}`); }
+  catch(e){
+    document.getElementById('head').innerHTML =
+      `<div class="empty"><div class="ic">🏷</div><div class="t">Модель не знайдено</div>
+       <div>Можливо, вона зникла з продажу. <a href="/catalog">До каталогу →</a></div></div>`;
+    return;
+  }
+  document.title = `${m.title} — ціни в ${m.stores_n} крамницях — Хапай`;
+  renderCrumbs([{href:'/', label:'Головна'}, {href:'/catalog', label:'Знижки'},
+    ...(m.category_slug ? [{href:'/catalog?c=' + encodeURIComponent(m.category_slug),
+                            label: m.category || m.category_slug}] : []),
+    {label: m.title}]);
+
+  const range = m.min_kop == null ? '—'
+    : (m.max_kop > m.min_kop ? `${grn(m.min_kop)} – ${grn(m.max_kop)}` : grn(m.min_kop));
+
+  document.getElementById('head').innerHTML = `
+    ${m.image_url ? `<img class="pic" src="${esc(m.image_url)}" alt="${esc(m.title)}">`
+                  : `<div class="pic ph">${PH_SVG}</div>`}
+    <div>
+      <h1>${esc(m.title)}</h1>
+      <div class="meta">${esc(m.category || '')} · артикул ${esc(m.match_key || '')}</div>
+      <div class="range">${range}</div>
+      <div class="meta">${plu(m.stores_n,'крамниця','крамниці','крамниць')} за нашими спостереженнями</div>
+      <div class="prov" style="margin-top:12px">Це одна модель, зібрана з кількох
+        сторінок крамниць за артикулом. <b>Перевірку знижки ми робимо окремо для
+        кожної крамниці</b> — закон рахує найнижчу ціну за 30 днів саме в того
+        продавця, тож спільної мітки «на модель» не буває.
+        <a href="/how">Як ми перевіряємо →</a></div>
+    </div>`;
+
+  const best = m.min_kop;
+  document.getElementById('offers').innerHTML =
+    `<h2>Де продають</h2><div class="sub">від найдешевшої</div>` +
+    m.offers.map(o => {
+      const bt = BADGE_TEXT[o.badge_state];
+      return `<div class="oline">
+        <div><div class="st">${esc(o.store)}</div>
+          ${bt ? `<span class="badge"><span class="dot"></span>${bt}</span>` : ''}
+          ${o.current_kop != null && o.current_kop === best && m.offers.length > 1
+            ? '<div class="best">найдешевше з того, що ми бачимо</div>' : ''}</div>
+        <div class="pr">${o.current_kop != null ? grn(o.current_kop) : '—'}</div>
+        <a class="mini" href="/product/${o.store_product_id}">Історія ціни</a>
+      </div>`;
+    }).join('');
+}
+load();
+</script>
+</body>
+</html>

@@ -78,6 +78,8 @@ _META = {
     "delete-account": ("Видалення акаунта — Хапай",
                 "Як видалити акаунт «Хапай» і всі пов'язані дані — з сайту або з "
                 "застосунку.", False),
+    "model":   ("Модель — ціни в крамницях | Хапай",
+                "Усі пропозиції однієї моделі поруч: де дешевше й що ми перевірили.", False),
     "compare": ("Порівняння товарів — Хапай",
                 "Ціна, заявлена знижка й наша перевірка для 2-4 товарів поруч.", True),
     "login":   ("Вхід — Хапай", "Вхід і реєстрація в «Хапай».", True),
@@ -194,9 +196,9 @@ _SITEMAP = qseo.Cached(ttl_s=3600)
 @app.get("/sitemap.xml")
 def sitemap(conn=Depends(get_conn)):
     def build():
-        cats, prods = qdb.sitemap_rows(conn)
+        cats, prods, models = qdb.sitemap_rows(conn)
         stores = [r["slug"] for r in qdb.store_list(conn)]
-        return qseo.sitemap(cats, prods, stores)
+        return qseo.sitemap(cats, prods, stores, models)
     return Response(_SITEMAP.get(build), media_type="application/xml", headers=_NOCACHE)
 
 
@@ -266,6 +268,18 @@ def api_drops(days: int = Query(1, ge=1, le=30), page: int = Query(0, ge=0),
             "days": days, "order": order}
 
 
+@app.get("/api/model/{product_id}")
+def api_model(product_id: int, conn=Depends(get_conn)):
+    """Канонічна МОДЕЛЬ: усі сторінки крамниць під одним артикулом (S30).
+
+    ⚠ Бейджі тут ПОСТОРІНКОВІ й такими лишаються: закон говорить про мінімум за
+    30 днів у ЦЬОГО продавця, тож «модельного» вердикту не існує."""
+    m = qdb.model_card(conn, product_id)
+    if m is None:
+        raise HTTPException(404, "модель не знайдено")
+    return m
+
+
 @app.get("/api/stores")
 def api_stores(conn=Depends(get_conn)):
     return qdb.store_list(conn)
@@ -277,6 +291,16 @@ def api_store(slug: str, conn=Depends(get_conn)):
     if st is None:
         raise HTTPException(404, "крамницю не знайдено")
     return st
+
+
+@app.get("/model/{product_id}")
+def model_page(product_id: int, conn=Depends(get_conn)):
+    m = qdb.model_card(conn, product_id)
+    if m is None:
+        return _page("model", qseo.page_head("Модель не знайдено — Хапай",
+                                             "Такої моделі ми не відстежуємо.",
+                                             f"/model/{product_id}", noindex=True), status=404)
+    return _page("model", qseo.model_head(m), qseo.model_summary(m))
 
 
 @app.get("/product/{store_product_id}")

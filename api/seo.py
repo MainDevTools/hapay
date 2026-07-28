@@ -177,7 +177,7 @@ def _url(loc: str, changefreq: str, priority: str) -> str:
             f"<priority>{priority}</priority></url>")
 
 
-def sitemap(categories, product_ids, stores=()) -> str:
+def sitemap(categories, product_ids, stores=(), models=()) -> str:
     """Карта сайту. Стрічку каталогу малює JS, тож сторінки товарів мусять бути тут —
     інакше до них немає жодного шляху, яким пройде краулер."""
     out = ['<?xml version="1.0" encoding="UTF-8"?>',
@@ -193,6 +193,10 @@ def sitemap(categories, product_ids, stores=()) -> str:
     out.append(_url(SITE + "/stores", "weekly", "0.6"))
     for slug in stores:
         out.append(_url(f"{SITE}/store/{slug}", "daily", "0.5"))
+    # Моделі — лише ті, що є в 2+ крамницях: сторінка з однією пропозицією не додає
+    # нічого понад сторінку товару, тобто була б дублем у видачі.
+    for pid in models:
+        out.append(_url(f"{SITE}/model/{pid}", "daily", "0.7"))
     out.append(_url(SITE + "/catalog?b=verified", "hourly", "0.8"))
     out.append(_url(SITE + "/catalog?b=pumped", "hourly", "0.8"))
     for p in ("privacy", "terms", "support", "delete-account"):
@@ -271,3 +275,31 @@ def store_head(store: dict) -> str:
     desc = (f"Стежимо за цінами {store['name']}: {n} активних знижок, з них {v} пройшли "
             f"перевірку 30-денним мінімумом. Лише факти наших спостережень.")
     return "\n".join(_tags(title, desc, f"{SITE}/store/{store['slug']}"))
+
+
+def model_head(m: dict) -> str:
+    """<head> сторінки моделі. Опис — з ФАКТІВ: діапазон цін і скільки крамниць."""
+    n = m.get("stores_n") or 0
+    lo, hi = m.get("min_kop"), m.get("max_kop")
+    title = f"{m.get('title') or 'Модель'} — ціни в {n} крамницях | {BRAND}"
+    if lo is not None and hi is not None and hi > lo:
+        desc = (f"Від {grn(lo)} до {grn(hi)} у {n} крамницях. Ціни й історію звіряємо "
+                f"з власними спостереженнями.")
+    elif lo is not None:
+        desc = f"{grn(lo)}. Ціни й історію звіряємо з власними спостереженнями."
+    else:
+        desc = "Порівняння цін на цю модель за нашими спостереженнями."
+    return "\n".join(_tags(title, desc, f"{SITE}/model/{m['product_id']}", kind="product"))
+
+
+def model_summary(m: dict) -> str:
+    """Розмітка для того, хто не виконує JS: назва, діапазон, перелік крамниць."""
+    parts = [f"<h1>{html.escape(m.get('title') or '')}</h1>"]
+    lo = m.get("min_kop")
+    if lo is not None:
+        parts.append(f'<p class="pbuy"><span class="now">від {grn(lo)}</span></p>')
+    for o in (m.get("offers") or [])[:8]:
+        price = grn(o["current_kop"]) if o.get("current_kop") is not None else "—"
+        parts.append(f'<p>{html.escape(str(o.get("store") or ""))}: {price} — '
+                     f'<a href="/product/{o["store_product_id"]}">історія ціни</a></p>')
+    return "\n".join(parts)

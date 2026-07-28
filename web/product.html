@@ -95,6 +95,8 @@ async function load(){
     <div>
       <h2>${esc(me.title)}</h2>
       <div class="meta"><b>${esc(me.store||'')}</b>${me.variant_note?' · '+esc(me.variant_note):''}</div>
+      ${me.product_id ? `<div class="meta" style="margin-top:4px">
+        <a href="/model/${me.product_id}">Ця сама модель в інших крамницях →</a></div>` : ''}
       <div class="pbuy">
         <span class="now">${grn(me.current_kop)}</span>
         ${me.old_declared_kop?`<span class="old">${grn(me.old_declared_kop)}</span>`:''}

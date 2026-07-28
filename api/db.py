@@ -38,7 +38,7 @@ def product_card(conn, store_product_id: int):
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(
             """SELECT sp.store_product_id, sp.title, sp.url, sp.image_url, sp.variant_note,
-                      s.name AS store, c.slug AS category_slug, c.name AS category,
+                      sp.product_id, s.name AS store, c.slug AS category_slug, c.name AS category,
                       COALESCE(de.current_kop, ps.price_now_kop) AS current_kop,
                       COALESCE(de.old_declared_kop, ps.price_old_kop) AS old_declared_kop,
                       de.reference_kop, de.declared_pct, de.verified_pct, de.badge_state,
@@ -1194,7 +1194,12 @@ def sitemap_rows(conn, limit: int = 20000):
         " ORDER BY (de.badge_state IN ('verified','verified_provisional','pumped')) DESC NULLS LAST, "
         "          de.computed_at DESC NULLS LAST, sp.store_product_id DESC "
         " LIMIT %s", (limit,)).fetchall()]
-    return cats, prods
+    models = [r[0] for r in conn.execute(
+        "SELECT p.product_id FROM product p "
+        "  JOIN store_product sp ON sp.product_id = p.product_id "
+        " GROUP BY p.product_id HAVING count(DISTINCT sp.source_id) >= 2 "
+        " ORDER BY count(DISTINCT sp.source_id) DESC, p.product_id LIMIT 10000").fetchall()]
+    return cats, prods, models
 
 
 # ─────────────────────────── сторінки-обличчя (S27) ───────────────────────────
@@ -1344,7 +1349,9 @@ def price_drops(conn, days: int = 1, limit: int = 50, offset: int = 0,
                    round(100.0 * (p.price_now_kop - cur.price_now_kop)
                          / p.price_now_kop)::int AS drop_pct,
                    p.seen_at AS was_at, cur.seen_at AS now_at,
-                   de.badge_state
+                   de.badge_state, sp.product_id,
+                   (SELECT count(DISTINCT s2.source_id) FROM store_product s2
+                     WHERE s2.product_id = sp.product_id) AS stores_n
               FROM cur
               JOIN prev p USING (store_product_id)
               JOIN store_product sp ON sp.store_product_id = cur.store_product_id
@@ -1355,6 +1362,14 @@ def price_drops(conn, days: int = 1, limit: int = 50, offset: int = 0,
              WHERE cur.in_stock
                AND cur.price_now_kop < p.price_now_kop
                AND p.price_now_kop - cur.price_now_kop >= %s
+               -- ДЕДУПЛІКАЦІЯ ЗА МОДЕЛЛЮ (S30): той самий телефон у пʼяти крамницях
+               -- давав пʼять рядків поспіль — фід виглядав як помилка. Лишаємо
+               -- НАЙДЕШЕВШУ сторінку моделі; товари без моделі (48%, немає match_key)
+               -- проходять як були — їх нема з чим групувати.
+               AND (sp.product_id IS NULL OR cur.price_now_kop = (
+                     SELECT min(l2.price_now_kop) FROM cur l2
+                       JOIN store_product s2 ON s2.store_product_id = l2.store_product_id
+                      WHERE s2.product_id = sp.product_id))
              ORDER BY """ + _DROP_ORDER.get(order, _DROP_ORDER["fresh"]) + """,
                       sp.store_product_id
              LIMIT %s OFFSET %s""",
@@ -1490,3 +1505,50 @@ def users_for_alerts(conn):
             " WHERE is_active AND email_verified AND email_alerts "
             "   AND EXISTS (SELECT 1 FROM watchlist w WHERE w.user_id = app_user.user_id)"
         ).fetchall()
+
+
+# ═══════════════════════ канонічна модель товару (S30) ═══════════════════════
+# ⚠ Детекція знижки лишається ПОСТОРІНКОВОЮ: закон говорить про мінімум за 30 днів
+# У ЦЬОГО ПРОДАВЦЯ. «Модельний» мінімум по всіх крамницях статутною базою не є й
+# бейджем стати не може. Модель — для ПОРІВНЯННЯ, детекція — для однієї сторінки.
+def model_card(conn, product_id: int):
+    """Модель + усі її сторінки в крамницях, від найдешевшої."""
+    with conn.cursor(row_factory=dict_row) as cur:
+        head = cur.execute(
+            "SELECT p.product_id, p.match_key, p.title, c.name AS category, c.slug AS category_slug "
+            "  FROM product p LEFT JOIN category c ON c.category_id = p.category_id "
+            " WHERE p.product_id = %s", (product_id,)).fetchone()
+        if head is None:
+            return None
+        head["offers"] = cur.execute(
+            "WITH latest AS ("
+            "  SELECT DISTINCT ON (ps.store_product_id) ps.store_product_id,"
+            "         ps.price_now_kop, ps.seen_at, ps.in_stock"
+            "    FROM price_snapshot ps"
+            "   WHERE ps.store_product_id IN (SELECT store_product_id FROM store_product"
+            "                                  WHERE product_id = %s)"
+            "   ORDER BY ps.store_product_id, ps.seen_at DESC) "
+            "SELECT sp.store_product_id, sp.title, sp.url, sp.image_url,"
+            "       s.name AS store, l.price_now_kop AS current_kop, l.seen_at,"
+            "       de.badge_state, de.old_declared_kop, de.reference_kop"
+            "  FROM store_product sp"
+            "  JOIN source s USING (source_id)"
+            "  LEFT JOIN latest l ON l.store_product_id = sp.store_product_id"
+            "  LEFT JOIN discount_event de ON de.store_product_id = sp.store_product_id"
+            "                             AND de.ended_at IS NULL"
+            " WHERE sp.product_id = %s"
+            " ORDER BY l.price_now_kop NULLS LAST, s.name", (product_id, product_id)).fetchall()
+    prices = [o["current_kop"] for o in head["offers"] if o["current_kop"] is not None]
+    head["min_kop"] = min(prices) if prices else None
+    head["max_kop"] = max(prices) if prices else None
+    head["stores_n"] = len({o["store"] for o in head["offers"]})
+    # Фото беремо з першої сторінки, де воно є: це ВКАЗІВНИК (hotlink), байти не наші.
+    head["image_url"] = next((o["image_url"] for o in head["offers"] if o["image_url"]), None)
+    return head
+
+
+def model_of_store_product(conn, store_product_id: int):
+    """product_id сторінки крамниці; None — коли модель не впізнана (немає match_key)."""
+    row = conn.execute("SELECT product_id FROM store_product WHERE store_product_id = %s",
+                       (store_product_id,)).fetchone()
+    return row[0] if row and row[0] is not None else None
