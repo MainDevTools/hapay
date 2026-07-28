@@ -34,6 +34,14 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
     /// Точки для графіка — свій IDrawable читає цю колекцію (сходинки+розриви, T12).
     public ObservableCollection<HistoryPoint> History { get; } = new();
 
+    /// Історичний мінімум разом ІЗ ВІКНОМ — «найнижча за весь час» при історії з 18.07
+    /// було б самообманом того самого сорту, який ми ловимо в крамниць.
+    private async Task LoadLow(int storeProductId)
+    {
+        try { Low = await _api.LowAsync(storeProductId); }
+        catch { Low = null; }        // мінімум — приємний бонус, а не привід ламати картку
+    }
+
     /// «Де купити» (T15): той самий товар (mpn) у крамницях, від найдешевшої.
     public ObservableCollection<Offer> Offers { get; } = new();
 
@@ -195,6 +203,25 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
         "(складники — в блоці вибору). Крамниці не платять за позиції.",
         "Зрозуміло");
 
+    /// Цільова ціна (S29): «сповісти, коли впаде до X». Порожньо = будь-яке зниження,
+    /// тобто стара поведінка — нікого не змушуємо називати число.
+    [ObservableProperty] private string _targetText = "";
+    [ObservableProperty] private PriceLow? _low;
+
+    /// ⚠ Показуємо ЛИШЕ коли вікно спостережень довше за 30 днів. Інакше цей рядок
+    /// дублює вже наявний «найнижча за 30 днів» слово в слово: при історії з 18.07
+    /// обидва вікна збігаються, і два однакові твердження поруч читаються як недогляд.
+    public bool HasLow => Low?.HasData == true && Low.Days > 30;
+    partial void OnLowChanged(PriceLow? value) => OnPropertyChanged(nameof(HasLow));
+
+    /// Гривні з поля → копійки (інв. A). Сміття й нуль = «цілі немає», а не помилка:
+    /// людина могла просто не заповнити поле.
+    private int? ParseTarget()
+    {
+        var digits = new string((TargetText ?? "").Where(char.IsDigit).ToArray());
+        return int.TryParse(digits, out var g) && g > 0 ? g * 100 : null;
+    }
+
     /// Стежити може лише залогінений — інакше нема кому належати списку.
     public bool CanWatch => _auth.IsLoggedIn;
 
@@ -229,7 +256,7 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
                 WatchNote = "Прибрано зі стеження";
                 return;
             }
-            await _api.WatchAsync(Item.StoreProductId);
+            await _api.WatchAsync(Item.StoreProductId, ParseTarget());
             IsWatched = true;
             await LoadWatchStateAsync(Item.StoreProductId);   // дістати watchlist_id для зняття
             // дозвіл питаємо САМЕ тут — у момент, коли користувач попросив стежити,
@@ -288,6 +315,7 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
         if (value is not null)
         {
             _ = LoadHistory(value.StoreProductId);
+            _ = LoadLow(value.StoreProductId);
             _ = LoadOffers(value.StoreProductId);
             _ = LoadWatchStateAsync(value.StoreProductId);
             _recent.Push(value);   // «Нещодавно переглянуті» на головній (локально)

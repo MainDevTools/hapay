@@ -214,12 +214,27 @@ public class ApiService
     // ── «Стежити за ціною» ────────────────────────────────────────────────────────
     /// Додати товар у відстеження. Ціну на момент додавання фіксує СЕРВЕР — тут її
     /// свідомо не передаємо (клієнт не має диктувати, від чого рахувати економію).
-    public async Task WatchAsync(int storeProductId, CancellationToken ct = default)
+    /// `targetKop` (S29): «сповісти, коли ціна впаде до X». null = будь-яке зниження,
+    /// тобто стара поведінка — нікого не змушуємо називати число.
+    public async Task WatchAsync(int storeProductId, int? targetKop = null,
+                                 CancellationToken ct = default)
     {
         var resp = await _http.PostAsJsonAsync($"{Base}/api/me/watchlist",
-            new { kind = "store_product", ref_id = storeProductId }, ct);
+            new { kind = "store_product", ref_id = storeProductId, target_kop = targetKop }, ct);
         if (resp.StatusCode == HttpStatusCode.Unauthorized) throw new UnauthorizedException();
         if (!resp.IsSuccessStatusCode) throw new ApiException(await SafeDetail(resp, ct));
+    }
+
+    /// Найнижча ціна за час НАШИХ спостережень (S29). Разом із вікном: клієнт
+    /// зобовʼязаний показати `Days`/`Measurements`, інакше твердження не перевірити.
+    public async Task<PriceLow?> LowAsync(int storeProductId, CancellationToken ct = default)
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<PriceLow>(
+                $"{Base}/api/product/{storeProductId}/low", _json, ct);
+        }
+        catch (HttpRequestException) { return null; }   // 404 = історії ще немає
     }
 
     /// Стежити за КАТЕГОРІЄЮ (kind=category, ключ — slug у query_text).

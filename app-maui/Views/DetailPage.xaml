@@ -245,6 +245,13 @@
                     Margin="0,12,0,0" MinimumHeightRequest="48" />
 
             <!-- «Стежити за ціною»: доступно лише залогіненим (список належить акаунту) -->
+            <!-- Цільова ціна (S29): порожньо = будь-яке зниження, тобто стара поведінка.
+                 Нікого не змушуємо називати число, але тому, хто хоче, більше не
+                 доводиться відсіювати «подешевшало на 40 грн» вручну. -->
+            <Entry Placeholder="Сповістити, коли ціна впаде до (₴)" Keyboard="Numeric"
+                   Text="{Binding TargetText}" IsVisible="{Binding CanWatch}" />
+            <Label Text="{Binding Low.Text}" Style="{StaticResource Caption}"
+                   IsVisible="{Binding HasLow}" />
             <Button Text="{Binding WatchButtonText}" Command="{Binding WatchCommand}"
                     IsEnabled="{Binding WatchBusy, Converter={StaticResource Invert}}"
                     IsVisible="{Binding CanWatch}" MinimumHeightRequest="48"

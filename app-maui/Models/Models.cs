@@ -787,3 +787,23 @@ public class DropsResult
     [JsonPropertyName("summary")] public DropsSummary? Summary { get; set; }
     [JsonPropertyName("items")] public List<MeasuredDrop> Items { get; set; } = new();
 }
+
+
+/// Найнижча ціна за час наших спостережень (S29).
+/// ⚠ Вікно (`Days`, `Measurements`, `FirstDay`) — не довідка, а частина твердження:
+/// «найнижча за весь час» при історії з 18.07 було б самообманом того самого сорту,
+/// який ми ловимо в крамниць.
+public class PriceLow
+{
+    [JsonPropertyName("low_kop")] public int? LowKop { get; set; }
+    [JsonPropertyName("low_day")] public string? LowDay { get; set; }
+    [JsonPropertyName("first_day")] public string? FirstDay { get; set; }
+    [JsonPropertyName("days")] public int Days { get; set; }
+    [JsonPropertyName("measurements")] public int Measurements { get; set; }
+
+    [JsonIgnore] public bool HasData => LowKop.HasValue && Days > 0;
+    [JsonIgnore] public string Text => !HasData ? "" :
+        $"За {Days} дн. наших спостережень ({Measurements} вимірів з {FirstDay}) "
+        + $"найнижча ціна була {Money.Grn(LowKop!.Value)}"
+        + (string.IsNullOrEmpty(LowDay) ? "." : $" — {LowDay}.");
+}
