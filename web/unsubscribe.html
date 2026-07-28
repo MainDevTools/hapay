@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--SEO-->
+<link rel="stylesheet" href="/s/app.css">
+</head>
+<body>
+<div class="app narrow">
+<header id="hdr"></header>
+
+<div class="page">
+  <div class="panel" id="out"><!--SUMMARY--></div>
+</div>
+
+<div id="ftr"></div>
+</div>
+
+<script src="/s/app.js"></script>
+<script>
+renderHeader('');
+renderFooter();
+
+/* Результат вирішує СЕРВЕР і кладе його в розмітку («ok» / «bad») — сторінка не робить
+   жодного запиту. Інакше відписка залежала б від JS у поштовому клієнті чи браузері
+   без скриптів, а це рівно та людина, яка вже роздратована листами. */
+const state = document.getElementById('out').textContent.trim();
+document.getElementById('out').innerHTML = state === 'ok'
+  ? `<h2>Готово — листів про ціни більше не буде</h2>
+     <div class="sub">Ми вимкнули сповіщення про зниження для вашого акаунта.
+       Стеження лишилось: ціни видно в кабінеті, а застосунок і далі показує
+       сповіщення на пристрої.</div>
+     <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+       <a class="btn btn-ghost" href="/me">До кабінету</a>
+       <a class="btn btn-ghost" href="/">На головну</a></div>`
+  : `<h2>Посилання недійсне</h2>
+     <div class="sub">Можливо, воно застаріло або скопійоване не повністю.
+       Вимкнути листи можна в кабінеті — там же, де стеження.</div>
+     <div style="margin-top:16px"><a class="btn btn-main" href="/me">До кабінету</a></div>`;
+</script>
+</body>
+</html>

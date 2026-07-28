@@ -125,3 +125,20 @@ def bearer_claims(authorization: str | None) -> dict | None:
         return verify_token(authorization[7:].strip())
     except AuthError:
         return None
+
+
+# ─────────────────── підпис посилання «відписатись» (S29) ───────────────────
+def _unsub_sig(user_id: int) -> str:
+    """HMAC від JWT_SECRET. Навіщо взагалі підпис: посилання в листі мусить працювати
+    БЕЗ входу (людина, яку змусили згадувати пароль, тисне «спам», а не «відписатись»),
+    але без підпису будь-хто вимикав би листи чужому акаунту перебором id."""
+    return hmac.new(_secret(), f"unsub:{user_id}".encode(),
+                    hashlib.sha256).hexdigest()[:32]
+
+
+def unsub_link(user_id: int) -> str:
+    return f"https://hapay.today/unsubscribe?u={user_id}&s={_unsub_sig(user_id)}"
+
+
+def verify_unsub(user_id: int, sig: str) -> bool:
+    return hmac.compare_digest(_unsub_sig(user_id), sig or "")

@@ -984,7 +984,8 @@ def update_password(conn, user_id: int, password_hash: str) -> None:
 
 
 # watchlist на app-юзера (окремо від Telegram-версії вище)
-def add_watchlist_user(conn, user_id: int, kind: str, ref_id: int | None, query_text: str | None):
+def add_watchlist_user(conn, user_id: int, kind: str, ref_id: int | None,
+                       query_text: str | None, target_kop: int | None = None):
     """Додає у відстеження. Для товару СЕРВЕР сам фіксує поточну ціну (`price_at_add_kop`)
     з останнього снапшота — клієнт її не диктує, інакше можна було б намалювати неіснуючу
     економію (§7.5). Повторне додавання того самого товару НЕ дублюємо."""
@@ -996,11 +997,11 @@ def add_watchlist_user(conn, user_id: int, kind: str, ref_id: int | None, query_
                 (user_id, ref_id)).fetchone()
             if dup:
                 return dup
-        if kind == "category" and query_text:
+        if kind in ("category", "query") and query_text:
             dup = cur.execute(
                 "SELECT watchlist_id, kind, ref_id, query_text, price_at_add_kop FROM watchlist "
-                "WHERE user_id = %s AND kind = 'category' AND query_text = %s",
-                (user_id, query_text)).fetchone()
+                "WHERE user_id = %s AND kind = %s AND query_text = %s",
+                (user_id, kind, query_text)).fetchone()
             if dup:
                 return dup
         price = None
@@ -1010,10 +1011,11 @@ def add_watchlist_user(conn, user_id: int, kind: str, ref_id: int | None, query_
                 "ORDER BY seen_at DESC LIMIT 1", (ref_id,)).fetchone()
             price = row["price_now_kop"] if row else None
         return cur.execute(
-            "INSERT INTO watchlist (user_id, kind, ref_id, query_text, price_at_add_kop) "
-            "VALUES (%s,%s,%s,%s,%s) "
-            "RETURNING watchlist_id, kind, ref_id, query_text, price_at_add_kop",
-            (user_id, kind, ref_id, query_text, price)).fetchone()
+            "INSERT INTO watchlist (user_id, kind, ref_id, query_text, price_at_add_kop,"
+            "                       target_kop) "
+            "VALUES (%s,%s,%s,%s,%s,%s) "
+            "RETURNING watchlist_id, kind, ref_id, query_text, price_at_add_kop, target_kop",
+            (user_id, kind, ref_id, query_text, price, target_kop)).fetchone()
 
 
 def remove_watchlist_user(conn, user_id: int, watchlist_id: int) -> bool:
@@ -1050,6 +1052,9 @@ def list_price_drops(conn, user_id: int):
         WHERE w.user_id = %s AND w.kind = 'store_product'
           AND COALESCE(w.last_notified_kop, w.price_at_add_kop) IS NOT NULL
           AND l.price_now_kop < COALESCE(w.last_notified_kop, w.price_at_add_kop)
+          -- Цільова ціна (S29): якщо вона задана, зниження саме по собі ще не привід —
+          -- людина просила сказати, коли ціна ДІЙДЕ до її числа, а не коли просто впаде.
+          AND (w.target_kop IS NULL OR l.price_now_kop <= w.target_kop)
         ORDER BY drop_kop DESC"""
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(sql, (user_id, user_id)).fetchall()
@@ -1068,7 +1073,10 @@ def ack_price_drops(conn, user_id: int, watchlist_ids: list[int]) -> int:
             JOIN watchlist w ON w.ref_id = ps.store_product_id AND w.user_id = %s
             ORDER BY ps.store_product_id, ps.seen_at DESC
         )
-        UPDATE watchlist w SET last_notified_kop = l.price_now_kop
+        -- last_notified_at ставимо ТУТ ЖЕ (S29): досі його писав лише ack категорій,
+        -- тож для стеження за товаром колонка лишалась порожньою — і будь-який
+        -- запобіжник частоти листів спирався б на порожнечу.
+        UPDATE watchlist w SET last_notified_kop = l.price_now_kop, last_notified_at = now()
         FROM latest l
         WHERE w.ref_id = l.store_product_id
           AND w.user_id = %s AND w.watchlist_id = ANY(%s)
@@ -1090,7 +1098,7 @@ def list_watchlist_user(conn, user_id: int):
             ORDER BY ps.store_product_id, ps.seen_at DESC
         )
         SELECT w.watchlist_id, w.kind, w.ref_id, w.query_text, w.created_at,
-               w.price_at_add_kop, sp.title, sp.url, sp.image_url,
+               w.price_at_add_kop, w.target_kop, sp.title, sp.url, sp.image_url,
                s.name AS store, l.price_now_kop AS current_kop,
                (l.price_now_kop - w.price_at_add_kop) AS delta_kop,
                CASE WHEN sp.match_key IS NULL THEN 1
@@ -1368,3 +1376,116 @@ def price_moves_summary(conn, days: int = 1):
               FROM cur JOIN prev p USING (store_product_id)
              WHERE cur.in_stock""",
             (days, days, _MIN_DROP_KOP, _MIN_DROP_KOP)).fetchone()
+
+
+# ═══════════════════ цільова ціна, стеження за запитом, історичний мінімум (S29) ═══
+def set_watch_target(conn, user_id: int, watchlist_id: int, target_kop: int | None):
+    """Цільова ціна для стеження. NULL = сповіщати про будь-яке зниження (як було).
+
+    Чужий рядок не зачепить — user_id у WHERE."""
+    row = conn.execute(
+        "UPDATE watchlist SET target_kop = %s WHERE watchlist_id = %s AND user_id = %s "
+        "RETURNING watchlist_id, target_kop", (target_kop, watchlist_id, user_id)).fetchone()
+    return None if row is None else {"watchlist_id": row[0], "target_kop": row[1]}
+
+
+def query_watch_hits(conn, user_id: int | None = None):
+    """Товари під стеженням ЗА ЗАПИТОМ, які впали до цільової ціни.
+
+    ⚠ Стеження за запитом БЕЗ цілі не має сенсу й не обробляється: «повідом про
+    будь-яке зниження серед усього, що підходить під слово „навушники“» — це не
+    сповіщення, а розсилка. Ціль робить твердження перевірюваним: «дешевше за X».
+
+    Памʼять про надіслане — `alert_sent` на пару (стеження, товар): наступний лист
+    піде, лише якщо ціна впала ЩЕ нижче за ту, про яку вже казали."""
+    # ⚠ Патерни залежать від тексту КОЖНОГО стеження, тож одним запитом їх не підставити:
+    # ILIKE ANY(%s) вимагає масиву на рядок. Тому беремо стеження, а товари добираємо
+    # по одному запиту на стеження — їх одиниці, а не тисячі.
+    from search import search_patterns
+    with conn.cursor(row_factory=dict_row) as cur:
+        watches = cur.execute(
+            "SELECT watchlist_id, user_id, query_text, target_kop FROM watchlist "
+            " WHERE kind = 'query' AND target_kop IS NOT NULL AND user_id IS NOT NULL "
+            "   AND (%s::bigint IS NULL OR user_id = %s)", (user_id, user_id)).fetchall()
+        out = []
+        for w in watches:
+            pats = search_patterns(w["query_text"])
+            if not pats:
+                continue
+            out.extend(cur.execute(
+                "WITH latest AS ("
+                "    SELECT DISTINCT ON (ps.store_product_id) ps.store_product_id, ps.price_now_kop"
+                "      FROM price_snapshot ps"
+                "     WHERE ps.store_product_id IN ("
+                "           SELECT store_product_id FROM store_product WHERE title ILIKE ANY(%s))"
+                "     ORDER BY ps.store_product_id, ps.seen_at DESC) "
+                "SELECT %s::bigint AS watchlist_id, %s::bigint AS user_id, %s::text AS query_text,"
+                "       %s::bigint AS target_kop,"
+                "       sp.store_product_id, sp.title, sp.url, s.name AS store,"
+                "       l.price_now_kop AS current_kop"
+                "  FROM store_product sp"
+                "  JOIN source s USING (source_id)"
+                "  JOIN latest l ON l.store_product_id = sp.store_product_id"
+                "  LEFT JOIN alert_sent a ON a.watchlist_id = %s"
+                "                        AND a.store_product_id = sp.store_product_id"
+                " WHERE sp.title ILIKE ANY(%s) AND l.price_now_kop <= %s"
+                "   AND (a.price_kop IS NULL OR l.price_now_kop < a.price_kop)"
+                " ORDER BY l.price_now_kop LIMIT 20",
+                (pats, w["watchlist_id"], w["user_id"], w["query_text"], w["target_kop"],
+                 w["watchlist_id"], pats, w["target_kop"])).fetchall())
+        return out
+
+
+def mark_alert_sent(conn, rows) -> int:
+    """Запамʼятати, про що сповістили. UPSERT: наступного разу поріг — ця ціна."""
+    n = 0
+    for r in rows:
+        conn.execute(
+            "INSERT INTO alert_sent (watchlist_id, store_product_id, price_kop) "
+            "VALUES (%s,%s,%s) "
+            "ON CONFLICT (watchlist_id, store_product_id) "
+            "DO UPDATE SET price_kop = EXCLUDED.price_kop, sent_at = now()",
+            (r["watchlist_id"], r["store_product_id"], r["current_kop"]))
+        n += 1
+    return n
+
+
+def historical_low(conn, store_product_id: int):
+    """Найнижча ціна ЗА ЧАС НАШИХ СПОСТЕРЕЖЕНЬ + межі того часу.
+
+    ⚠ Повертаємо не лише мінімум, а й `days`/`first_seen`: «найнижча за весь час» при
+    десятиденній історії було б самообманом — тим самим, що ми ловимо в крамниць.
+    Твердження мусить нести власне вікно, інакше воно не перевірюване (T12)."""
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(
+            "SELECT min(price_now_kop)::bigint AS low_kop,"
+            "       (SELECT seen_at::date FROM price_snapshot"
+            "         WHERE store_product_id = %s"
+            "         ORDER BY price_now_kop, seen_at LIMIT 1) AS low_day,"
+            "       min(seen_at)::date AS first_day, max(seen_at)::date AS last_day,"
+            "       (max(seen_at)::date - min(seen_at)::date + 1) AS days,"
+            "       count(*)::int AS measurements"
+            "  FROM price_snapshot WHERE store_product_id = %s",
+            (store_product_id, store_product_id)).fetchone()
+
+
+def set_email_alerts(conn, user_id: int, enabled: bool) -> bool:
+    """Згода на листи про зниження цін. Транзакційних (verify/reset) не стосується:
+    ті — відповідь на дію людини, а не наша ініціатива."""
+    row = conn.execute(
+        "UPDATE app_user SET email_alerts = %s WHERE user_id = %s RETURNING user_id",
+        (enabled, user_id)).fetchone()
+    return row is not None
+
+
+def users_for_alerts(conn):
+    """Кому взагалі можна писати про ціни: підтверджена пошта, згода, активний акаунт.
+
+    Непідтверджена пошта — навмисно ні: писати на адресу, яку людина не підтвердила,
+    означає слати листи тому, хто, можливо, її не вказував."""
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(
+            "SELECT user_id, email FROM app_user "
+            " WHERE is_active AND email_verified AND email_alerts "
+            "   AND EXISTS (SELECT 1 FROM watchlist w WHERE w.user_id = app_user.user_id)"
+        ).fetchall()

@@ -86,6 +86,7 @@ _META = {
     "privacy": ("Конфіденційність — Хапай", "Які дані збирає «Хапай» і навіщо.", False),
     "terms":   ("Умови користування — Хапай", "Умови користування сервісом «Хапай».", False),
     "support": ("Підтримка — Хапай", "Як звʼязатися з «Хапай».", False),
+    "unsubscribe": ("Відмова від листів — Хапай", "Вимкнути листи про зниження цін.", True),
     "404":     ("Сторінку не знайдено — Хапай", "Такої сторінки немає.", True),
 }
 
@@ -293,6 +294,22 @@ def product_page(store_product_id: int, conn=Depends(get_conn)):
     return _page("product", qseo.product_head(card), qseo.product_summary(card))
 
 
+@app.get("/unsubscribe")
+def unsubscribe_page(u: int = 0, s: str = "", conn=Depends(get_conn)):
+    """Відмова від листів ОДНИМ КЛІКОМ, без входу.
+
+    Людина, яка хоче припинити листи, не повинна згадувати пароль — інакше наступний
+    крок не «відписатись», а «поскаржитись на спам». Підпис HMAC від JWT_SECRET:
+    жодної нової колонки, а посилання не підробити й воно гасне з ротацією секрету."""
+    ok = u > 0 and s and qauth.verify_unsub(u, s)
+    if ok:
+        qdb.set_email_alerts(conn, u, False)
+    title = "Листи вимкнено — Хапай" if ok else "Посилання недійсне — Хапай"
+    return _page("unsubscribe", qseo.page_head(title, "Відмова від листів про ціни.",
+                                               "/unsubscribe", noindex=True),
+                 summary="ok" if ok else "bad")
+
+
 @app.get("/{page}")
 def legal(page: str):
     """Сторінки сайту (S19) + юр-сторінки /privacy, /terms, /support (вимога сторів)."""
@@ -404,6 +421,20 @@ def product_card(store_product_id: int, conn=Depends(get_conn)):
 @app.get("/api/product/{store_product_id}/history")
 def history(store_product_id: int, conn=Depends(get_conn)):
     return qdb.product_history(conn, store_product_id)
+
+
+@app.get("/api/product/{store_product_id}/low")
+def product_low(store_product_id: int, conn=Depends(get_conn)):
+    """Найнижча ціна ЗА ЧАС НАШИХ СПОСТЕРЕЖЕНЬ.
+
+    ⚠ Віддаємо не лише число, а й вікно (`days`, `first_day`, `measurements`) — і
+    клієнти зобовʼязані його показувати. «Найнижча за весь час» при історії з 18.07
+    було б самообманом того самого сорту, який ми ловимо в крамниць: твердження без
+    власного вікна не перевірити. `is_low` = поточна ціна дорівнює цьому мінімуму."""
+    row = qdb.historical_low(conn, store_product_id)
+    if row is None or row.get("low_kop") is None:
+        raise HTTPException(404, "історії ще немає")
+    return row
 
 
 @app.get("/api/product/{store_product_id}/offers")
@@ -681,6 +712,18 @@ def my_watchlist(claims=Depends(require_active_account), conn=Depends(get_conn))
     return qdb.list_watchlist_user(conn, int(claims["sub"]))
 
 
+def _target_kop(body: dict) -> int | None:
+    """Цільова ціна з тіла запиту. Копійки (інв. A) — клієнт переводить гривні сам,
+    як і всюди. Нуль і відʼємне відкидаємо: «сповісти, коли буде 0 грн» — не намір,
+    а помилка вводу."""
+    raw = body.get("target_kop")
+    if raw is None:
+        return None
+    if not isinstance(raw, int) or raw <= 0:
+        raise HTTPException(400, "target_kop — ціле число копійок > 0")
+    return raw
+
+
 @app.post("/api/me/watchlist")
 def my_watchlist_add(body: dict, claims=Depends(require_active_account), conn=Depends(get_conn)):
     kind = body.get("kind")
@@ -689,8 +732,38 @@ def my_watchlist_add(body: dict, claims=Depends(require_active_account), conn=De
     ref_id = body.get("ref_id")
     if kind == "store_product" and not isinstance(ref_id, int):
         raise HTTPException(400, "ref_id обовʼязковий для store_product")
+    target = _target_kop(body)
+    if kind == "query":
+        # Стеження за запитом БЕЗ цілі — це не сповіщення, а розсилка: під слово
+        # «навушники» підпадають тисячі товарів, і «будь-яке зниження» серед них
+        # означало б лист щогодини. Ціль робить твердження перевірюваним.
+        if not (body.get("query_text") or "").strip():
+            raise HTTPException(400, "query_text обовʼязковий для query")
+        if target is None:
+            raise HTTPException(400, "для стеження за запитом потрібна цільова ціна")
     return qdb.add_watchlist_user(conn, int(claims["sub"]), kind,
-                                  ref_id, body.get("query_text"))
+                                  ref_id, body.get("query_text"), target)
+
+
+@app.patch("/api/me/watchlist/{watchlist_id}")
+def my_watchlist_target(watchlist_id: int, body: dict,
+                        claims=Depends(require_active_account), conn=Depends(get_conn)):
+    """Змінити цільову ціну. `target_kop: null` — прибрати ціль (будь-яке зниження)."""
+    row = qdb.set_watch_target(conn, int(claims["sub"]), watchlist_id, _target_kop(body))
+    if row is None:
+        raise HTTPException(404, "запис не знайдено")
+    return row
+
+
+@app.post("/api/me/alerts")
+def my_alerts_pref(body: dict, claims=Depends(require_active_account), conn=Depends(get_conn)):
+    """Згода на листи про зниження цін."""
+    enabled = body.get("enabled")
+    if not isinstance(enabled, bool):
+        raise HTTPException(400, "enabled — true або false")
+    if not qdb.set_email_alerts(conn, int(claims["sub"]), enabled):
+        raise HTTPException(404, "акаунт не існує")
+    return {"email_alerts": enabled}
 
 
 @app.get("/api/me/watchlist/drops")
