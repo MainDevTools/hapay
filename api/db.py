@@ -1585,3 +1585,63 @@ def refresh_models(conn) -> int:
         "         ORDER BY match_key, length(title), store_product_id) best "
         " WHERE p.match_key = best.match_key AND p.title IS DISTINCT FROM best.title")
     return n
+
+
+# ═══════════════════════ печатка доби: доказовість (S31) ═══════════════════════
+def day_rows(conn, day: str):
+    """Усі спостереження доби у КАНОНІЧНОМУ порядку.
+
+    Порядок — частина публічного контракту: інший порядок дасть інший корінь, і чужий
+    скрипт не відтворить наш результат. Беремо (seen_at, price_snapshot_id) — перше
+    змістовне, друге гарантує однозначність при однаковій мітці часу."""
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(
+            "SELECT price_snapshot_id, store_product_id, price_now_kop, price_old_kop,"
+            "       in_stock, seen_at "
+            "  FROM price_snapshot "
+            " WHERE seen_at >= %s::date AND seen_at < (%s::date + 1) "
+            " ORDER BY seen_at, price_snapshot_id", (day, day)).fetchall()
+
+
+def unsealed_days(conn):
+    """Повні доби, які ще не запечатані. СЬОГОДНІШНЮ не чіпаємо: доба ще триває, і
+    печатка на неповних даних була б хибною за побудовою."""
+    return [r[0].isoformat() for r in conn.execute(
+        "SELECT DISTINCT seen_at::date AS d FROM price_snapshot "
+        " WHERE seen_at::date < current_date "
+        "   AND seen_at::date NOT IN (SELECT day FROM day_seal) "
+        " ORDER BY d").fetchall()]
+
+
+def last_seal(conn):
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute("SELECT * FROM day_seal ORDER BY day DESC LIMIT 1").fetchone()
+
+
+def insert_seal(conn, day: str, rows_n: int, merkle_root: str,
+                prev_chain: str | None, chain: str) -> None:
+    conn.execute(
+        "INSERT INTO day_seal (day, rows_n, merkle_root, prev_chain, chain) "
+        "VALUES (%s,%s,%s,%s,%s)", (day, rows_n, merkle_root, prev_chain, chain))
+
+
+def seals(conn, limit: int = 60):
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(
+            "SELECT day, rows_n, merkle_root, prev_chain, chain, sealed_at "
+            "  FROM day_seal ORDER BY day DESC LIMIT %s", (limit,)).fetchall()
+
+
+def seal_of_day(conn, day: str):
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute("SELECT * FROM day_seal WHERE day = %s", (day,)).fetchone()
+
+
+def snapshot_for_proof(conn, price_snapshot_id: int):
+    """Один снапшот + доба, до якої він належить — щоб зібрати доказ."""
+    with conn.cursor(row_factory=dict_row) as cur:
+        return cur.execute(
+            "SELECT price_snapshot_id, store_product_id, price_now_kop, price_old_kop,"
+            "       in_stock, seen_at, seen_at::date AS day "
+            "  FROM price_snapshot WHERE price_snapshot_id = %s",
+            (price_snapshot_id,)).fetchone()

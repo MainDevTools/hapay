@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--SEO-->
+<link rel="stylesheet" href="/s/app.css">
+<style>
+  .seal{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:var(--f2);
+    padding:11px 0;border-bottom:1px solid var(--line)}
+  .seal:last-child{border-bottom:none}
+  .seal .k{color:var(--muted)}
+  .hash{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:var(--f1);
+    word-break:break-all}
+  pre.code{background:var(--bg);border:1px solid var(--line);border-radius:var(--radius-s);
+    padding:12px 14px;overflow-x:auto;font-size:var(--f1);line-height:1.5}
+</style>
+</head>
+<body>
+<div class="app">
+<header id="hdr"></header>
+<nav id="crumbs" hidden></nav>
+
+<div class="page">
+  <h1>Як перевірити, що ми не переписуємо історію</h1>
+  <p class="lead">Ми кажемо, що записи цін незмінні. Це легко сказати — тому нижче
+    спосіб перевірити це <b>без довіри до нас</b>.</p>
+
+  <div class="panel">
+    <h2>Що ми робимо щодоби</h2>
+    <p>Наприкінці кожної доби ми беремо <b>всі спостереження за цінами</b> за цей день,
+      будуємо з них дерево Меркла й записуємо його корінь. Корінь кожної доби
+      «зшивається» з попереднім у ланцюжок.</p>
+    <p>Якщо змінити хоч один запис заднім числом — зміниться корінь тієї доби,
+      а разом із ним <b>усі наступні ланки</b>. Тихо підмінити ціну неможливо.</p>
+  </div>
+
+  <div class="panel">
+    <h2>⚠ Чого це НЕ доводить</h2>
+    <p>Якби корені жили лише в нашій базі, ми теоретично могли б перерахувати весь
+      ланцюг після підміни. Тому вони <b>щодня виносяться в публічний репозиторій</b> —
+      підробка означала б переписування публічної історії git, а це видно.</p>
+    <p>І ще чесно: печатка доводить <b>незмінність наших записів</b>, а не те, що
+      крамниця показувала саме цю ціну. Ми ручаємось за те, що виміряли, — не за те,
+      чого не бачили.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Як перевірити конкретну ціну</h2>
+    <p>Кожен вимір має доказ: <code>/api/verify/proof/{id}</code> віддає лист, шлях до
+      кореня й сам корінь. Перевірка — десять рядків будь-якою мовою:</p>
+    <pre class="code">лист  = sha256("id|ціна|стара|1/0|час")
+вузол = sha256(лівий_hex + правий_hex)     # склеюємо ШІСТНАДЦЯТКОВІ рядки
+далі йдемо шляхом до кореня й порівнюємо з опублікованим</pre>
+    <p class="prov">Формат листа — публічний контракт: ми не можемо змінити його
+      «на місці», не зламавши всі попередні докази.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Печатки</h2>
+    <div id="seals"><div class="sub">Завантаження…</div></div>
+  </div>
+</div>
+
+<div id="ftr"></div>
+</div>
+
+<script src="/s/app.js"></script>
+<script>
+renderHeader('');
+renderFooter();
+renderCrumbs([{href:'/', label:'Головна'}, {label:'Перевірка записів'}]);
+
+const nfmt = n => Number(n||0).toLocaleString('uk-UA');
+
+async function load(){
+  const box = document.getElementById('seals');
+  try{
+    const r = await api('/api/verify');
+    if (!r.seals.length){
+      box.innerHTML = `<div class="sub">Перша печатка зʼявиться наприкінці цієї доби:
+        печатка ставиться лише на ПОВНУ добу, інакше вона була б хибною за побудовою.</div>`;
+      return;
+    }
+    box.innerHTML = r.seals.map(s => `<div class="seal">
+      <div class="k">доба</div><div><b>${esc(s.day)}</b> · ${nfmt(s.rows_n)} спостережень</div>
+      <div class="k">корінь</div><div class="hash">${esc(s.merkle_root)}</div>
+      <div class="k">ланцюжок</div><div class="hash">${esc(s.chain)}</div>
+    </div>`).join('');
+  }catch(e){
+    box.innerHTML = `<div class="sub">Не вдалося завантажити: ${esc(e.message)}</div>`;
+  }
+}
+load();
+</script>
+</body>
+</html>

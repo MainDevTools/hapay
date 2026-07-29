@@ -25,6 +25,7 @@ from api import seo as qseo
 from api.initdata import verify_init_data, check_auth_age, InitDataError
 from detection.runner import detect_pass
 from taxonomy import SECTION_ORDER
+import merkle
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -72,6 +73,8 @@ _META = {
     "drops":   ("Що подешевшало за добу — Хапай",
                 "Товари, ціна яких знизилась за нашими власними вимірами — не за "
                 "оголошенням крамниці. Різниця між двома спостереженнями.", False),
+    "verify":  ("Як перевірити, що ми не переписуємо історію — Хапай",
+                "Щоденна печатка спостережень: корінь Меркла й ланцюжок.", False),
     "how":     ("Як ми перевіряємо знижки — Хапай",
                 "Що саме ми записуємо, як рахуємо найменшу ціну за 30 днів і чого "
                 "НЕ стверджуємо. Метод, а не обіцянка.", False),
@@ -236,6 +239,14 @@ def catalog_page(request: Request, conn=Depends(get_conn)):
     return _page("catalog", head)
 
 
+@app.get("/verify")
+def verify_page(conn=Depends(get_conn)):
+    return _page("verify", qseo.page_head(
+        "Як перевірити, що ми не переписуємо історію — Хапай",
+        "Щоденна печатка спостережень: корінь Меркла й ланцюжок. Будь-хто може "
+        "перевірити окремий вимір, не вірячи нам на слово.", "/verify"))
+
+
 @app.get("/stores")
 def stores_page():          # список тягне клієнт через /api/stores — з'єднання тут зайве
     title = "Крамниці, за якими ми стежимо — Хапай"
@@ -278,6 +289,53 @@ def api_model(product_id: int, conn=Depends(get_conn)):
     if m is None:
         raise HTTPException(404, "модель не знайдено")
     return m
+
+
+@app.get("/api/verify")
+def api_verify(conn=Depends(get_conn)):
+    """Печатки діб: корінь Меркла + ланцюжок (S31).
+
+    Це і є «доказ замість обіцянки»: підміна однієї ціни заднім числом змінює корінь
+    її доби й ламає всі наступні ланки ланцюжка."""
+    return {"format": "merkle-sha256-v1", "seals": qdb.seals(conn)}
+
+
+@app.get("/api/verify/proof/{price_snapshot_id}")
+def api_verify_proof(price_snapshot_id: int, conn=Depends(get_conn)):
+    """Доказ на ОДИН вимір: лист, шлях до кореня й сам корінь.
+
+    Сенс саме в цьому: людина перевіряє одну ціну, яку бачить в історії товару, не
+    отримуючи від нас решти бази й не вірячи нам на слово."""
+    snap = qdb.snapshot_for_proof(conn, price_snapshot_id)
+    if snap is None:
+        raise HTTPException(404, "виміру не існує")
+    day = snap["day"].isoformat()
+    seal = qdb.seal_of_day(conn, day)
+    if seal is None:
+        raise HTTPException(409, f"добу {day} ще не запечатано (печатка ставиться після її кінця)")
+    rows = qdb.day_rows(conn, day)
+    leaves = [merkle.leaf(r["store_product_id"], r["price_now_kop"], r["price_old_kop"],
+                          r["in_stock"], r["seen_at"]) for r in rows]
+    try:
+        idx = next(i for i, r in enumerate(rows)
+                   if r["price_snapshot_id"] == price_snapshot_id)
+    except StopIteration:
+        raise HTTPException(500, "вимір не потрапив у добу — це помилка на нашому боці")
+    return {
+        "format": "merkle-sha256-v1",
+        "day": day,
+        "observation": {
+            "store_product_id": snap["store_product_id"],
+            "price_now_kop": snap["price_now_kop"],
+            "price_old_kop": snap["price_old_kop"],
+            "in_stock": snap["in_stock"],
+            "seen_at": snap["seen_at"].isoformat(),
+        },
+        "leaf": leaves[idx],
+        "path": merkle.proof(leaves, idx),
+        "merkle_root": seal["merkle_root"],
+        "chain": seal["chain"],
+    }
 
 
 @app.get("/api/stores")
