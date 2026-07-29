@@ -17,7 +17,7 @@
 
         <VerticalStackLayout Grid.Row="0" Padding="14,10" Spacing="6">
             <Picker ItemsSource="{Binding ActionFilters}" SelectedItem="{Binding ActionFilter}"
-                    FontSize="14" />
+                    FontSize="{StaticResource F3}" />
             <Label Text="{Binding TotalText}" Style="{StaticResource Caption}" />
             <Label Text="{Binding Error}"
                    IsVisible="{Binding Error, Converter={StaticResource NotEmpty}}"
@@ -51,11 +51,11 @@
         <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Padding="14,8"
               IsVisible="{Binding HasPages}">
             <Button Text="←" Command="{Binding PrevPageCommand}" WidthRequest="52"
-                    HeightRequest="36" FontSize="14" />
+                    HeightRequest="36" FontSize="{StaticResource F3}" />
             <Label Grid.Column="1" Text="{Binding PageText}" HorizontalOptions="Center"
                    VerticalOptions="Center" Style="{StaticResource Caption}" />
             <Button Grid.Column="2" Text="→" Command="{Binding NextPageCommand}"
-                    WidthRequest="52" HeightRequest="36" FontSize="14" />
+                    WidthRequest="52" HeightRequest="36" FontSize="{StaticResource F3}" />
         </Grid>
     </Grid>
 </ContentPage>

@@ -3,6 +3,7 @@
     x:Class="Hapay.Views.DetailPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:ctl="clr-namespace:Hapay.Controls"
     x:Name="ThisPage"
     xmlns:vm="clr-namespace:Hapay.ViewModels"
     xmlns:models="clr-namespace:Hapay.Models"
@@ -24,24 +25,24 @@
                 <Image Source="{Binding Item.ImageUrl}" Aspect="AspectFit" />
             </Border>
 
-            <Label Text="{Binding Item.Title}" Style="{StaticResource H1}" FontSize="18" />
+            <Label Text="{Binding Item.Title}" Style="{StaticResource H1}" FontSize="{StaticResource F4}" />
             <Label Text="{Binding Item.VariantNote}" Style="{StaticResource Caption}"
                    IsVisible="{Binding Item.VariantNote, Converter={StaticResource NotEmpty}}" />
 
             <!-- ціна: ДІАПАЗОН по крамницях згори (§17) — «5 999 – 6 499 ₴» або одна ціна -->
-            <Label Text="{Binding PriceRangeText}" Style="{StaticResource H1}" FontSize="26" />
+            <Label Text="{Binding PriceRangeText}" Style="{StaticResource H1}" FontSize="{StaticResource F6}" />
 
             <!-- «Наявно в N крамницях» одразу під ціною; деталі — блок «Де купити» нижче -->
-            <Label Text="{Binding OffersLine}" FontAttributes="Bold" FontSize="13"
+            <Label Text="{Binding OffersLine}" FontAttributes="Bold" FontSize="{StaticResource F2}"
                    TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
                    IsVisible="{Binding HasOffers}" />
 
             <!-- одна крамниця зі знижкою → класичне «стара ціна + −%» (для діапазону зайве) -->
             <HorizontalStackLayout Spacing="8" IsVisible="{Binding ShowSingleDiscount}">
                 <Label Text="{Binding Item.OldGrn}" Style="{StaticResource PriceOld}"
-                       FontSize="15" VerticalOptions="Center" />
+                       FontSize="{StaticResource F3}" VerticalOptions="Center" />
                 <Border Style="{StaticResource PillDiscount}" Padding="7,3" VerticalOptions="Center">
-                    <Label Text="{Binding Item.PctText}" TextColor="White" FontAttributes="Bold" FontSize="12" />
+                    <Label Text="{Binding Item.PctText}" TextColor="White" FontAttributes="Bold" FontSize="{StaticResource F1}" />
                 </Border>
             </HorizontalStackLayout>
 
@@ -50,7 +51,7 @@
                  бачить не наше твердження, а докази. -->
             <Border IsVisible="{Binding Item.HasSamePrice}" HorizontalOptions="Start"
                     Style="{StaticResource PillWarn}" Padding="10,6">
-                <Label Text="{Binding Item.SamePriceText}" FontSize="13" FontAttributes="Bold"
+                <Label Text="{Binding Item.SamePriceText}" FontSize="{StaticResource F2}" FontAttributes="Bold"
                        TextColor="{AppThemeBinding Light={StaticResource WarnFgLight}, Dark={StaticResource WarnFgDark}}" />
             </Border>
 
@@ -58,7 +59,7 @@
                  «купувати зараз чи чекати»; зелена пігулка лише коли це ФАКТ з історії -->
             <Border IsVisible="{Binding IsAtMin30}" HorizontalOptions="Start"
                     Style="{StaticResource PillSave}" Padding="10,6">
-                <Label Text="{Binding Min30Badge}" FontSize="13" FontAttributes="Bold"
+                <Label Text="{Binding Min30Badge}" FontSize="{StaticResource F2}" FontAttributes="Bold"
                        TextColor="{AppThemeBinding Light={StaticResource SaveFgLight}, Dark={StaticResource SaveFgDark}}" />
             </Border>
 
@@ -67,10 +68,10 @@
             <Border IsVisible="{Binding LoadingOffers}" Style="{StaticResource Card}"
                     Padding="14,12" StrokeShape="RoundRectangle 12">
                 <VerticalStackLayout Spacing="10">
-                    <BoxView HeightRequest="16" CornerRadius="4" Color="#1E888888"
+                    <ctl:SkeletonBar HeightRequest="16" CornerRadius="8" Color="{AppThemeBinding Light={StaticResource SkeletonLight}, Dark={StaticResource SkeletonDark}}"
                              WidthRequest="200" HorizontalOptions="Start" />
-                    <BoxView HeightRequest="13" CornerRadius="4" Color="#14888888" />
-                    <BoxView HeightRequest="13" CornerRadius="4" Color="#14888888"
+                    <ctl:SkeletonBar HeightRequest="13" CornerRadius="8" Color="{AppThemeBinding Light={StaticResource SkeletonSoftLight}, Dark={StaticResource SkeletonSoftDark}}" />
+                    <ctl:SkeletonBar HeightRequest="13" CornerRadius="8" Color="{AppThemeBinding Light={StaticResource SkeletonSoftLight}, Dark={StaticResource SkeletonSoftDark}}"
                              WidthRequest="220" HorizontalOptions="Start" />
                 </VerticalStackLayout>
             </Border>
@@ -86,13 +87,13 @@
                     <TapGestureRecognizer Command="{Binding ToggleChoiceCommand}" />
                 </Border.GestureRecognizers>
                 <VerticalStackLayout Spacing="6">
-                    <Label Text="{Binding ChoiceLine}" FontAttributes="Bold" FontSize="16"
+                    <Label Text="{Binding ChoiceLine}" FontAttributes="Bold" FontSize="{StaticResource F4}"
                            TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
-                    <Label Text="{Binding ChoiceSavingsText}" FontSize="13"
+                    <Label Text="{Binding ChoiceSavingsText}" FontSize="{StaticResource F2}"
                            IsVisible="{Binding ShowSavings}" Style="{StaticResource Body}" />
                     <!-- головна CTA: одна велика кнопка переможця (ціна — цінникова) -->
                     <Button Text="{Binding BuyCtaText}" Command="{Binding BuyBestCommand}"
-                            IsVisible="{Binding ShowBuyCta}" FontAttributes="Bold" FontSize="15"
+                            IsVisible="{Binding ShowBuyCta}" FontAttributes="Bold" FontSize="{StaticResource F3}"
                             CornerRadius="12" Margin="0,4"
                             BackgroundColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
                             TextColor="White" />
@@ -102,10 +103,10 @@
                             <DataTemplate x:DataType="models:ChoiceCandidate">
                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                     <VerticalStackLayout Grid.Column="0" Spacing="1">
-                                        <Label Text="{Binding Store}" FontSize="13" FontAttributes="Bold" />
-                                        <Label Text="{Binding DetailText}" Style="{StaticResource Caption}" FontSize="11" />
+                                        <Label Text="{Binding Store}" FontSize="{StaticResource F2}" FontAttributes="Bold" />
+                                        <Label Text="{Binding DetailText}" Style="{StaticResource Caption}" FontSize="{StaticResource F1}" />
                                     </VerticalStackLayout>
-                                    <Label Grid.Column="1" Text="{Binding EffGrn}" FontSize="13"
+                                    <Label Grid.Column="1" Text="{Binding EffGrn}" FontSize="{StaticResource F2}"
                                            FontAttributes="Bold" HorizontalOptions="End"
                                            VerticalOptions="Center" />
                                 </Grid>
@@ -113,7 +114,7 @@
                         </BindableLayout.ItemTemplate>
                     </VerticalStackLayout>
                     <!-- формула з ЖИВИМИ вагами з сервера — для тих, кому треба -->
-                    <Label Text="Як ми рахуємо? ▸" FontSize="12" FontAttributes="Bold"
+                    <Label Text="Як ми рахуємо? ▸" FontSize="{StaticResource F1}" FontAttributes="Bold"
                            IsVisible="{Binding IsChoiceExpanded}"
                            TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}">
                         <Label.GestureRecognizers>
@@ -121,10 +122,10 @@
                         </Label.GestureRecognizers>
                     </Label>
                     <Label Text="{Binding Choice.FormulaText}" Style="{StaticResource Caption}"
-                           FontSize="11" IsVisible="{Binding IsFormulaExpanded}" />
+                           FontSize="{StaticResource F1}" IsVisible="{Binding IsFormulaExpanded}" />
                     <!-- TODO(§8.2 брифа S9): фінальний текст дисклеймера — оператор -->
                     <Label Text="Розрахунок за відкритою формулою з публічних цін. Крамниці не платять за позицію."
-                           Style="{StaticResource Caption}" FontSize="10" />
+                           Style="{StaticResource Caption}" FontSize="{StaticResource F1}" />
                 </VerticalStackLayout>
             </Border>
 
@@ -134,17 +135,17 @@
             <Label Text="{Binding HistoryNote}" Style="{StaticResource Caption}"
                    IsVisible="{Binding HistoryNote, Converter={StaticResource NotEmpty}}" />
             <!-- підпис обраної точки (тап/драг по графіку) -->
-            <Label x:Name="ChartTip" FontSize="13" FontAttributes="Bold" IsVisible="False"
+            <Label x:Name="ChartTip" FontSize="{StaticResource F2}" FontAttributes="Bold" IsVisible="False"
                    TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
             <GraphicsView x:Name="Chart" HeightRequest="180" IsVisible="{Binding HasChart}"
                           SemanticProperties.Description="Графік історії ціни"
                           SemanticProperties.Hint="Торкніться, щоб побачити ціну на дату"
                           StartInteraction="OnChartTouch" DragInteraction="OnChartTouch" />
             <!-- статутний мінімум (Omnibus) людською мовою; чесний до глибини історії -->
-            <Label Text="{Binding Min30Text}" FontSize="13" FontAttributes="Bold"
+            <Label Text="{Binding Min30Text}" FontSize="{StaticResource F2}" FontAttributes="Bold"
                    IsVisible="{Binding Min30Text, Converter={StaticResource NotEmpty}}" />
             <!-- прозорість детекції: що означають наші позначки -->
-            <Label Text="ⓘ Як ми перевіряємо знижки" FontSize="12"
+            <Label Text="ⓘ Як ми перевіряємо знижки" FontSize="{StaticResource F1}"
                    TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}">
                 <Label.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding ExplainBadgesCommand}" />
@@ -172,30 +173,30 @@
                                         <Label Text="{Binding StoreLine}" Style="{StaticResource Body}"
                                                FontAttributes="Bold" />
                                         <Label Text="{Binding HonestyNote}" Style="{StaticResource Caption}"
-                                               FontSize="10"
+                                               FontSize="{StaticResource F1}"
                                                IsVisible="{Binding HonestyNote, Converter={StaticResource NotEmpty}}" />
                                         <!-- Уцінене не ховаємо, але й не даємо прочитати його
                                              як «найкращу ціну»: без позначки найдешевший рядок
                                              виглядає звичайною пропозицією. -->
                                         <Border IsVisible="{Binding IsUsed}" HorizontalOptions="Start"
                                                 Style="{StaticResource PillWarn}" Padding="6,2">
-                                            <Label Text="{Binding UsedLabel}" FontSize="10" FontAttributes="Bold"
+                                            <Label Text="{Binding UsedLabel}" FontSize="{StaticResource F1}" FontAttributes="Bold"
                                                    TextColor="{AppThemeBinding Light={StaticResource WarnFgLight}, Dark={StaticResource WarnFgDark}}" />
                                         </Border>
                                         <Label Text="Немає в наявності" Style="{StaticResource Caption}"
-                                               FontSize="11"
+                                               FontSize="{StaticResource F1}"
                                                IsVisible="{Binding InStock, Converter={StaticResource Invert}}" />
                                     </VerticalStackLayout>
                                     <!-- ціна крамниці як згори картки: поточна + −% в рядок, стара перекреслена під ними -->
                                     <VerticalStackLayout Grid.Column="1" Spacing="1" HorizontalOptions="End">
                                         <HorizontalStackLayout Spacing="6" HorizontalOptions="End">
                                             <Label Text="{Binding CurrentGrn}" Style="{StaticResource PriceMain}"
-                                                   FontSize="16" VerticalOptions="Center" />
+                                                   FontSize="{StaticResource F4}" VerticalOptions="Center" />
                                             <Border Style="{StaticResource PillDiscount}" Padding="5,2"
-                                                    StrokeShape="RoundRectangle 6" VerticalOptions="Center"
+                                                    StrokeShape="RoundRectangle 8" VerticalOptions="Center"
                                                     IsVisible="{Binding HasPct}">
                                                 <Label Text="{Binding PctText}" TextColor="White"
-                                                       FontAttributes="Bold" FontSize="10" />
+                                                       FontAttributes="Bold" FontSize="{StaticResource F1}" />
                                             </Border>
                                         </HorizontalStackLayout>
                                         <Label Text="{Binding OldGrn}" Style="{StaticResource PriceOld}"
@@ -221,14 +222,14 @@
                                 <DataTemplate x:DataType="models:SpecAttr">
                                     <Grid ColumnDefinitions="5*,6*" ColumnSpacing="10">
                                         <Label Grid.Column="0" Text="{Binding Name}"
-                                               Style="{StaticResource Caption}" FontSize="12" />
+                                               Style="{StaticResource Caption}" FontSize="{StaticResource F1}" />
                                         <Label Grid.Column="1" Text="{Binding Value}"
-                                               Style="{StaticResource Body}" FontSize="12" />
+                                               Style="{StaticResource Body}" FontSize="{StaticResource F1}" />
                                     </Grid>
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>
                         </VerticalStackLayout>
-                        <Label Text="{Binding SpecsToggleText}" FontSize="13" FontAttributes="Bold"
+                        <Label Text="{Binding SpecsToggleText}" FontSize="{StaticResource F2}" FontAttributes="Bold"
                                IsVisible="{Binding ShowSpecsToggle}"
                                TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}">
                             <Label.GestureRecognizers>
@@ -236,7 +237,7 @@
                             </Label.GestureRecognizers>
                         </Label>
                         <Label Text="{Binding SpecsProvenance}" Style="{StaticResource Caption}"
-                               FontSize="10" />
+                               FontSize="{StaticResource F1}" />
                     </VerticalStackLayout>
                 </Border>
             </VerticalStackLayout>
@@ -265,7 +266,7 @@
                     TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
                     BorderColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
                     BorderWidth="1" />
-            <Label Text="{Binding WatchNote}" FontSize="13" HorizontalOptions="Center"
+            <Label Text="{Binding WatchNote}" FontSize="{StaticResource F2}" HorizontalOptions="Center"
                    TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
                    IsVisible="{Binding WatchNote, Converter={StaticResource NotEmpty}}" />
         </VerticalStackLayout>

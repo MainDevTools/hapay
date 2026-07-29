@@ -20,12 +20,12 @@
             <!-- вхід у метрики й журнал: на телефоні їм тісно поруч зі списком -->
             <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                 <Button Text="Метрики" Command="{Binding OpenMetricsCommand}"
-                        FontSize="14" HeightRequest="40" BackgroundColor="Transparent"
+                        FontSize="{StaticResource F3}" HeightRequest="40" BackgroundColor="Transparent"
                         TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
                         BorderColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
                         BorderWidth="1" />
                 <Button Grid.Column="1" Text="Журнал" Command="{Binding OpenAuditCommand}"
-                        FontSize="14" HeightRequest="40" BackgroundColor="Transparent"
+                        FontSize="{StaticResource F3}" HeightRequest="40" BackgroundColor="Transparent"
                         TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
                         BorderColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
                         BorderWidth="1" />
@@ -35,9 +35,9 @@
 
             <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                 <Picker ItemsSource="{Binding RoleFilters}" SelectedItem="{Binding RoleFilter}"
-                        FontSize="14" />
+                        FontSize="{StaticResource F3}" />
                 <Picker Grid.Column="1" ItemsSource="{Binding StateFilters}"
-                        SelectedItem="{Binding StateFilter}" FontSize="14" />
+                        SelectedItem="{Binding StateFilter}" FontSize="{StaticResource F3}" />
             </Grid>
 
             <Label Text="{Binding FoundText}" Style="{StaticResource Caption}" />
@@ -87,27 +87,27 @@
 
                                 <!-- дії; «Роль»/«Видалити» лише повному адміну (сервер гейтить теж) -->
                                 <FlexLayout Wrap="Wrap" JustifyContent="Start" Margin="0,4,0,0">
-                                    <Button Text="{Binding BanActionText}" FontSize="12"
+                                    <Button Text="{Binding BanActionText}" FontSize="{StaticResource F1}"
                                             Padding="10,2" HeightRequest="32" Margin="0,0,6,4"
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.ToggleBanCommand}"
                                             CommandParameter="{Binding .}" />
-                                    <Button Text="Роль" FontSize="12" Padding="10,2"
+                                    <Button Text="Роль" FontSize="{StaticResource F1}" Padding="10,2"
                                             HeightRequest="32" Margin="0,0,6,4"
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.ChangeRoleCommand}"
                                             CommandParameter="{Binding .}"
                                             IsVisible="{Binding Source={x:Reference Page}, Path=BindingContext.CanChangeRoles}" />
-                                    <Button Text="Підтвердити email" FontSize="12" Padding="10,2"
+                                    <Button Text="Підтвердити email" FontSize="{StaticResource F1}" Padding="10,2"
                                             HeightRequest="32" Margin="0,0,6,4"
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.VerifyUserCommand}"
                                             CommandParameter="{Binding .}"
                                             IsVisible="{Binding CanVerify}" />
-                                    <Button Text="Скинути пароль" FontSize="12" Padding="10,2"
+                                    <Button Text="Скинути пароль" FontSize="{StaticResource F1}" Padding="10,2"
                                             HeightRequest="32" Margin="0,0,6,4"
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.SendResetCommand}"
                                             CommandParameter="{Binding .}" />
                                     <!-- незворотна дія: контурна, не залита — щоб не стояла
                                          врівень зі звичайними й не тиснулась навмання -->
-                                    <Button Text="Видалити" FontSize="12" Padding="10,2"
+                                    <Button Text="Видалити" FontSize="{StaticResource F1}" Padding="10,2"
                                             HeightRequest="32" Margin="0,0,6,4"
                                             BackgroundColor="Transparent" BorderWidth="1"
                                             TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}"
@@ -126,11 +126,11 @@
         <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Padding="14,8"
               IsVisible="{Binding HasPages}">
             <Button Text="←" Command="{Binding PrevPageCommand}" WidthRequest="52"
-                    HeightRequest="36" FontSize="14" />
+                    HeightRequest="36" FontSize="{StaticResource F3}" />
             <Label Grid.Column="1" Text="{Binding PageText}" HorizontalOptions="Center"
                    VerticalOptions="Center" Style="{StaticResource Caption}" />
             <Button Grid.Column="2" Text="→" Command="{Binding NextPageCommand}"
-                    WidthRequest="52" HeightRequest="36" FontSize="14" />
+                    WidthRequest="52" HeightRequest="36" FontSize="{StaticResource F3}" />
         </Grid>
     </Grid>
 </ContentPage>

@@ -49,7 +49,13 @@ if (-not (Get-ChildItem -Path $Target -Filter "*.csproj" -ErrorAction SilentlyCo
 }
 
 # те, що пишемо ми. Усе інше (csproj, Platforms/Android/Resources, obj, bin) — не наше.
+#
+# ⚠ Це БІЛИЙ СПИСОК: нова тека, якої тут немає, синкається мовчки — тобто ніяк.
+# 2026-07-29 на цьому спіймано Controls\ і Behaviors\: код був у репо, у VS-проєкті
+# його не було, і збірка впала б на «clr-namespace:Hapay.Controls не знайдено» —
+# помилка за два кроки від причини. Додаєш теку в репо — додай її сюди.
 $Dirs  = @("Models", "Services", "ViewModels", "Views", "Drawables", "Converters",
+           "Controls", "Behaviors",
            "Platforms\Android", "Resources\AppIcon", "Resources\Splash", "Resources\Images",
            "Resources\Styles")
 $Files = @("MauiProgram.cs", "AppShell.xaml", "AppShell.xaml.cs", "App.xaml")

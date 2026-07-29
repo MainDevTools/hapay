@@ -17,9 +17,9 @@
                 <DataTemplate x:DataType="views:OnboardSlide">
                     <VerticalStackLayout Padding="32" Spacing="16" VerticalOptions="Center">
                         <Label Text="{Binding Icon}" FontSize="56" HorizontalOptions="Center" />
-                        <Label Text="{Binding Title}" FontSize="20" FontAttributes="Bold"
+                        <Label Text="{Binding Title}" FontSize="{StaticResource F5}" FontAttributes="Bold"
                                HorizontalTextAlignment="Center" />
-                        <Label Text="{Binding Body}" FontSize="15"
+                        <Label Text="{Binding Body}" FontSize="{StaticResource F3}"
                                HorizontalTextAlignment="Center" Style="{StaticResource Body}" />
                     </VerticalStackLayout>
                 </DataTemplate>
@@ -27,7 +27,7 @@
         </CarouselView>
 
         <IndicatorView x:Name="Dots" Grid.Row="1" HorizontalOptions="Center" Margin="0,8"
-                       IndicatorSize="8" IndicatorColor="#66888888"
+                       IndicatorSize="8" IndicatorColor="{AppThemeBinding Light={StaticResource IndicatorLight}, Dark={StaticResource IndicatorDark}}"
                        SelectedIndicatorColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
 
         <Button x:Name="NextBtn" Grid.Row="2" Text="Далі" Margin="32,8" MinimumHeightRequest="48"

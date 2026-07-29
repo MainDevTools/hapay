@@ -4,6 +4,7 @@
     x:Name="Page"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:beh="clr-namespace:Hapay.Behaviors"
     xmlns:vm="clr-namespace:Hapay.ViewModels"
     xmlns:models="clr-namespace:Hapay.Models"
     xmlns:conv="clr-namespace:Hapay.Converters"
@@ -22,7 +23,7 @@
         <!-- анонім у табі: запрошення, не помилка (список належить акаунту) -->
         <VerticalStackLayout Grid.Row="1" Padding="32" Spacing="12" VerticalOptions="Center"
                              IsVisible="{Binding ShowLogin}">
-            <Label Text="Стеження за цінами" FontAttributes="Bold" FontSize="17"
+            <Label Text="Стеження за цінами" FontAttributes="Bold" FontSize="{StaticResource F4}"
                    HorizontalOptions="Center" />
             <Label Text="Увійди, щоб зберігати товари і отримувати сповіщення, коли ціна падає."
                    TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}"
@@ -38,19 +39,19 @@
                 <CollectionView.Header>
                     <VerticalStackLayout Padding="12,8,12,0" Spacing="6"
                                          IsVisible="{Binding HasCategories}">
-                        <Label Text="Категорії" Style="{StaticResource H2}" FontSize="15" />
+                        <Label Text="Категорії" Style="{StaticResource H2}" FontSize="{StaticResource F3}" />
                         <VerticalStackLayout Spacing="6"
                                              BindableLayout.ItemsSource="{Binding CategoriesWatched}">
                             <BindableLayout.ItemTemplate>
                                 <DataTemplate x:DataType="models:WatchItem">
                                     <Border Style="{StaticResource Card}" Padding="12,10">
                                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                                            <Label Grid.Column="0" Text="🔔" FontSize="14"
+                                            <Label Grid.Column="0" Text="🔔" FontSize="{StaticResource F3}"
                                                    VerticalOptions="Center"
                                                    AutomationProperties.IsInAccessibleTree="False" />
-                                            <Label Grid.Column="1" Text="{Binding Title}" FontSize="14"
+                                            <Label Grid.Column="1" Text="{Binding Title}" FontSize="{StaticResource F3}"
                                                    FontAttributes="Bold" VerticalOptions="Center" />
-                                            <Label Grid.Column="2" Text="✕" FontSize="16" Padding="8,0"
+                                            <Label Grid.Column="2" Text="✕" FontSize="{StaticResource F4}" Padding="8,0"
                                                    SemanticProperties.Description="Прибрати категорію зі стеження"
                                                    Style="{StaticResource Caption}" VerticalOptions="Center">
                                                 <Label.GestureRecognizers>
@@ -64,7 +65,7 @@
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>
                         </VerticalStackLayout>
-                        <Label Text="Товари" Style="{StaticResource H2}" FontSize="15"
+                        <Label Text="Товари" Style="{StaticResource H2}" FontSize="{StaticResource F3}"
                                Margin="0,6,0,0" />
                     </VerticalStackLayout>
                 </CollectionView.Header>
@@ -83,6 +84,9 @@
                     <DataTemplate x:DataType="models:WatchItem">
                         <Grid Padding="12,6">
                             <Border Style="{StaticResource Card}" Padding="12">
+                                <Border.Behaviors>
+                                    <beh:PressFeedback />
+                                </Border.Behaviors>
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer
                                         Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenCommand}"
@@ -98,15 +102,15 @@
                                     <VerticalStackLayout Grid.Column="1" Spacing="3">
                                         <Label Text="{Binding Title}" MaxLines="2"
                                                LineBreakMode="TailTruncation" FontAttributes="Bold" />
-                                        <Label Text="{Binding StoresText}" FontSize="12" FontAttributes="Bold"
+                                        <Label Text="{Binding StoresText}" FontSize="{StaticResource F1}" FontAttributes="Bold"
                                                TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}"
                                                IsVisible="{Binding HasMultiStores}" />
-                                        <Label Text="{Binding CurrentGrn}" FontAttributes="Bold" FontSize="17" />
+                                        <Label Text="{Binding CurrentGrn}" FontAttributes="Bold" FontSize="{StaticResource F4}" />
                                         <!-- рух ціни показуємо ЛИШЕ коли є з чим порівняти -->
-                                        <Label Text="{Binding DeltaText}" FontSize="12"
+                                        <Label Text="{Binding DeltaText}" FontSize="{StaticResource F1}"
                                                TextColor="{Binding DeltaColor}"
                                                IsVisible="{Binding HasDelta}" />
-                                        <Label Text="{Binding SinceText}" FontSize="11" TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}" />
+                                        <Label Text="{Binding SinceText}" FontSize="{StaticResource F1}" TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}" />
                                     </VerticalStackLayout>
 
                                     <Button Grid.Column="2" Text="✕" WidthRequest="40" HeightRequest="40"

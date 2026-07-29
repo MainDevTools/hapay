@@ -4,6 +4,7 @@
     x:Name="Page"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:beh="clr-namespace:Hapay.Behaviors"
     xmlns:vm="clr-namespace:Hapay.ViewModels"
     xmlns:models="clr-namespace:Hapay.Models"
     x:DataType="vm:SearchViewModel"
@@ -32,11 +33,11 @@
                                         Command="{Binding Source={x:Reference Page}, Path=BindingContext.PickHistoryCommand}"
                                         CommandParameter="{Binding .}" />
                                 </Grid.GestureRecognizers>
-                                <Label Grid.Column="0" Text="🕐" FontSize="14" VerticalOptions="Center"
+                                <Label Grid.Column="0" Text="🕐" FontSize="{StaticResource F3}" VerticalOptions="Center"
                                        AutomationProperties.IsInAccessibleTree="False" />
-                                <Label Grid.Column="1" Text="{Binding .}" FontSize="14"
+                                <Label Grid.Column="1" Text="{Binding .}" FontSize="{StaticResource F3}"
                                        VerticalOptions="Center" LineBreakMode="TailTruncation" />
-                                <Label Grid.Column="2" Text="✕" FontSize="15" Padding="10,0"
+                                <Label Grid.Column="2" Text="✕" FontSize="{StaticResource F3}" Padding="10,0"
                                        Style="{StaticResource Caption}" VerticalOptions="Center"
                                        SemanticProperties.Description="Видалити запит з історії">
                                     <Label.GestureRecognizers>
@@ -52,19 +53,22 @@
 
                 <!-- збіги категорій -->
                 <VerticalStackLayout Spacing="6" IsVisible="{Binding HasCategoryMatches}">
-                    <Label Text="Категорії" Style="{StaticResource H2}" FontSize="14" />
+                    <Label Text="Категорії" Style="{StaticResource H2}" FontSize="{StaticResource F3}" />
                     <FlexLayout Wrap="Wrap" JustifyContent="Start"
                                 BindableLayout.ItemsSource="{Binding CategoryMatches}">
                         <BindableLayout.ItemTemplate>
                             <DataTemplate x:DataType="models:Category">
                                 <Border Style="{StaticResource Card}" Padding="10,4"
-                                        Margin="0,0,6,6" StrokeShape="RoundRectangle 14">
+                                        Margin="0,0,6,6" StrokeShape="RoundRectangle 12">
+                                    <Border.Behaviors>
+                                        <beh:PressFeedback />
+                                    </Border.Behaviors>
                                     <Border.GestureRecognizers>
                                         <TapGestureRecognizer
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenCategoryCommand}"
                                             CommandParameter="{Binding .}" />
                                     </Border.GestureRecognizers>
-                                    <Label FontSize="12" SemanticProperties.Description="{Binding Name}">
+                                    <Label FontSize="{StaticResource F1}" SemanticProperties.Description="{Binding Name}">
                                         <Label.FormattedText>
                                             <FormattedString>
                                                 <Span Text="{Binding Icon}" />
@@ -84,11 +88,14 @@
 
                 <!-- живі результати: компактні рядки -->
                 <VerticalStackLayout Spacing="6" IsVisible="{Binding HasResults}">
-                    <Label Text="Товари" Style="{StaticResource H2}" FontSize="14" />
+                    <Label Text="Товари" Style="{StaticResource H2}" FontSize="{StaticResource F3}" />
                     <VerticalStackLayout Spacing="6" BindableLayout.ItemsSource="{Binding Results}">
                         <BindableLayout.ItemTemplate>
                             <DataTemplate x:DataType="models:Discount">
                                 <Border Style="{StaticResource Card}" Padding="8">
+                                    <Border.Behaviors>
+                                        <beh:PressFeedback />
+                                    </Border.Behaviors>
                                     <Border.GestureRecognizers>
                                         <TapGestureRecognizer
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenProductCommand}"
@@ -100,17 +107,17 @@
                                             <Image Source="{Binding ImageUrl}" Aspect="AspectFit"
                                                    AutomationProperties.IsInAccessibleTree="False" />
                                         </Border>
-                                        <Label Grid.Column="1" Text="{Binding Title}" FontSize="13"
+                                        <Label Grid.Column="1" Text="{Binding Title}" FontSize="{StaticResource F2}"
                                                MaxLines="2" LineBreakMode="TailTruncation"
                                                VerticalOptions="Center" />
-                                        <Label Grid.Column="2" Text="{Binding PriceText}" FontSize="13"
+                                        <Label Grid.Column="2" Text="{Binding PriceText}" FontSize="{StaticResource F2}"
                                                FontAttributes="Bold" VerticalOptions="Center" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
                         </BindableLayout.ItemTemplate>
                     </VerticalStackLayout>
-                    <Button Text="Всі результати →" FontSize="13" IsVisible="{Binding HasMore}"
+                    <Button Text="Всі результати →" FontSize="{StaticResource F2}" IsVisible="{Binding HasMore}"
                             Command="{Binding RunFullCommand}" HorizontalOptions="Center"
                             MinimumHeightRequest="40" />
                 </VerticalStackLayout>

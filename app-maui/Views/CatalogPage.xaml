@@ -4,6 +4,7 @@
     x:Name="Page"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:beh="clr-namespace:Hapay.Behaviors"
     xmlns:vm="clr-namespace:Hapay.ViewModels"
     xmlns:models="clr-namespace:Hapay.Models"
     xmlns:conv="clr-namespace:Hapay.Converters"
@@ -32,15 +33,18 @@
             <!-- фейк-поле: тап відкриває повний екран пошуку (SearchPage) — там живі
                  результати, збіги категорій і історія запитів (2026-07-25) -->
             <Border Style="{StaticResource FilterBar}" Padding="14,12">
+                <Border.Behaviors>
+                    <beh:PressFeedback />
+                </Border.Behaviors>
                 <Border.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding OpenSearchCommand}" />
                 </Border.GestureRecognizers>
                 <HorizontalStackLayout Spacing="8"
                                        SemanticProperties.Description="Пошук по каталогу"
                                        SemanticProperties.Hint="Відкриває екран пошуку">
-                    <Label Text="🔍" FontSize="14" VerticalOptions="Center"
+                    <Label Text="🔍" FontSize="{StaticResource F3}" VerticalOptions="Center"
                            AutomationProperties.IsInAccessibleTree="False" />
-                    <Label Text="Пошук за назвою…" FontSize="14"
+                    <Label Text="Пошук за назвою…" FontSize="{StaticResource F3}"
                            Style="{StaticResource Caption}" VerticalOptions="Center" />
                 </HorizontalStackLayout>
             </Border>
@@ -48,20 +52,26 @@
                  єдине непідробне твердження, а крамниці до цього жили лише на сайті. -->
             <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                 <Border Grid.Column="0" Style="{StaticResource Card}" Padding="12,10">
+                    <Border.Behaviors>
+                        <beh:PressFeedback />
+                    </Border.Behaviors>
                     <Border.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding OpenDropsCommand}" />
                     </Border.GestureRecognizers>
                     <VerticalStackLayout Spacing="1">
-                        <Label Text="📉 Що подешевшало" FontAttributes="Bold" FontSize="14" />
+                        <Label Text="📉 Що подешевшало" FontAttributes="Bold" FontSize="{StaticResource F3}" />
                         <Label Text="за нашими вимірами" Style="{StaticResource Caption}" />
                     </VerticalStackLayout>
                 </Border>
                 <Border Grid.Column="1" Style="{StaticResource Card}" Padding="12,10">
+                    <Border.Behaviors>
+                        <beh:PressFeedback />
+                    </Border.Behaviors>
                     <Border.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding OpenStoresCommand}" />
                     </Border.GestureRecognizers>
                     <VerticalStackLayout Spacing="1">
-                        <Label Text="🏪 Крамниці" FontAttributes="Bold" FontSize="14" />
+                        <Label Text="🏪 Крамниці" FontAttributes="Bold" FontSize="{StaticResource F3}" />
                         <Label Text="за ким стежимо" Style="{StaticResource Caption}" />
                     </VerticalStackLayout>
                 </Border>
@@ -90,8 +100,11 @@
                                         <BindableLayout.ItemTemplate>
                                             <DataTemplate x:DataType="vm:BannerTile">
                                                 <Border StrokeThickness="0" BackgroundColor="{Binding Bg}"
-                                                        StrokeShape="RoundRectangle 18"
+                                                        StrokeShape="RoundRectangle 12"
                                                         FlexLayout.Basis="49%" HeightRequest="150">
+                                                    <Border.Behaviors>
+                                                        <beh:PressFeedback />
+                                                    </Border.Behaviors>
                                                     <Border.GestureRecognizers>
                                                         <TapGestureRecognizer
                                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenCategoryCommand}"
@@ -117,10 +130,10 @@
                                                              горизонтально. Комірка Grid дає обмежену ширину →
                                                              перенос працює (прогін 2026-07-25, 8 ітерацій). -->
                                                         <Label Grid.Column="0" Text="{Binding Cat.Name}"
-                                                               TextColor="{Binding Fg}" FontSize="12"
+                                                               TextColor="{Binding Fg}" FontSize="{StaticResource F1}"
                                                                FontAttributes="Bold" LineBreakMode="WordWrap"
                                                                HorizontalOptions="Fill" VerticalOptions="Center" />
-                                                        <Border Grid.Column="1" BackgroundColor="#FFFFFF"
+                                                        <Border Grid.Column="1" BackgroundColor="{AppThemeBinding Light={StaticResource ThumbBgLight}, Dark={StaticResource ThumbBgDark}}"
                                                                 StrokeThickness="0" Padding="5" Margin="0,2"
                                                                 VerticalOptions="Fill"
                                                                 StrokeShape="RoundRectangle 12">
@@ -137,7 +150,7 @@
                             </CarouselView.ItemTemplate>
                         </CarouselView>
                         <IndicatorView x:Name="BannerDots" HorizontalOptions="Center"
-                                       IndicatorSize="7" IndicatorColor="#66888888"
+                                       IndicatorSize="7" IndicatorColor="{AppThemeBinding Light={StaticResource IndicatorLight}, Dark={StaticResource IndicatorDark}}"
                                        SelectedIndicatorColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
                     </VerticalStackLayout>
 
@@ -151,6 +164,9 @@
                                 <BindableLayout.ItemTemplate>
                                     <DataTemplate x:DataType="models:Discount">
                                         <Border WidthRequest="128" Style="{StaticResource Card}" Padding="8">
+                                            <Border.Behaviors>
+                                                <beh:PressFeedback />
+                                            </Border.Behaviors>
                                             <Border.GestureRecognizers>
                                                 <TapGestureRecognizer
                                                     Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenProductCommand}"
@@ -162,8 +178,8 @@
                                                     <Image Source="{Binding ImageUrl}" Aspect="AspectFit" />
                                                 </Border>
                                                 <Label Text="{Binding Title}" Style="{StaticResource Caption}"
-                                                       FontSize="11" MaxLines="2" LineBreakMode="TailTruncation" />
-                                                <Label Text="{Binding CurrentGrn}" FontAttributes="Bold" FontSize="12" />
+                                                       FontSize="{StaticResource F1}" MaxLines="2" LineBreakMode="TailTruncation" />
+                                                <Label Text="{Binding CurrentGrn}" FontAttributes="Bold" FontSize="{StaticResource F1}" />
                                             </VerticalStackLayout>
                                         </Border>
                                     </DataTemplate>
@@ -182,6 +198,9 @@
                                 <BindableLayout.ItemTemplate>
                                     <DataTemplate x:DataType="models:Discount">
                                         <Border WidthRequest="140" Style="{StaticResource Card}" Padding="10">
+                                            <Border.Behaviors>
+                                                <beh:PressFeedback />
+                                            </Border.Behaviors>
                                             <Border.GestureRecognizers>
                                                 <TapGestureRecognizer
                                                     Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenProductCommand}"
@@ -194,7 +213,7 @@
                                                 </Border>
                                                 <Label Text="{Binding Title}" Style="{StaticResource Caption}"
                                                        MaxLines="2" LineBreakMode="TailTruncation" />
-                                                <Label Text="{Binding PriceText}" FontAttributes="Bold" FontSize="14"
+                                                <Label Text="{Binding PriceText}" FontAttributes="Bold" FontSize="{StaticResource F3}"
                                                        TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
                                             </VerticalStackLayout>
                                         </Border>
@@ -214,7 +233,7 @@
                                 <BindableLayout.ItemTemplate>
                                     <DataTemplate x:DataType="vm:SectionCard">
                                         <Border WidthRequest="256" Style="{StaticResource Card}"
-                                                Padding="0" StrokeShape="RoundRectangle 18">
+                                                Padding="0" StrokeShape="RoundRectangle 12">
                                             <VerticalStackLayout>
                                                 <Border HeightRequest="118" Padding="12" Margin="12,12,12,0"
                                                         Style="{StaticResource Thumb}"
@@ -224,7 +243,7 @@
                                                 </Border>
                                                 <VerticalStackLayout Padding="14,10,14,12" Spacing="7">
                                                     <Label Text="{Binding Title}" FontAttributes="Bold"
-                                                           FontSize="15" />
+                                                           FontSize="{StaticResource F3}" />
                                                     <FlexLayout Wrap="Wrap" JustifyContent="Start"
                                                                 BindableLayout.ItemsSource="{Binding Cats}">
                                                         <BindableLayout.ItemTemplate>
@@ -252,14 +271,17 @@
 
                     <!-- вхід у повний каталог (171 категорія живе там, не на головній) -->
                     <Border Style="{StaticResource Card}" Margin="16,10" Padding="14,12"
-                            StrokeShape="RoundRectangle 14">
+                            StrokeShape="RoundRectangle 12">
+                        <Border.Behaviors>
+                            <beh:PressFeedback />
+                        </Border.Behaviors>
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Command="{Binding OpenAllCatalogCommand}" />
                         </Border.GestureRecognizers>
                         <Grid ColumnDefinitions="*,Auto">
-                            <Label Grid.Column="0" Text="Весь каталог" FontAttributes="Bold" FontSize="15"
+                            <Label Grid.Column="0" Text="Весь каталог" FontAttributes="Bold" FontSize="{StaticResource F3}"
                                    TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
-                            <Label Grid.Column="1" Text="→" FontSize="16"
+                            <Label Grid.Column="1" Text="→" FontSize="{StaticResource F4}"
                                    TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
                         </Grid>
                     </Border>

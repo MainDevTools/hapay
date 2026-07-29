@@ -16,8 +16,8 @@
     <ScrollView>
         <VerticalStackLayout Padding="24" Spacing="16" VerticalOptions="Center" MaximumWidthRequest="480">
 
-            <Label Text="Хапай" FontSize="30" FontAttributes="Bold" HorizontalOptions="Center" />
-            <Label Text="{Binding Title}" FontSize="18" TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}" HorizontalOptions="Center" />
+            <Label Text="Хапай" FontSize="{StaticResource F6}" FontAttributes="Bold" HorizontalOptions="Center" />
+            <Label Text="{Binding Title}" FontSize="{StaticResource F4}" TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}" HorizontalOptions="Center" />
 
             <Entry Placeholder="Email" Text="{Binding Email}"
                    Keyboard="Email" ReturnType="Next" />
@@ -42,7 +42,7 @@
                     BackgroundColor="Transparent" TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}" />
 
             <!-- «Забув пароль?» лише в режимі входу (S13) -->
-            <Label Text="Забув пароль?" FontSize="13" HorizontalOptions="Center"
+            <Label Text="Забув пароль?" FontSize="{StaticResource F2}" HorizontalOptions="Center"
                    IsVisible="{Binding IsRegister, Converter={StaticResource Invert}}"
                    TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}">
                 <Label.GestureRecognizers>

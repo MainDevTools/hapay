@@ -27,9 +27,9 @@
             <Grid.GestureRecognizers>
                 <TapGestureRecognizer Command="{Binding BackToSectionsCommand}" />
             </Grid.GestureRecognizers>
-            <Label Grid.Column="0" Text="‹" FontSize="20" FontAttributes="Bold" Padding="0,0,10,0"
+            <Label Grid.Column="0" Text="‹" FontSize="{StaticResource F5}" FontAttributes="Bold" Padding="0,0,10,0"
                    TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
-            <Label Grid.Column="1" Text="{Binding SectionTitle}" FontSize="15" FontAttributes="Bold"
+            <Label Grid.Column="1" Text="{Binding SectionTitle}" FontSize="{StaticResource F3}" FontAttributes="Bold"
                    VerticalOptions="Center"
                    TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
         </Grid>
@@ -53,15 +53,15 @@
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenSectionCommand}"
                                             CommandParameter="{Binding .}" />
                                     </Grid.GestureRecognizers>
-                                    <Label Grid.Column="0" Text="{Binding Icon}" FontSize="18"
+                                    <Label Grid.Column="0" Text="{Binding Icon}" FontSize="{StaticResource F4}"
                                            VerticalOptions="Center" />
-                                    <Label Grid.Column="1" Text="{Binding Title}" FontSize="13"
+                                    <Label Grid.Column="1" Text="{Binding Title}" FontSize="{StaticResource F2}"
                                            TextTransform="Uppercase" FontAttributes="Bold"
                                            VerticalOptions="Center" LineBreakMode="TailTruncation" />
-                                    <Label Grid.Column="2" Text="›" FontSize="18"
+                                    <Label Grid.Column="2" Text="›" FontSize="{StaticResource F4}"
                                            Style="{StaticResource Caption}" VerticalOptions="Center" />
                                 </Grid>
-                                <BoxView HeightRequest="0.6" Color="#33888888" />
+                                <BoxView HeightRequest="0.6" Color="{AppThemeBinding Light={StaticResource LineLight}, Dark={StaticResource LineDark}}" />
                             </VerticalStackLayout>
                         </DataTemplate>
                     </BindableLayout.ItemTemplate>
@@ -79,14 +79,14 @@
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.PickCommand}"
                                             CommandParameter="{Binding .}" />
                                     </Grid.GestureRecognizers>
-                                    <Label Grid.Column="0" Text="{Binding Name}" FontSize="13"
+                                    <Label Grid.Column="0" Text="{Binding Name}" FontSize="{StaticResource F2}"
                                            TextTransform="Uppercase" VerticalOptions="Center"
                                            LineBreakMode="TailTruncation" />
                                     <Label Grid.Column="1" Text="{Binding CountText}"
-                                           Style="{StaticResource Caption}" FontSize="11"
+                                           Style="{StaticResource Caption}" FontSize="{StaticResource F1}"
                                            VerticalOptions="Center" />
                                 </Grid>
-                                <BoxView HeightRequest="0.6" Color="#33888888" />
+                                <BoxView HeightRequest="0.6" Color="{AppThemeBinding Light={StaticResource LineLight}, Dark={StaticResource LineDark}}" />
                             </VerticalStackLayout>
                         </DataTemplate>
                     </BindableLayout.ItemTemplate>
@@ -104,19 +104,19 @@
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.PickCommand}"
                                             CommandParameter="{Binding .}" />
                                     </Grid.GestureRecognizers>
-                                    <Label Grid.Column="0" Text="{Binding Icon}" FontSize="16"
+                                    <Label Grid.Column="0" Text="{Binding Icon}" FontSize="{StaticResource F4}"
                                            VerticalOptions="Center" />
                                     <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
-                                        <Label Text="{Binding Name}" FontSize="13" TextTransform="Uppercase"
+                                        <Label Text="{Binding Name}" FontSize="{StaticResource F2}" TextTransform="Uppercase"
                                                LineBreakMode="TailTruncation" />
                                         <Label Text="{Binding Section}" Style="{StaticResource Caption}"
-                                               FontSize="11" />
+                                               FontSize="{StaticResource F1}" />
                                     </VerticalStackLayout>
                                     <Label Grid.Column="2" Text="{Binding CountText}"
-                                           Style="{StaticResource Caption}" FontSize="11"
+                                           Style="{StaticResource Caption}" FontSize="{StaticResource F1}"
                                            VerticalOptions="Center" />
                                 </Grid>
-                                <BoxView HeightRequest="0.6" Color="#33888888" />
+                                <BoxView HeightRequest="0.6" Color="{AppThemeBinding Light={StaticResource LineLight}, Dark={StaticResource LineDark}}" />
                             </VerticalStackLayout>
                         </DataTemplate>
                     </BindableLayout.ItemTemplate>
@@ -127,7 +127,7 @@
                     <Grid.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding PickAllCommand}" />
                     </Grid.GestureRecognizers>
-                    <Label Text="УСІ КАТЕГОРІЇ" FontSize="13" FontAttributes="Bold"
+                    <Label Text="УСІ КАТЕГОРІЇ" FontSize="{StaticResource F2}" FontAttributes="Bold"
                            TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
                 </Grid>
 

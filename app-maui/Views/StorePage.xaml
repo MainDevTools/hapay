@@ -33,19 +33,19 @@
                 <Border Style="{StaticResource Card}" Padding="14,12">
                     <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" RowSpacing="10">
                         <VerticalStackLayout Grid.Row="0" Grid.Column="0">
-                            <Label Text="{Binding Products}" FontAttributes="Bold" FontSize="20" />
+                            <Label Text="{Binding Products}" FontAttributes="Bold" FontSize="{StaticResource F5}" />
                             <Label Text="товарів бачимо" Style="{StaticResource Caption}" />
                         </VerticalStackLayout>
                         <VerticalStackLayout Grid.Row="0" Grid.Column="1">
-                            <Label Text="{Binding Discounts}" FontAttributes="Bold" FontSize="20" />
+                            <Label Text="{Binding Discounts}" FontAttributes="Bold" FontSize="{StaticResource F5}" />
                             <Label Text="активних знижок" Style="{StaticResource Caption}" />
                         </VerticalStackLayout>
                         <VerticalStackLayout Grid.Row="1" Grid.Column="0">
-                            <Label Text="{Binding Verified}" FontAttributes="Bold" FontSize="20" />
+                            <Label Text="{Binding Verified}" FontAttributes="Bold" FontSize="{StaticResource F5}" />
                             <Label Text="пройшли перевірку" Style="{StaticResource Caption}" />
                         </VerticalStackLayout>
                         <VerticalStackLayout Grid.Row="1" Grid.Column="1">
-                            <Label Text="{Binding Pumped}" FontAttributes="Bold" FontSize="20" />
+                            <Label Text="{Binding Pumped}" FontAttributes="Bold" FontSize="{StaticResource F5}" />
                             <Label Text="«стара» ціна завищена" Style="{StaticResource Caption}" />
                         </VerticalStackLayout>
                     </Grid>
@@ -57,7 +57,7 @@
                 <Button Text="Сайт крамниці"
                         Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenSiteCommand}" />
 
-                <Label Text="Найбільші категорії" FontAttributes="Bold" FontSize="15"
+                <Label Text="Найбільші категорії" FontAttributes="Bold" FontSize="{StaticResource F3}"
                        IsVisible="{Binding HasCategories}" Margin="0,6,0,0" />
                 <VerticalStackLayout Spacing="6" BindableLayout.ItemsSource="{Binding Categories}">
                     <BindableLayout.ItemTemplate>
@@ -69,7 +69,7 @@
                                         CommandParameter="{Binding .}" />
                                 </Border.GestureRecognizers>
                                 <Grid ColumnDefinitions="*,Auto">
-                                    <Label Grid.Column="0" Text="{Binding Name}" FontSize="14" />
+                                    <Label Grid.Column="0" Text="{Binding Name}" FontSize="{StaticResource F3}" />
                                     <Label Grid.Column="1" Text="{Binding N}" Style="{StaticResource Caption}" />
                                 </Grid>
                             </Border>

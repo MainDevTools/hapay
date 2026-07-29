@@ -24,7 +24,7 @@
                 <!-- дані: скільки зібрано і як швидко росте -->
                 <Border Style="{StaticResource Card}" Padding="14" StrokeShape="RoundRectangle 12">
                     <VerticalStackLayout Spacing="3">
-                        <Label Text="Дані" FontAttributes="Bold" FontSize="15" Margin="0,0,0,4" />
+                        <Label Text="Дані" FontAttributes="Bold" FontSize="{StaticResource F3}" Margin="0,0,0,4" />
                         <Label Text="{Binding Metrics.Data.ProductsText}" Style="{StaticResource Body}" />
                         <Label Text="{Binding Metrics.Data.SnapshotsText}" Style="{StaticResource Body}" />
                         <Label Text="{Binding Metrics.Data.EventsText}" Style="{StaticResource Body}" />
@@ -35,7 +35,7 @@
                 <!-- детекція: власне продукт. Нульові стани НЕ ховаємо -->
                 <Border Style="{StaticResource Card}" Padding="14" StrokeShape="RoundRectangle 12">
                     <VerticalStackLayout Spacing="3">
-                        <Label Text="Перевірка знижок" FontAttributes="Bold" FontSize="15"
+                        <Label Text="Перевірка знижок" FontAttributes="Bold" FontSize="{StaticResource F3}"
                                Margin="0,0,0,4" />
                         <VerticalStackLayout BindableLayout.ItemsSource="{Binding Badges}" Spacing="2">
                             <BindableLayout.ItemTemplate>
@@ -54,7 +54,7 @@
                 <!-- збір: мовчазні крамниці згори (саме вони потребують дії) -->
                 <Border Style="{StaticResource Card}" Padding="14" StrokeShape="RoundRectangle 12">
                     <VerticalStackLayout Spacing="3">
-                        <Label Text="Збір" FontAttributes="Bold" FontSize="15" />
+                        <Label Text="Збір" FontAttributes="Bold" FontSize="{StaticResource F3}" />
                         <Label Text="{Binding Metrics.Collect.HealthText}" Style="{StaticResource Caption}"
                                Margin="0,0,0,6" />
                         <VerticalStackLayout BindableLayout.ItemsSource="{Binding Stores}" Spacing="4">
@@ -72,7 +72,7 @@
 
                 <Border Style="{StaticResource Card}" Padding="14" StrokeShape="RoundRectangle 12">
                     <VerticalStackLayout Spacing="3">
-                        <Label Text="Акаунти" FontAttributes="Bold" FontSize="15" Margin="0,0,0,4" />
+                        <Label Text="Акаунти" FontAttributes="Bold" FontSize="{StaticResource F3}" Margin="0,0,0,4" />
                         <Label Text="{Binding Metrics.Accounts.TotalsText}" Style="{StaticResource Body}" />
                         <Label Text="{Binding Metrics.Accounts.RolesText}" Style="{StaticResource Caption}" />
                         <Label Text="{Binding Metrics.Accounts.ActivityText}" Style="{StaticResource Caption}" />

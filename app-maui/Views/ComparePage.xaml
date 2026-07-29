@@ -44,13 +44,13 @@
                                             <Image Source="{Binding ImageUrl}" Aspect="AspectFit"
                                                    AutomationProperties.IsInAccessibleTree="False" />
                                         </Border>
-                                        <Label Text="{Binding Title}" FontSize="12" MaxLines="3"
+                                        <Label Text="{Binding Title}" FontSize="{StaticResource F1}" MaxLines="3"
                                                LineBreakMode="TailTruncation" />
-                                        <Label Text="{Binding PriceGrn}" FontAttributes="Bold" FontSize="15"
+                                        <Label Text="{Binding PriceGrn}" FontAttributes="Bold" FontSize="{StaticResource F3}"
                                                TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
                                         <Label Text="{Binding OffersText}" Style="{StaticResource Caption}"
-                                               FontSize="11" />
-                                        <Label Text="{Binding BadgeText}" FontSize="11" FontAttributes="Bold"
+                                               FontSize="{StaticResource F1}" />
+                                        <Label Text="{Binding BadgeText}" FontSize="{StaticResource F1}" FontAttributes="Bold"
                                                IsVisible="{Binding HasBadge}"
                                                TextColor="{AppThemeBinding Light={StaticResource SaveFgLight}, Dark={StaticResource SaveFgDark}}" />
                                     </VerticalStackLayout>
@@ -62,9 +62,9 @@
 
                 <!-- плейсхолдер: характеристики ще не зібрані (S12 у вільних слотах) -->
                 <Border IsVisible="{Binding ShowSpecsPending}" Style="{StaticResource Card}"
-                        Padding="12" Margin="0,12" StrokeShape="RoundRectangle 10" WidthRequest="300">
+                        Padding="12" Margin="0,12" StrokeShape="RoundRectangle 8" WidthRequest="300">
                     <Label Text="Характеристики цих товарів ще збираються. Порівняння цін і знижок — вище."
-                           FontSize="13" Style="{StaticResource Caption}" />
+                           FontSize="{StaticResource F2}" Style="{StaticResource Caption}" />
                 </Border>
 
                 <!-- таблиця характеристик: рядок = атрибут, колонки = товари -->
@@ -73,14 +73,14 @@
                     <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="models:SpecRow">
                             <HorizontalStackLayout Spacing="8" Padding="0,7">
-                                <Label Text="{Binding Name}" WidthRequest="104" FontSize="12"
+                                <Label Text="{Binding Name}" WidthRequest="104" FontSize="{StaticResource F1}"
                                        FontAttributes="Bold" LineBreakMode="WordWrap"
                                        VerticalOptions="Center" />
                                 <HorizontalStackLayout Spacing="8"
                                                        BindableLayout.ItemsSource="{Binding Display}">
                                     <BindableLayout.ItemTemplate>
                                         <DataTemplate x:DataType="x:String">
-                                            <Label Text="{Binding .}" WidthRequest="150" FontSize="12"
+                                            <Label Text="{Binding .}" WidthRequest="150" FontSize="{StaticResource F1}"
                                                    LineBreakMode="WordWrap" VerticalOptions="Center" />
                                         </DataTemplate>
                                     </BindableLayout.ItemTemplate>
