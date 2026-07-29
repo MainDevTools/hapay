@@ -132,8 +132,11 @@ function renderSide(cats){
   const bySect=new Map();
   cats.forEach(c=>{ const s=c.section||'Інше';
     if(!bySect.has(s)) bySect.set(s,[]); bySect.get(s).push(c); });
+  // Заголовок розділу — ПОСИЛАННЯ на його сторінку, а не мертвий підпис: інакше
+  // рівень над категорією видно, але дійти до нього неможливо.
   for(const [sect,items] of bySect){
-    nav.appendChild(el(`<div class="sect">${esc(sect)}</div>`));
+    const sl = (items[0] && items[0].section_slug) || 'inshe';
+    nav.appendChild(el(`<a class="sect" href="/section/${encodeURIComponent(sl)}">${esc(sect)}</a>`));
     items.forEach(c=> nav.appendChild(mk(c.slug, c.name, c.n)));
   }
   box.appendChild(nav);

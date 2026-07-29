@@ -149,12 +149,17 @@ async function loadSections(){
     const cats = await api('/api/categories');
     const by = new Map();
     cats.forEach(c => { const s = c.section || 'Інше';
-      by.set(s, (by.get(s)||0) + (c.n||0)); });
+      const cur = by.get(s) || {n:0, slug:c.section_slug || 'inshe'};
+      cur.n += (c.n||0); by.set(s, cur); });
     // найнаповненіші розділи вперед: порожній розділ на головній — обіцянка без покриття
-    const top = [...by.entries()].filter(([,n]) => n > 0).sort((a,b) => b[1]-a[1]).slice(0, 12);
-    document.getElementById('sects').innerHTML = top.map(([s,n]) =>
-      `<a href="/catalog?s=${encodeURIComponent(s)}"><span>${esc(s)}</span>` +
-      `<span class="n">${nfmt(n)}</span></a>`).join('');
+    const top = [...by.entries()].filter(([,v]) => v.n > 0)
+      .sort((a,b) => b[1].n - a[1].n).slice(0, 12);
+    // ⚠ Ведемо на /section/<slug>, а не на фільтр ?s=<назва> (S34): у розділу тепер є
+    // власна сторінка з переліком категорій. Стрибок із головної одразу в одну зі 173
+    // категорій пропускав цілий рівень навігації.
+    document.getElementById('sects').innerHTML = top.map(([s,v]) =>
+      `<a href="/section/${encodeURIComponent(v.slug)}"><span>${esc(s)}</span>` +
+      `<span class="n">${nfmt(v.n)}</span></a>`).join('');
   }catch(e){}
 }
 

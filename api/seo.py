@@ -177,13 +177,18 @@ def _url(loc: str, changefreq: str, priority: str) -> str:
             f"<priority>{priority}</priority></url>")
 
 
-def sitemap(categories, product_ids, stores=(), models=()) -> str:
+def sitemap(categories, product_ids, stores=(), models=(), sections=()) -> str:
     """Карта сайту. Стрічку каталогу малює JS, тож сторінки товарів мусять бути тут —
     інакше до них немає жодного шляху, яким пройде краулер."""
     out = ['<?xml version="1.0" encoding="UTF-8"?>',
            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
            _url(SITE + "/", "hourly", "1.0"),
            _url(SITE + "/catalog", "hourly", "0.9")]
+    # Розділи — ВИЩЕ за категорії: 31 сторінка, кожна веде у свої категорії. Доти
+    # карта сайту знала 159 категорій і 0 розділів, тобто рівень над категорією
+    # краулер бачити не міг узагалі.
+    for slug in sections:
+        out.append(_url(f"{SITE}/section/{slug}", "daily", "0.8"))
     for slug in categories:
         out.append(_url(f"{SITE}/catalog?c={slug}", "daily", "0.7"))
     for pid in product_ids:
@@ -276,6 +281,17 @@ def catalog_head(*, category=None, section=None, badge=None, query=None) -> str:
         desc = ("Ціни на 59 тисяч товарів із українських онлайн-крамниць. Кожну заявлену "
                 "знижку звіряємо з власною історією цін за 30 днів.")
     return "\n".join(_tags(title, desc, SITE + path, noindex=noindex))
+
+
+def section_head(name: str, slug: str, n_cats: int, n_items: int) -> str:
+    """<head> сторінки розділу (S34). Проміжний рівень між головною і 173 категоріями:
+    доти він існував лише як фільтр `?s=`, тобто адреси не мав узагалі."""
+    title = f"{name} — ціни та знижки | {BRAND}"
+    desc = (f"{n_items} товарів у {n_cats} категоріях розділу «{name}». Ціни з "
+            f"українських крамниць; заявлені знижки звіряємо з власною історією за 30 днів."
+            if n_items else
+            f"Розділ «{name}»: стежимо за цінами українських крамниць.")
+    return "\n".join(_tags(title, desc, f"{SITE}/section/{slug}"))
 
 
 def store_head(store: dict) -> str:

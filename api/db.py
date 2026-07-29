@@ -9,7 +9,7 @@ import math
 from psycopg import errors
 from psycopg.rows import dict_row
 from search import search_patterns
-from taxonomy import category_ui, slugs_in_section, SECTION_ORDER
+from taxonomy import category_ui, slugs_in_section, SECTION_ORDER, SECTION_SLUG
 
 # сортування — без de.-префікса: колонки беруться з CTE `best` (див. list_discounts)
 _SORTS = {
@@ -652,6 +652,8 @@ def categories(conn):
         rows = cur.execute(sql, (_TILE_SKIP_RE,)).fetchall()
     for r in rows:
         r["section"], r["icon"] = category_ui(r["slug"])
+        # слаг розділу — клієнтові потрібен URL, а не назва: /section/elektronika
+        r["section_slug"] = SECTION_SLUG.get(r["section"], "inshe")
         # цінові межі КАТЕГОРІЇ для фільтра (§17-nav): терцілі реальних цін,
         # округлені до «гарних» гривень. Глобальні діапазони («до 500 ₴» у
         # ноутбуках) були декоративні. Мало товарів або межі злиплись → null,

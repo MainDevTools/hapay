@@ -242,8 +242,12 @@
      на нього не діяли, а select має flex:1. Тут .controls — справжня флекс-дитина. */
   .toolbar{display:flex;flex-direction:column;gap:9px;padding:10px 16px 2px}
   .toolbar .chips{padding:0 16px;margin:0 -16px}   /* скрол чіпів — від краю екрана */
-  .sect{font-size:var(--f1);font-weight:700;letter-spacing:.04em;text-transform:uppercase;
-    color:var(--faint);margin:16px 0 6px;padding:0 10px}
+  /* Заголовок розділу в бічній колонці — ПОСИЛАННЯ на його сторінку (S34), не підпис:
+     рівень над категорією було видно, але дійти до нього неможливо. */
+  .sect{display:block;font-size:var(--f1);font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;color:var(--faint);margin:16px 0 6px;padding:0 10px;
+    text-decoration:none}
+  a.sect:hover{color:var(--fg)}
   .sect:first-child{margin-top:0}
   /* <a href="/catalog?c=slug">, а не <div onclick>: працює Tab, працює
      середня кнопка миші, і краулер бачить посилання на категорію. Клік

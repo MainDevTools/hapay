@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--SEO-->
+<link rel="stylesheet" href="/s/app.css">
+<style>
+  /* Рядок товару в переліку розділу. .row — спільний із кабінетом; тут лише
+     вирівнювання ціни праворуч і колір посилання, решту дає app.css. */
+  a.row{text-decoration:none;color:inherit}
+  a.row:hover .t{text-decoration:underline}
+  a.row .pr{font-weight:750;font-size:var(--f4);margin-left:auto;white-space:nowrap;
+    font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<div class="app">
+<header id="hdr"></header>
+<nav id="crumbs" hidden></nav>
+
+<div class="page">
+  <h1 id="ttl">Розділ</h1>
+  <p class="lead" id="lead"></p>
+
+  <div class="blk">
+    <h2>Категорії розділу</h2>
+    <div class="sects" id="cats"><div class="sub">Завантаження…</div></div>
+  </div>
+
+  <div class="blk" id="popbox" hidden>
+    <div class="sec-h"><h2>Популярне в розділі</h2><a id="allink" href="/catalog">Усі товари →</a></div>
+    <div id="pop"></div>
+  </div>
+
+  <div class="actions" id="acts"></div>
+</div>
+
+<div id="ftr"></div>
+</div>
+
+<script src="/s/app.js"></script>
+<script>
+/* Сторінка розділу (S34). До неї 31 розділ існував лише як фільтр `?s=`: ні URL, ні
+   сторінки, ні жодного рядка в sitemap — тобто проміжного рівня «Електроніка →
+   Ноутбуки → товар» у структурі не було, і з головної людина стрибала одразу в один
+   зі 173 пунктів. Слаг розділу приходить із /api/categories (section_slug). */
+const SLUG = location.pathname.split('/').filter(Boolean)[1] || '';
+const nfmt = n => Number(n||0).toLocaleString('uk-UA');
+
+renderHeader('/catalog');
+renderFooter();
+
+async function load(){
+  let cats;
+  try { cats = await api('/api/categories'); }
+  catch(e){
+    document.getElementById('cats').innerHTML =
+      `<div class="sub">Не вдалося завантажити: ${esc(e.message)}</div>`;
+    return;
+  }
+  const mine = cats.filter(c => c.section_slug === SLUG);
+  if (!mine.length){
+    // Заголовок ПЕРЕПИСУЄМО, а не малюємо другий: на документ має бути рівно один h1,
+    // і порожній стан — це той самий екран, а не новий.
+    const ttl = document.getElementById('ttl');
+    ttl.textContent = 'Такого розділу немає';
+    document.getElementById('lead').textContent = 'Можливо, посилання застаріле.';
+    document.getElementById('cats').parentElement.remove();
+    document.getElementById('acts').innerHTML =
+      '<a class="btn btn-main" href="/catalog">До каталогу</a>';
+    renderCrumbs([{href:'/', label:'Головна'}, {href:'/catalog', label:'Каталог'},
+                  {label:'Розділ не знайдено'}]);
+    return;
+  }
+  const name = mine[0].section;
+  const total = mine.reduce((a,c) => a + (c.n||0), 0);
+  document.getElementById('ttl').textContent = name;
+  document.title = `${name} — ціни та знижки | Хапай`;
+  document.getElementById('lead').textContent =
+    `${plu(mine.length,'категорія','категорії','категорій')} · ` +
+    `${nfmt(total)} товарів під наглядом. Кожну заявлену знижку звіряємо з власною ` +
+    `історією цін за 30 днів.`;
+  renderCrumbs([{href:'/', label:'Головна'}, {href:'/catalog', label:'Каталог'},
+                {label:name}]);
+
+  // Найнаповненіші вперед: порожня категорія в списку — обіцянка без покриття.
+  document.getElementById('cats').innerHTML = mine
+    .slice().sort((a,b) => (b.n||0) - (a.n||0))
+    .map(c => `<a href="/catalog?c=${encodeURIComponent(c.slug)}"><span>${esc(c.name)}</span>` +
+              `<span class="n">${nfmt(c.n||0)}</span></a>`).join('');
+
+  const all = `/catalog?s=${encodeURIComponent(name)}`;
+  document.getElementById('allink').href = all;
+  document.getElementById('acts').innerHTML =
+    `<a class="btn btn-main" href="${all}">Усі товари розділу</a>` +
+    `<a class="btn btn-ghost" href="${all}&b=sale">Лише знижки</a>`;
+
+  loadPopular(name);
+}
+
+/* Кілька товарів прямо тут: сторінка-перелік без жодного товару змушує зробити ще
+   один клік, щоб зрозуміти, чи взагалі є що дивитись. */
+async function loadPopular(name){
+  const box = document.getElementById('pop');
+  try{
+    const data = await api('/api/products?sort=popular&page=0&section=' +
+                           encodeURIComponent(name));
+    const top = data.slice(0, 6);
+    if (!top.length) return;
+    box.innerHTML = top.map(d => {
+      const off = (d.old_declared_kop && d.current_kop < d.old_declared_kop)
+        ? Math.round((1 - d.current_kop/d.old_declared_kop)*100) : null;
+      return `<a class="row" href="/product/${d.store_product_id}">
+        <span class="t">${esc(d.title)}</span>
+        <span class="pr">${grn(d.current_kop)}${off?` <span class="off flat">−${off}%</span>`:''}</span>
+      </a>`;
+    }).join('');
+    document.getElementById('popbox').hidden = false;
+  }catch(e){ /* розділ без товарів — не помилка, просто нічого не показуємо */ }
+}
+load();
+</script>
+</body>
+</html>

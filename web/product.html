@@ -81,6 +81,10 @@ async function load(){
   renderCrumbs([
     {href:'/', label:'Головна'},
     {href:'/catalog', label:'Каталог'},
+    // Розділ між каталогом і категорією (S34): доти крихти перестрибували цілий
+    // рівень, і повернутись «на щабель вище за категорію» було нікуди.
+    ...(me.section_slug && me.section
+        ? [{href:'/section/' + encodeURIComponent(me.section_slug), label: me.section}] : []),
     ...(me.category_slug
         ? [{href:'/catalog?c=' + encodeURIComponent(me.category_slug),
             label: me.category || me.category_slug}] : []),

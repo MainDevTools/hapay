@@ -24,7 +24,8 @@ from api import email as qemail
 from api import seo as qseo
 from api.initdata import verify_init_data, check_auth_age, InitDataError
 from detection.runner import detect_pass
-from taxonomy import SECTION_ORDER, glyph_key
+from taxonomy import (SECTION_ORDER, SECTION_SLUG, glyph_key, section_by_slug,
+                      category_ui)
 import merkle
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -201,7 +202,8 @@ def sitemap(conn=Depends(get_conn)):
     def build():
         cats, prods, models = qdb.sitemap_rows(conn)
         stores = [r["slug"] for r in qdb.store_list(conn)]
-        return qseo.sitemap(cats, prods, stores, models)
+        return qseo.sitemap(cats, prods, stores, models,
+                            sections=sorted(SECTION_SLUG.values()))
     return Response(_SITEMAP.get(build), media_type="application/xml", headers=_NOCACHE)
 
 
@@ -237,6 +239,20 @@ def catalog_page(request: Request, conn=Depends(get_conn)):
     head = qseo.catalog_head(category=meta, section=section,
                              badge=q.get("b"), query=q.get("q"))
     return _page("catalog", head)
+
+
+@app.get("/section/{slug}")
+def section_page(slug: str, conn=Depends(get_conn)):
+    """Сторінка розділу — проміжний рівень між головною і 173 категоріями (S34).
+
+    ⚠ Невідомий слаг → 404, а не порожня сторінка: порожня виглядала б як «розділ є,
+    але товарів нема», хоча насправді адреси не існує."""
+    name = section_by_slug(slug)
+    if name is None:
+        raise HTTPException(404, "розділ не знайдено")
+    cats = [c for c in qdb.categories(conn) if c.get("section") == name]
+    head = qseo.section_head(name, slug, len(cats), sum(c.get("n") or 0 for c in cats))
+    return _page("section", head)
 
 
 @app.get("/verify")
@@ -533,6 +549,11 @@ def product_card(store_product_id: int, conn=Depends(get_conn)):
     row = qdb.product_card(conn, store_product_id)
     if row is None:
         raise HTTPException(404, "товар не знайдено")
+    # Розділ — для крихт (S34). Крихти обіцяли «Головна → Каталог → Категорія», тобто
+    # пропускали рівень, який тепер має власну сторінку. Розділ живе лише в taxonomy.
+    sect, _icon = category_ui(row.get("category_slug") or "")
+    row["section"] = sect
+    row["section_slug"] = SECTION_SLUG.get(sect, "inshe")
     return row
 
 
