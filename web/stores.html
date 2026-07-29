@@ -51,8 +51,7 @@ async function load(){
       <div class="prov">Усього крамниць: ${live.length}.
         Числа — з нашої бази спостережень і змінюються після кожного збору.</div>`;
   }catch(e){
-    out.innerHTML = `<div class="empty"><div class="ic">${icon('warn')}</div>
-      <div class="t">Не вдалося завантажити</div><div>${esc(e.message)}</div></div>`;
+    showError(out, e, load);
   }
 }
 load();

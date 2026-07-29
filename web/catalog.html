@@ -86,6 +86,10 @@ if (_p.get('q')) query = _p.get('q');
 // довелось би пояснювати людині різницю між ?b= і ?only=.
 if (_p.get('b') === 'sale') onlyDiscounts = true;
 else if (_p.get('b') && BADGES.some(x => x.k === _p.get('b'))) badge = _p.get('b');
+// Сторінка з адреси (S35): повернення з товару має показати ту саму глибину
+// стрічки, а не перші 50 карток. 1-based у URL, 0-based усередині.
+const _pg = parseInt(_p.get('p') || '1', 10);
+if (Number.isFinite(_pg) && _pg > 1) page = Math.min(_pg - 1, 40);   // стеля 40 = 2000 карток
 const _sect = _p.get('s') || '';   // розділ (набір категорій); категорія має пріоритет
 // ціна в адресі — у ГРИВНЯХ (людині доводиться її читати), в API — копійки
 const _money = v => { const n = parseInt(v, 10);

@@ -123,7 +123,7 @@ async function load(){
      зниження — це шум: людина хоче знати не «подешевшало на 40 грн», а «дійшло до моєї
      ціни». Порожнє поле = стара поведінка, тож нікого не змушуємо називати число. */
   document.getElementById('watch').onclick = async () => {
-    if (!AUTH.in){ location.href = '/login'; return; }
+    if (!AUTH.in){ gotoLogin(); return; }
     const box = document.getElementById('watchbox');
     if (box && box.hidden){ box.hidden = false;
       const f = box.querySelector('input'); if (f) f.focus(); return; }

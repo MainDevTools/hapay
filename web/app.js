@@ -100,10 +100,54 @@ function icon(key){
     >${ICONS[key] || ICONS.tag}</svg>`;
 }
 
+/* ── порожній стан і помилка з ВИХОДОМ (S35) ──────────────────────────────────────
+   Заміряно 2026-07-29: кнопки «повторити» не було НІ на сайті, ні в застосунку —
+   нуль входжень. Помилка мережі показувала текст, і на цьому все: єдиний спосіб
+   вийти — перезавантажити сторінку або піти з екрана й повернутись. Для мобільного,
+   де звʼязок рветься постійно, це найчастіший глухий кут у продукті.
+
+   `onRetry` — функція; якщо її немає, кнопки теж немає (порожній стан не помилка,
+   повторювати там нічого). */
+let _retryN = 0;
+function stateBox(key, title, text, onRetry){
+  const id = onRetry ? `retry${++_retryN}` : '';
+  const btn = onRetry ? `<div class="actions center"><button type="button" class="btn btn-ghost"
+      id="${id}">Спробувати ще раз</button></div>` : '';
+  const html = `<div class="empty"><div class="ic">${icon(key)}</div>
+    <div class="t">${esc(title)}</div><div>${esc(text)}</div>${btn}</div>`;
+  return { html, bind(root){ if (onRetry){ const b=(root||document).querySelector('#'+id);
+    if (b) b.onclick = onRetry; } } };
+}
+
+/* Помилка завантаження — одним рядком у будь-якому місці, де є контейнер. */
+function showError(box, e, onRetry){
+  if (!box) return;
+  const s = stateBox('warn', 'Не вдалося завантажити',
+                     (e && e.message) || 'Перевірте зʼєднання.', onRetry);
+  box.innerHTML = s.html; s.bind(box);
+}
+
 function phHtml(key){
   return `<div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
     stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
     >${GLYPHS[key] || GLYPHS.box}</svg></div>`;
+}
+
+/* Вхід із наміром повернутись (S35). Заміряно: `location.href='/login'` не ніс
+   жодної згадки про те, ЩО людина хотіла зробити, а сторінка входу після успіху
+   завжди вела в /me. Тобто людина, яка захотіла стежити за конкретним ноутбуком,
+   опинялась у порожньому кабінеті й мусила шукати той ноутбук заново.
+
+   Зберігаємо ЛИШЕ внутрішній шлях: `next` з чужим доменом — це відкритий редирект,
+   класична дірка, через яку фішинг ходить під нашою адресою. */
+function gotoLogin(){
+  const back = location.pathname + location.search;
+  location.href = '/login?next=' + encodeURIComponent(back);
+}
+function safeNext(raw){
+  if (!raw) return '';
+  // лише абсолютний шлях у межах сайту: «/catalog?c=...» так, «//evil.com» ні
+  return /^\/(?!\/)[^\s]*$/.test(raw) ? raw : '';
 }
 
 const el = h => { const d=document.createElement('div'); d.innerHTML=h.trim(); return d.firstElementChild; };
@@ -234,7 +278,7 @@ function renderHeader(active, opts){
              aria-label="Пошук за назвою товару"></div>` : ''}
     <div class="hauth">${AUTH.in
       ? `<a href="/me" class="hme" title="${esc(AUTH.email)}">Мій кабінет</a>`
-      : `<a href="/login" class="hlogin">Увійти</a>`}</div>
+      : `<a href="/login?next=${encodeURIComponent(location.pathname + location.search)}" class="hlogin">Увійти</a>`}</div>
   </div>${opts.controls || ''}`;
 }
 

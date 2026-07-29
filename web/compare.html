@@ -52,8 +52,7 @@ async function load(){
   out.innerHTML = `<div class="sub">Завантаження…</div>`;
   let d;
   try { d = await api('/api/compare?ids=' + IDS.join(',')); }
-  catch(e){ out.innerHTML = `<div class="empty"><div class="ic">${icon('warn')}</div>
-      <div class="t">Не вдалося завантажити</div><div>${esc(e.message)}</div></div>`; return; }
+  catch(e){ showError(out, e, load); return; }
 
   const P = d.products || [];
   if (P.length < 2){

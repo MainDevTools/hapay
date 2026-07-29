@@ -14,6 +14,7 @@ function renderChips(){
     chip.onclick=()=>{
       if (b.k==='sale'){ onlyDiscounts=true; badge=''; }
       else { badge=b.k; onlyDiscounts=false; }
+      page=0;
       renderChips(); syncUrl(); load();
     };
     c.appendChild(chip); });
@@ -69,9 +70,10 @@ function skeleton(n){
 }
 function setMore(show){ document.getElementById('morewrap').hidden = !show; }
 
-async function load(reset=true){
+async function load(reset=true, pageToLoad=null){
   const list=document.getElementById('list');
   if(reset){ page=0; skeleton(6); }
+  if(pageToLoad===null) pageToLoad = page;
   try{
     /* ⚠ /api/products, а НЕ /api/discounts (S34). Заміряно 2026-07-29: у базі
        59 445 товарів, знижку має 28 504 — тобто стрічка сайту показувала 48%
@@ -79,7 +81,7 @@ async function load(reset=true){
        пошуком, ані фільтром ціни. При цьому їхні сторінки працювали й лежали в
        sitemap — з пошуковика зайти можна, з нашої ж головної ні.
        Знижковий зріз нікуди не подівся: він тепер чіп, а не єдиний режим. */
-    const p=new URLSearchParams({sort,page});
+    const p=new URLSearchParams({sort,page:pageToLoad});
     if(badge)p.set('badge',badge);
     if(onlyDiscounts)p.set('only_discounts','1');
     if(cat)p.set('category',cat); if(query)p.set('q',query);
@@ -89,22 +91,61 @@ async function load(reset=true){
     const data=await api('/api/products?'+p.toString());
     if(reset) list.innerHTML='';
     if(!data.length){
-      if(reset) list.innerHTML=`<div class="empty"><div class="ic">${query?icon('search'):icon('tag')}</div>
-        <div class="t">${query?'Нічого не знайдено':'Поки порожньо'}</div>
-        <div>${query?'Спробуй іншу назву.':'Колектор ще накопичує товари цієї категорії.'}</div></div>`;
+      if(reset){
+        const s = query
+          ? stateBox('search', 'Нічого не знайдено',
+                     'Спробуйте коротший запит або перевірте написання.')
+          : stateBox('tag', 'Поки порожньо',
+                     'Колектор ще накопичує товари цієї категорії.');
+        list.innerHTML = s.html; s.bind(list);
+      }
       setMore(false); return;
     }
     data.forEach(d=>list.appendChild(card(d)));
     setMore(data.length===50);
   }catch(e){
-    // esc обовʼязково: текст приходить із відповіді сервера, а вставляється в innerHTML.
-    // Сьогодні сервер туди своїх даних не кладе, але покладатись на це — значить
-    // лишити міну під будь-який майбутній ендпойнт, що відлунить введене.
-    if(reset) list.innerHTML=`<div class="empty"><div class="ic">${icon('warn')}</div><div class="t">Помилка завантаження</div><div>${esc(e.message)}</div></div>`;
+    // Помилка більше не глухий кут: та сама дія доступна кнопкою (S35).
+    if(reset) showError(list, e, () => load(true, pageToLoad));
     setMore(false);
   }
 }
-function loadMore(){ page++; load(false); }
+function loadMore(){ page++; syncUrl(); load(false); }
+
+/* ── стан стрічки переживає перехід у товар (S35) ─────────────────────────────────
+   Заміряно на живому: після двох «Показати ще» в категорії було 150 карток і
+   прокрутка 4000; повернення з товару давало 50 карток і прокрутку 414. Тобто сто
+   карток і все місце в списку зникали — у каталозі з 59 445 товарів це найдорожчий
+   дефект зручності з усіх.
+
+   Сторінка живе в АДРЕСІ (?p=), прокрутка — в sessionStorage під ключем адреси:
+   адресу можна переслати, а позиція в списку — річ особиста й тимчасова, їй в
+   URL робити нічого. */
+const SCROLL_KEY = () => 'sc:' + location.pathname + location.search;
+
+function rememberScroll(){
+  try { sessionStorage.setItem(SCROLL_KEY(), String(Math.round(window.scrollY))); }
+  catch(e){}
+}
+// pagehide, а не beforeunload: у Safari/iOS другий не спрацьовує при переході назад,
+// і саме там кеш «назад-вперед» найактивніший.
+window.addEventListener('pagehide', rememberScroll);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') rememberScroll();
+});
+
+/* ⚠ Ціль беремо АРГУМЕНТОМ, а не з `page`: load(true, …) скидає page у нуль
+   (це його робота — почати стрічку заново), тож на момент виклику відновлювати
+   було б уже нічого. Спіймано одразу після написання, але клас помилки той самий,
+   що ловить нас регулярно: стан, який читають ПІСЛЯ того, як його обнулили. */
+async function restoreFeed(target){
+  // Сторінки вантажимо ПОСЛІДОВНО, від нульової: клієнт не вміє просити «перші N*50»
+  // одним запитом, а вигадувати для цього окремий ендпойнт заради двох додаткових
+  // звернень — дорожче, ніж вони коштують.
+  for (let i = 1; i <= target; i++) await load(false, i);
+  page = target;
+  const y = parseInt(sessionStorage.getItem(SCROLL_KEY()) || '0', 10);
+  if (y > 0) window.scrollTo({top: y, behavior: 'instant'});
+}
 
 /* Бічна колонка: 171 категорія в 31 розділі. Плоский список був би стіною, тому
    групуємо за розділом — той самий порядок, що в застосунку (сервер уже віддає
@@ -159,6 +200,8 @@ function syncUrl(){
   const p = new URLSearchParams();
   if (cat) p.set('c', cat); else if (SECT) p.set('s', SECT);
   if (badge) p.set('b', badge); else if (onlyDiscounts) p.set('b', 'sale');
+  // ?p= — 1-based, бо це число для людини: «сторінка 3», а не «offset 2».
+  if (page > 0) p.set('p', page + 1);
   if (query) p.set('q', query);
   if (PRICE.min != null) p.set('pmin', Math.round(PRICE.min/100));   // в адресі — гривні
   if (PRICE.max != null) p.set('pmax', Math.round(PRICE.max/100));
@@ -193,7 +236,7 @@ function crumbs(){
 }
 
 function setCat(slug){
-  cat=slug;
+  cat=slug; page=0;   // новий фільтр — нова стрічка, стара сторінка втрачає сенс
   if (slug) SECT='';        // категорія вужча — розділ більше не тримаємо
   const sel=document.getElementById('cat'); if(sel) sel.value=slug;   // тримаємо select у синхроні
   renderSide(CATS);
@@ -203,7 +246,7 @@ function setCat(slug){
 }
 
 function setPrice(lo, hi){
-  PRICE.min = lo; PRICE.max = hi;
+  PRICE.min = lo; PRICE.max = hi; page=0;
   drawPrice();          // обидва блоки (бічна колонка + мобільний) перемальовуємо
   syncUrl();
   load();
@@ -227,14 +270,14 @@ async function loadCats(){
 }
 const _sel = document.getElementById('cat');
 if (_sel) _sel.onchange = e => { setCat(e.target.value); };
-document.getElementById('sort').onchange=e=>{ sort=e.target.value; load(); };
+document.getElementById('sort').onchange=e=>{ sort=e.target.value; page=0; syncUrl(); load(); };
 document.getElementById('moreBtn').onclick=loadMore;
 let searchT;
 const _srch = document.getElementById('search');
 if (_srch) {
   _srch.value = query;             // пошук із адреси має бути видно в полі
   _srch.oninput = e => { clearTimeout(searchT);
-    searchT = setTimeout(() => { query = e.target.value.trim(); syncUrl();
+    searchT = setTimeout(() => { query = e.target.value.trim(); page=0; syncUrl();
       drawQueryWatch(); load(); }, 300); };
 }
 /* ── стеження за ЗАПИТОМ (S29) ────────────────────────────────────────────────────
@@ -257,7 +300,7 @@ function drawQueryWatch(){
     <div class="qmsg" style="font-size:var(--f2);color:var(--muted);margin-top:8px"></div>`;
   const msg = box.querySelector('.qmsg');
   box.querySelector('.go').onclick = async () => {
-    if (!AUTH.in){ location.href = '/login'; return; }
+    if (!AUTH.in){ gotoLogin(); return; }
     const raw = box.querySelector('.qt').value.replace(/[^\d]/g,'');
     if (!raw){ msg.textContent = 'Вкажіть ціну — без неї це була б розсилка, а не сповіщення.'; return; }
     try{
@@ -268,4 +311,8 @@ function drawQueryWatch(){
   };
 }
 
-crumbs(); drawPrice(); renderChips(); renderCmpBar(); drawQueryWatch(); loadCats(); load();
+crumbs(); drawPrice(); renderChips(); renderCmpBar(); drawQueryWatch(); loadCats();
+// page із адреси вже виставлено інлайн-скриптом catalog.html; load(true) завжди
+// тягне нульову сторінку, а restoreFeed() доганяє решту й повертає прокрутку.
+const _restoreTo = page;              // з адреси; load(true) його обнулить
+load(true, 0).then(() => restoreFeed(_restoreTo));

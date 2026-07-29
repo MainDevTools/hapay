@@ -305,6 +305,35 @@ def test_no_duplicate_class_attribute():
                     f"{' '.join(m.group(0).split())[:100]}")
 
 
+# ── 9. кнопка «повторити» мусить вести в ІСНУЮЧУ функцію ─────────────────────────
+_RETRY = re.compile(r"showError\([^,]+,\s*[^,]+,\s*([A-Za-z_$][\w$]*)\)")
+
+
+def test_retry_callbacks_exist():
+    """Кнопка повтору, яка кидає ReferenceError, гірша за відсутню: людина натискає
+    єдиний доступний вихід, і нічого не стається.
+
+    Народжено 2026-07-29: перекладаючи чотири глухі кути на спільний showError, я
+    передав `loadVerified` там, де функція зветься `loadTop`. Диф виглядав правильно,
+    сторінка малювалась правильно — ламалось лише на КЛІКУ."""
+    core = _read("app.js")
+    bad = []
+    for name in _pages() + ["catalog.js", "app.js"]:
+        src = _code(name)
+        for m in _RETRY.finditer(src):
+            fn = m.group(1)
+            # у самому app.js це імʼя параметра showError, а не виклик
+            if name == "app.js" and fn == "onRetry":
+                continue
+            decl = (re.search(rf"(async\s+)?function\s+{re.escape(fn)}\s*\(", src)
+                    or re.search(rf"(const|let|var)\s+{re.escape(fn)}\s*=", src)
+                    or re.search(rf"(async\s+)?function\s+{re.escape(fn)}\s*\(", core))
+            if not decl:
+                line = src[:m.start()].count("\n") + 1
+                bad.append(f"{name}:{line} showError(..., {fn}) — такої функції немає")
+    assert not bad, "\n".join(bad)
+
+
 def _main():
     fns = [v for k, v in sorted(globals().items())
            if k.startswith("test_") and callable(v)

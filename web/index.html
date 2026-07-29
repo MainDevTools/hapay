@@ -110,8 +110,7 @@ async function loadTop(){
        <div>Щоб порівняти «стару» ціну з історією, потрібні 30 днів спостережень —
          вони ще накопичуються. <a href="/catalog">Подивитись усі знижки →</a></div></div>`;
   }catch(e){
-    list.innerHTML = `<div class="empty"><div class="ic">${icon('warn')}</div>
-      <div class="t">Не вдалося завантажити</div><div>${esc(e.message)}</div></div>`;
+    showError(list, e, loadTop);
   }
 }
 
