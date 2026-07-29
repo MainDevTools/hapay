@@ -313,7 +313,18 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
             # Робити його основним не можна: «айфон» почав би приносити
             # «айфон-чохол-тримач» поперед самих айфонів — схожість рядків не знає,
             # що таке товар.
-            narrow.append("title %% ANY(%s)")          # %% — літерал `%` для psycopg
+            #
+            # ⚠ Оператор `%>` (word_similarity), а НЕ `%` (similarity). Заміряно на
+            # проді, і різниця не тонка:
+            #   similarity('Ноутбук Gigabyte Gaming A16 CMH (CMHI2UA894SH) Black',
+            #              'ноутбк')                                  = 0.102
+            #   word_similarity('ноутбк', та сама назва)              = 0.714
+            # `similarity` міряє запит проти ВСІЄЇ назви, тож довга назва розмиває
+            # збіг нижче порогу 0.3. `word_similarity` шукає найсхожіший відтинок
+            # усередині назви — саме те, що робить людина очима.
+            # Перша версія стояла на `%` і «холодильнк» знаходила лише тому, що та
+            # назва коротка (0.310 — ледь вище порогу). Тобто працювало випадково.
+            narrow.append("title %%> ANY(%s)")         # %% — літерал `%` для psycopg
             params.append(expand_for_trgm(q))
         else:
             narrow.append("title ILIKE ANY(%s)"); params.append(search_patterns(q))

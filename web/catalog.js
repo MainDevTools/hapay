@@ -101,8 +101,17 @@ async function load(reset=true, pageToLoad=null){
       }
       setMore(false); return;
     }
+    /* Сервер міг підмінити точний пошук на схожий (S35). Мовчазна підміна — це
+       відповідь на питання, якого не ставили, тож кажемо прямо. */
+    if (reset && data[0] && data[0].fuzzy){
+      list.appendChild(el(`<div class="note"><p>Точного збігу за запитом
+        «${esc(query)}» немає. Показуємо <b>схоже за назвою</b> —
+        можливо, у запиті одруківка.</p></div>`));
+    }
     data.forEach(d=>list.appendChild(card(d)));
-    setMore(data.length===50);
+    // Схожий пошук віддає ОДНУ сторінку: пагінація по схожості означала б, що
+    // друга сторінка ще менш схожа — тобто просто випадкові товари.
+    setMore(data.length===50 && !(data[0] && data[0].fuzzy));
   }catch(e){
     // Помилка більше не глухий кут: та сама дія доступна кнопкою (S35).
     if(reset) showError(list, e, () => load(true, pageToLoad));
