@@ -236,7 +236,7 @@ function renderFooter(){
   f.className = 'foot';
   // «Як ми перевіряємо» першим: це головна сторінка довіри, і вона мусить бути
   // досяжна з БУДЬ-ЯКОГО місця сайту, а не лише з головної.
-  f.innerHTML = `<a href="/how">Як ми перевіряємо</a><a href="/stores">Крамниці</a>
+  f.innerHTML = `<a href="/how">Як ми перевіряємо</a><a href="/verify">Перевірити наші записи</a><a href="/stores">Крамниці</a>
     <a href="/privacy">Конфіденційність</a><a href="/terms">Умови</a>
     <a href="/support">Підтримка</a>
     <div style="margin-top:10px">Ціни й назви — публічні дані крамниць; перевірка знижки

@@ -190,6 +190,7 @@ def sitemap(categories, product_ids, stores=(), models=()) -> str:
         out.append(_url(f"{SITE}/product/{pid}", "daily", "0.6"))
     out.append(_url(SITE + "/drops", "hourly", "0.9"))      # єдине, чого нема ні в кого
     out.append(_url(SITE + "/how", "monthly", "0.8"))       # метод — обличчя продукту
+    out.append(_url(SITE + "/verify", "daily", "0.8"))      # доказ, якого нема ні в кого
     out.append(_url(SITE + "/stores", "weekly", "0.6"))
     for slug in stores:
         out.append(_url(f"{SITE}/store/{slug}", "daily", "0.5"))
