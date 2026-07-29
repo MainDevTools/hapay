@@ -1112,7 +1112,16 @@ def list_price_drops(conn, user_id: int):
                             AND w.user_id = %s AND w.kind = 'store_product'
             ORDER BY ps.store_product_id, ps.seen_at DESC
         )
-        SELECT w.watchlist_id, w.ref_id, sp.title, sp.url, sp.image_url,
+        SELECT w.watchlist_id, w.ref_id,
+               -- ⚠ ТА САМА величина під ДВОМА іменами, і це не надмірність.
+               -- `ref_id` читають кабінет і застосунок (там watchlist як таблиця
+               -- посилань), а `store_product_id` — усе, що працює з ТОВАРОМ, зокрема
+               -- шаблон листа. Доти листи про зниження ПАДАЛИ з KeyError на першому ж
+               -- спрацюванні: шлях «стеження за запитом» віддавав store_product_id, а
+               -- шлях «стеження за товаром» — ні, і перевіряли тільки перший.
+               -- Знайдено 2026-07-29, коли вперше пройшли ланцюг до кінця.
+               w.ref_id AS store_product_id,
+               sp.title, sp.url, sp.image_url,
                l.price_now_kop AS current_kop,
                COALESCE(w.last_notified_kop, w.price_at_add_kop) AS baseline_kop,
                (COALESCE(w.last_notified_kop, w.price_at_add_kop) - l.price_now_kop) AS drop_kop
