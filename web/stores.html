@@ -41,7 +41,7 @@ async function load(){
     const rows = await api('/api/stores');
     const live = rows.filter(r => r.products > 0);
     if(!live.length){ out.innerHTML =
-      `<div class="empty"><div class="ic">🏪</div><div class="t">Поки порожньо</div>
+      `<div class="empty"><div class="ic">${icon('store')}</div><div class="t">Поки порожньо</div>
        <div>Колектор ще накопичує дані.</div></div>`; return; }
     out.innerHTML = `<div class="sects">` + live.map(r => `
       <a href="/store/${esc(r.slug)}">
@@ -51,7 +51,7 @@ async function load(){
       <div class="prov">Усього крамниць: ${live.length}.
         Числа — з нашої бази спостережень і змінюються після кожного збору.</div>`;
   }catch(e){
-    out.innerHTML = `<div class="empty"><div class="ic">⚠️</div>
+    out.innerHTML = `<div class="empty"><div class="ic">${icon('warn')}</div>
       <div class="t">Не вдалося завантажити</div><div>${esc(e.message)}</div></div>`;
   }
 }

@@ -122,7 +122,7 @@ async function load(more){
     const r = await api(`/api/drops?days=${DAYS}&page=${PAGE}&order=${ORDER}`);
     if (!more){ list.innerHTML = ''; renderSummary(r.summary); }
     if (!r.items.length && !more){
-      list.innerHTML = `<div class="empty"><div class="ic">📉</div>
+      list.innerHTML = `<div class="empty"><div class="ic">${icon('drop')}</div>
         <div class="t">Знижень за цей проміжок не бачили</div>
         <div>Ми показуємо лише те, що виміряли самі. Спробуй ширший проміжок або
           <a href="/catalog">подивись знижки, заявлені крамницями →</a></div></div>`;
@@ -130,7 +130,7 @@ async function load(more){
     r.items.forEach(d => list.appendChild(dropCard(d)));
     document.getElementById('morewrap').hidden = r.items.length !== 50;
   }catch(e){
-    if (!more) list.innerHTML = `<div class="empty"><div class="ic">⚠️</div>
+    if (!more) list.innerHTML = `<div class="empty"><div class="ic">${icon('warn')}</div>
       <div class="t">Не вдалося завантажити</div><div>${esc(e.message)}</div></div>`;
   }
 }

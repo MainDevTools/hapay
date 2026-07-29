@@ -43,7 +43,7 @@ function say(t, k){ const m = document.getElementById('msg');
 async function load(){
   const out = document.getElementById('out');
   if (IDS.length < 2){
-    out.innerHTML = `<div class="empty"><div class="ic">⚖️</div>
+    out.innerHTML = `<div class="empty"><div class="ic">${icon('scales')}</div>
       <div class="t">Обери щонайменше два товари</div>
       <div>У каталозі натисни «+ до порівняння» на картках — можна до чотирьох.
         <a href="/catalog">До каталогу →</a></div></div>`;
@@ -52,12 +52,12 @@ async function load(){
   out.innerHTML = `<div class="sub">Завантаження…</div>`;
   let d;
   try { d = await api('/api/compare?ids=' + IDS.join(',')); }
-  catch(e){ out.innerHTML = `<div class="empty"><div class="ic">⚠️</div>
+  catch(e){ out.innerHTML = `<div class="empty"><div class="ic">${icon('warn')}</div>
       <div class="t">Не вдалося завантажити</div><div>${esc(e.message)}</div></div>`; return; }
 
   const P = d.products || [];
   if (P.length < 2){
-    out.innerHTML = `<div class="empty"><div class="ic">⚖️</div>
+    out.innerHTML = `<div class="empty"><div class="ic">${icon('scales')}</div>
       <div class="t">Замало товарів для порівняння</div>
       <div>Частина обраних більше недоступна. <a href="/catalog">До каталогу →</a></div></div>`;
     return;

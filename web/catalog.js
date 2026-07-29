@@ -55,9 +55,9 @@ function skeleton(n){
   const list=document.getElementById('list'); list.innerHTML='';
   for(let i=0;i<n;i++) list.appendChild(el(
     `<div class="skel"><div class="s-img sk"></div><div class="s-body">
-      <div class="sk" style="height:13px;width:80%"></div><div class="sk" style="height:11px;width:45%"></div>
-      <div class="sk" style="height:18px;width:55%;margin-top:6px"></div>
-      <div class="sk" style="height:20px;width:40%;border-radius:8px"></div></div></div>`));
+      <div class="sk l-title"></div><div class="sk l-meta"></div>
+      <div class="sk l-price"></div>
+      <div class="sk l-badge"></div></div></div>`));
 }
 function setMore(show){ document.getElementById('morewrap').hidden = !show; }
 
@@ -73,7 +73,7 @@ async function load(reset=true){
     const data=await api('/api/discounts?'+p.toString());
     if(reset) list.innerHTML='';
     if(!data.length){
-      if(reset) list.innerHTML=`<div class="empty"><div class="ic">${query?'🔍':'🏷'}</div>
+      if(reset) list.innerHTML=`<div class="empty"><div class="ic">${query?icon('search'):icon('tag')}</div>
         <div class="t">${query?'Нічого не знайдено':'Поки порожньо'}</div>
         <div>${query?'Спробуй іншу назву.':'Колектор ще накопичує знижки.'}</div></div>`;
       setMore(false); return;
@@ -84,7 +84,7 @@ async function load(reset=true){
     // esc обовʼязково: текст приходить із відповіді сервера, а вставляється в innerHTML.
     // Сьогодні сервер туди своїх даних не кладе, але покладатись на це — значить
     // лишити міну під будь-який майбутній ендпойнт, що відлунить введене.
-    if(reset) list.innerHTML=`<div class="empty"><div class="ic">⚠️</div><div class="t">Помилка завантаження</div><div>${esc(e.message)}</div></div>`;
+    if(reset) list.innerHTML=`<div class="empty"><div class="ic">${icon('warn')}</div><div class="t">Помилка завантаження</div><div>${esc(e.message)}</div></div>`;
     setMore(false);
   }
 }

@@ -105,12 +105,12 @@ async function loadTop(){
     list.innerHTML = '';
     data.slice(0, 6).forEach(d => list.appendChild(topCard(d)));
     if(!data.length) list.innerHTML =
-      `<div class="empty"><div class="ic">🏷</div>
+      `<div class="empty"><div class="ic">${icon('tag')}</div>
        <div class="t">Перевірених знижок поки немає</div>
        <div>Щоб порівняти «стару» ціну з історією, потрібні 30 днів спостережень —
          вони ще накопичуються. <a href="/catalog">Подивитись усі знижки →</a></div></div>`;
   }catch(e){
-    list.innerHTML = `<div class="empty"><div class="ic">⚠️</div>
+    list.innerHTML = `<div class="empty"><div class="ic">${icon('warn')}</div>
       <div class="t">Не вдалося завантажити</div><div>${esc(e.message)}</div></div>`;
   }
 }

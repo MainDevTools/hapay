@@ -70,6 +70,26 @@ const GLYPHS = {
   watch:    `<circle cx="12" cy="12" r="4.8"/><path d="M9 7.2 9.5 3h5l.5 4.2M9 16.8 9.5 21h5l.5-4.2"/>`,
   box:      `<path d="M12 3 3.5 7.5v9L12 21l8.5-4.5v-9L12 3z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/>`,
 };
+/* ── значки порожніх станів (S33) ─────────────────────────────────────────────────
+   Було 14 місць із емодзі кеглем 40px: 🔍 🏷 ⚖️ 📉 🏪 🧭 ⚠️. Це рівно той аргумент,
+   яким емодзі відкинули для плиток товарів (див. PH_SVG) — вони малюються по-різному
+   на кожній платформі. Правило застосували до третини стрічки й не застосували до
+   сторінок помилок, порожнього пошуку й 404. Тепер той самий вектор. */
+const ICONS = {
+  search: `<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>`,
+  tag:    `<path d="M12.6 3H4a1 1 0 0 0-1 1v8.6a2 2 0 0 0 .6 1.4l7.4 7.4a2 2 0 0 0 2.8 0l6.6-6.6a2 2 0 0 0 0-2.8L14 3.6a2 2 0 0 0-1.4-.6z"/><circle cx="7.8" cy="7.8" r="1.5"/>`,
+  scales: `<path d="M12 4v16M6 8h12M8 20h8"/><path d="M4.5 8 2 14h5L4.5 8zM19.5 8 17 14h5l-2.5-6z"/>`,
+  drop:   `<path d="M3 7l6 6 4-4 8 8"/><path d="M15 17h6v-6"/>`,
+  store:  `<path d="M4 9h16v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9z"/><path d="M3 9l1.6-4.4A1 1 0 0 1 5.5 4h13a1 1 0 0 1 .9.6L21 9"/><path d="M9.5 20v-6h5v6"/>`,
+  compass:`<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2.1 5-5 2.1 2.1-5 5-2.1z"/>`,
+  warn:   `<path d="M12 4.5 2.8 20h18.4L12 4.5z"/><path d="M12 10v4.6M12 17.5v.1"/>`,
+};
+function icon(key){
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+    >${ICONS[key] || ICONS.tag}</svg>`;
+}
+
 function phHtml(key){
   return `<div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
     stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"

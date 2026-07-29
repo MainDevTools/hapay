@@ -36,7 +36,7 @@ async function load(){
   let s;
   try { s = await api('/api/store/' + encodeURIComponent(SLUG)); }
   catch(e){
-    head.innerHTML = `<div class="empty"><div class="ic">🏪</div>
+    head.innerHTML = `<div class="empty"><div class="ic">${icon('store')}</div>
       <div class="t">Крамницю не знайдено</div>
       <div>Ми за нею не стежимо. <a href="/stores">Перелік крамниць →</a></div></div>`;
     return;

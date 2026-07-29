@@ -70,7 +70,7 @@ async function load(){
     ]);
   } catch(e){
     document.getElementById('head').innerHTML =
-      `<div class="empty"><div class="ic">🏷</div><div class="t">Товар не знайдено</div>
+      `<div class="empty"><div class="ic">${icon('tag')}</div><div class="t">Товар не знайдено</div>
        <div>Можливо, він зник із продажу.</div></div>`;
     return;
   }
