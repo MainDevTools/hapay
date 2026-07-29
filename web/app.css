@@ -654,18 +654,28 @@ table.cmp-t tr:last-child th,table.cmp-t tr:last-child td{border-bottom:none}
    Тому вузький десктоп лишається на перевіреному одноколонковому рядку. */
 @media (min-width:1240px){
   #list{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
-  #list .card{margin:0;grid-template-columns:72px 1fr 150px;gap:0 14px;padding:12px 14px}
-  #list .thumb{width:72px;height:72px;flex-basis:72px}
-  #list .title{-webkit-line-clamp:2}
+  #list .card{margin:0;grid-template-columns:68px 1fr 120px;gap:0 14px;padding:12px 14px}
+  #list .thumb{width:68px;height:68px;flex-basis:68px}
+  /* ТРИ рядки назви, не два. Заміряно після першого підходу: у вужчій картці на назву
+     лишалось 26 символів у рядку, тобто при двох рядках більшість назв обрізало —
+     а назву в стрічці СКАНУЮТЬ, і обрізана назва змушує відкривати картку, щоб
+     зрозуміти, що це. Третій рядок повертає ~78 символів. */
+  #list .title{-webkit-line-clamp:3}
   /* Ціна лишається найгучнішим елементом і у вужчій картці: --f5, як у широкому рядку. */
   #list .now{font-size:var(--f5)}
-  #list .buy{margin-top:6px;padding:7px 12px}
-  #list .cmp{margin-top:5px;padding:5px 9px}
+  /* Ціновий блок був 137px із 163px висоти картки — саме він, а не назва, тримав
+     стрічку розрідженою. Кнопка стає текстовим посиланням: у щільній сітці рамка
+     навколо КОЖНОГО рядка — це 50 однакових прямокутників, які сперечаються з ціною. */
+  #list .buy{margin-top:5px;padding:0;border:none;background:none;font-size:var(--f2)}
+  #list .buy:hover{background:none;text-decoration:underline}
+  #list .cmp{margin-top:5px;padding:4px 9px}
   #list .skel{margin:0}
 }
 
 /* Заголовок стрічки каталогу. Свідомо в кеглі секції, а не сторінки: 31px над
    щільним списком зʼїли б рівно ту щільність, заради якої стрічку й переробляли.
    Текст ставить crumbs() — він називає ТЕ, що зараз у стрічці (категорія/розділ). */
-.feedtitle{font-size:var(--f5);line-height:1.25;letter-spacing:-.02em;margin:2px 0 10px}
-@media (max-width:999px){ .feedtitle{margin:2px 16px 8px} }
+/* ⚠ h1.feedtitle, а не .feedtitle: `.app h1` — теж (0,1,1), і сам клас (0,1,0)
+   програвав йому. Заміряно на живому: заголовок стрічки виходив 24px замість 21. */
+h1.feedtitle{font-size:var(--f5);line-height:1.25;letter-spacing:-.02em;margin:2px 0 10px}
+@media (max-width:999px){ h1.feedtitle{margin:2px 16px 8px} }
