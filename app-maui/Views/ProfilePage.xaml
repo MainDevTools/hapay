@@ -20,14 +20,14 @@
 
         <!-- банер «email не підтверджено» (S13): бурштиновий, з діями підтвердити/повторити -->
         <Border IsVisible="{Binding ShowVerifyBanner}" Style="{StaticResource PillWarn}"
-                Padding="12,10" StrokeShape="RoundRectangle 8">
+                Padding="12,8" StrokeShape="RoundRectangle 8">
             <VerticalStackLayout Spacing="8">
                 <Label Text="Email не підтверджено" FontAttributes="Bold" FontSize="{StaticResource F3}"
                        TextColor="{AppThemeBinding Light={StaticResource WarnFgLight}, Dark={StaticResource WarnFgDark}}" />
                 <Label Text="Підтверди email кодом із листа, щоб убезпечити акаунт і повернути доступ, якщо забудеш пароль."
                        FontSize="{StaticResource F1}"
                        TextColor="{AppThemeBinding Light={StaticResource WarnFgLight}, Dark={StaticResource WarnFgDark}}" />
-                <HorizontalStackLayout Spacing="10">
+                <HorizontalStackLayout Spacing="8">
                     <Button Text="Ввести код" Command="{Binding VerifyEmailCommand}"
                             FontSize="{StaticResource F2}" MinimumHeightRequest="40" />
                     <Button Text="Надіслати код" Command="{Binding ResendVerifyCommand}"
@@ -41,7 +41,7 @@
                TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
 
         <!-- збір: лише для колектора. Тягне HTML крамниць зі свого IP, парсить сервер (S11 етап 3) -->
-        <VerticalStackLayout IsVisible="{Binding IsCollector}" Spacing="10">
+        <VerticalStackLayout IsVisible="{Binding IsCollector}" Spacing="8">
             <Border Padding="12" StrokeThickness="0"
                     BackgroundColor="{AppThemeBinding Light=#EEF6EC, Dark=#132A1D}"
                     StrokeShape="RoundRectangle 8">
@@ -61,7 +61,7 @@
                  двогодинна зупинка 2026-07-21 лишалась непоміченою. Коли збір
                  мовчить довше за поріг, рядок стає бурштиновою пігулкою. -->
             <!-- справний збір — зелена пігулка (той самий колір, що «вигода» в стрічці) -->
-            <Border Style="{StaticResource PillSave}" Padding="10,7" HorizontalOptions="Fill"
+            <Border Style="{StaticResource PillSave}" Padding="8,6" HorizontalOptions="Fill"
                     IsVisible="{Binding ShowHealthOk}">
                 <VerticalStackLayout Spacing="2">
                     <Label Text="{Binding HealthNote}" FontSize="{StaticResource F2}" FontAttributes="Bold"
@@ -71,7 +71,7 @@
                 </VerticalStackLayout>
             </Border>
             <!-- мовчить довше за поріг — бурштинова, як і решта «щось не так» -->
-            <Border Style="{StaticResource PillWarn}" Padding="10,7" HorizontalOptions="Fill"
+            <Border Style="{StaticResource PillWarn}" Padding="8,6" HorizontalOptions="Fill"
                     IsVisible="{Binding ShowHealthWarn}">
                 <VerticalStackLayout Spacing="2">
                     <Label Text="{Binding HealthNote}" FontSize="{StaticResource F2}" FontAttributes="Bold"
@@ -141,7 +141,7 @@
         </Label>
 
         <!-- юр-посилання (обов'язкові для App Store / Google Play) -->
-        <HorizontalStackLayout HorizontalOptions="Center" Spacing="14" Margin="0,20,0,0">
+        <HorizontalStackLayout HorizontalOptions="Center" Spacing="12" Margin="0,20,0,0">
             <Label Text="Конфіденційність" FontSize="{StaticResource F1}" TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}">
                 <Label.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding OpenLinkCommand}"

@@ -15,7 +15,7 @@
     </ContentPage.Resources>
 
     <ScrollView>
-        <VerticalStackLayout Padding="14,12,14,28" Spacing="12">
+        <VerticalStackLayout Padding="12,12,12,24" Spacing="12">
 
             <Label Text="{Binding ErrorMessage}"
                    TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}"
@@ -30,8 +30,8 @@
 
                 <!-- Чотири числа. НЕ рахуємо «частку накачаних» і не сортуємо за нею:
                      це був би вердикт про продавця, а видимий шар не оцінює (T12). -->
-                <Border Style="{StaticResource Card}" Padding="14,12">
-                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" RowSpacing="10">
+                <Border Style="{StaticResource Card}" Padding="12,12">
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" RowSpacing="8">
                         <VerticalStackLayout Grid.Row="0" Grid.Column="0">
                             <Label Text="{Binding Products}" FontAttributes="Bold" FontSize="{StaticResource F5}" />
                             <Label Text="товарів бачимо" Style="{StaticResource Caption}" />
@@ -62,7 +62,7 @@
                 <VerticalStackLayout Spacing="6" BindableLayout.ItemsSource="{Binding Categories}">
                     <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="models:Category">
-                            <Border Style="{StaticResource Card}" Padding="12,10">
+                            <Border Style="{StaticResource Card}" Padding="12,8">
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer
                                         Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenCategoryCommand}"

@@ -27,7 +27,7 @@
             <Grid.GestureRecognizers>
                 <TapGestureRecognizer Command="{Binding BackToSectionsCommand}" />
             </Grid.GestureRecognizers>
-            <Label Grid.Column="0" Text="‹" FontSize="{StaticResource F5}" FontAttributes="Bold" Padding="0,0,10,0"
+            <Label Grid.Column="0" Text="‹" FontSize="{StaticResource F5}" FontAttributes="Bold" Padding="0,0,8,0"
                    TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}" />
             <Label Grid.Column="1" Text="{Binding SectionTitle}" FontSize="{StaticResource F3}" FontAttributes="Bold"
                    VerticalOptions="Center"
@@ -47,7 +47,7 @@
                     <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="models:CategoryGroup">
                             <VerticalStackLayout>
-                                <Grid ColumnDefinitions="Auto,*,Auto" Padding="16,14" ColumnSpacing="12">
+                                <Grid ColumnDefinitions="Auto,*,Auto" Padding="16,12" ColumnSpacing="12">
                                     <Grid.GestureRecognizers>
                                         <TapGestureRecognizer
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenSectionCommand}"
@@ -73,7 +73,7 @@
                     <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="models:Category">
                             <VerticalStackLayout>
-                                <Grid ColumnDefinitions="*,Auto" Padding="16,14" ColumnSpacing="12">
+                                <Grid ColumnDefinitions="*,Auto" Padding="16,12" ColumnSpacing="12">
                                     <Grid.GestureRecognizers>
                                         <TapGestureRecognizer
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.PickCommand}"
@@ -98,7 +98,7 @@
                     <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="models:Category">
                             <VerticalStackLayout>
-                                <Grid ColumnDefinitions="Auto,*,Auto" Padding="16,14" ColumnSpacing="12">
+                                <Grid ColumnDefinitions="Auto,*,Auto" Padding="16,12" ColumnSpacing="12">
                                     <Grid.GestureRecognizers>
                                         <TapGestureRecognizer
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.PickCommand}"
@@ -106,7 +106,7 @@
                                     </Grid.GestureRecognizers>
                                     <Label Grid.Column="0" Text="{Binding Icon}" FontSize="{StaticResource F4}"
                                            VerticalOptions="Center" />
-                                    <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                                    <VerticalStackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center">
                                         <Label Text="{Binding Name}" FontSize="{StaticResource F2}" TextTransform="Uppercase"
                                                LineBreakMode="TailTruncation" />
                                         <Label Text="{Binding Section}" Style="{StaticResource Caption}"
@@ -123,7 +123,7 @@
                 </VerticalStackLayout>
 
                 <!-- «Усі категорії» — внизу рівня розділів -->
-                <Grid ColumnDefinitions="*" Padding="16,14" IsVisible="{Binding ShowSections}">
+                <Grid ColumnDefinitions="*" Padding="16,12" IsVisible="{Binding ShowSections}">
                     <Grid.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding PickAllCommand}" />
                     </Grid.GestureRecognizers>

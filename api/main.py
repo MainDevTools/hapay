@@ -450,6 +450,28 @@ def _check_badge(badge: str | None):
         raise HTTPException(400, f"badge ∈ {', '.join(qdb.BADGE_FILTERS)}")
 
 
+def _attach_visuals(conn, rows) -> None:
+    """Мікрографік історії + гліф розділу для стрічок обох клієнтів (S32/S33).
+
+    ⚠ Спільна функція, а не копія в кожному ендпойнті, з дорогої причини: у S32 я
+    додав це ЛИШЕ в `/api/discounts`, вирішивши з памʼяті, що застосунок ходить
+    туди. Він ходить у `/api/products` — тобто в застосунку байндинги дивились у
+    порожнечу, і збірка про це мовчала, бо відсутнє поле JSON — не помилка.
+
+    `spark` — один запит на всю сторінку, не 50. Товари з надто короткою історією
+    сюди не потрапляють: клієнт малює графік лише там, де є що малювати.
+    `glyph` — ключ вектора для плитки БЕЗ фото; розділ живе лише в taxonomy (у БД
+    його нема), тож рахуємо там, інакше сайт і застосунок групували б однакові
+    товари під різними значками.
+    """
+    if not rows:
+        return
+    series = qdb.spark_series(conn, [r["store_product_id"] for r in rows])
+    for r in rows:
+        r["spark"] = series.get(r["store_product_id"], [])
+        r["glyph"] = glyph_key(r.get("category_slug") or "")
+
+
 @app.get("/api/discounts")
 def discounts(category: str | None = None, section: str | None = None,
               badge: str | None = None, q: str | None = None,
@@ -460,18 +482,7 @@ def discounts(category: str | None = None, section: str | None = None,
     _check_badge(badge); _check_section(section)
     rows = qdb.list_discounts(conn, category, badge, sort, limit=50, offset=page * 50, q=q,
                               price_min=price_min, price_max=price_max, section=section)
-    # Мікрографік історії просто в стрічці (S32): наша єдина унікальна річ — власні
-    # виміри — доти була невидима, доки людина не відкриє товар. Один запит на всю
-    # сторінку, не 50. Товари з надто короткою історією тут просто відсутні —
-    # клієнт малює графік лише там, де є що малювати.
-    if rows:
-        series = qdb.spark_series(conn, [r["store_product_id"] for r in rows])
-        for r in rows:
-            r["spark"] = series.get(r["store_product_id"], [])
-            # Гліф плитки для товарів без фото. Розділ живе лише в taxonomy (у БД його
-            # нема), тож і ключ вектора рахуємо там — інакше сайт і застосунок
-            # групували б однакові товари під різними значками.
-            r["glyph"] = glyph_key(r.get("category_slug") or "")
+    _attach_visuals(conn, rows)
     return rows
 
 
@@ -488,10 +499,12 @@ def products(category: str | None = None, section: str | None = None,
     мінімумом (вкл. provisional на неповному вікні); `badge=pumped` → лише ті, де
     «стара» ціна вища за фактичний 30-денний мінімум."""
     _check_badge(badge); _check_section(section)
-    return qdb.list_products(conn, category, sort, limit=50, offset=page * 50, q=q,
+    rows = qdb.list_products(conn, category, sort, limit=50, offset=page * 50, q=q,
                              section=section,
                              price_min=price_min, price_max=price_max,
                              only_discounts=only_discounts, badge=badge)
+    _attach_visuals(conn, rows)
+    return rows
 
 
 @app.get("/api/freshness")

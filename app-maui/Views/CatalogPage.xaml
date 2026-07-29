@@ -4,6 +4,7 @@
     x:Name="Page"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:ctl="clr-namespace:Hapay.Controls"
     xmlns:beh="clr-namespace:Hapay.Behaviors"
     xmlns:vm="clr-namespace:Hapay.ViewModels"
     xmlns:models="clr-namespace:Hapay.Models"
@@ -32,7 +33,7 @@
         <VerticalStackLayout Grid.Row="0" Padding="12,8" Spacing="8">
             <!-- фейк-поле: тап відкриває повний екран пошуку (SearchPage) — там живі
                  результати, збіги категорій і історія запитів (2026-07-25) -->
-            <Border Style="{StaticResource FilterBar}" Padding="14,12">
+            <Border Style="{StaticResource FilterBar}" Padding="12,12">
                 <Border.Behaviors>
                     <beh:PressFeedback />
                 </Border.Behaviors>
@@ -51,26 +52,26 @@
             <!-- Два входи, яких у застосунку не було (S28): виміряні зниження — наше
                  єдине непідробне твердження, а крамниці до цього жили лише на сайті. -->
             <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-                <Border Grid.Column="0" Style="{StaticResource Card}" Padding="12,10">
+                <Border Grid.Column="0" Style="{StaticResource Card}" Padding="12,8">
                     <Border.Behaviors>
                         <beh:PressFeedback />
                     </Border.Behaviors>
                     <Border.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding OpenDropsCommand}" />
                     </Border.GestureRecognizers>
-                    <VerticalStackLayout Spacing="1">
+                    <VerticalStackLayout Spacing="0">
                         <Label Text="📉 Що подешевшало" FontAttributes="Bold" FontSize="{StaticResource F3}" />
                         <Label Text="за нашими вимірами" Style="{StaticResource Caption}" />
                     </VerticalStackLayout>
                 </Border>
-                <Border Grid.Column="1" Style="{StaticResource Card}" Padding="12,10">
+                <Border Grid.Column="1" Style="{StaticResource Card}" Padding="12,8">
                     <Border.Behaviors>
                         <beh:PressFeedback />
                     </Border.Behaviors>
                     <Border.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding OpenStoresCommand}" />
                     </Border.GestureRecognizers>
-                    <VerticalStackLayout Spacing="1">
+                    <VerticalStackLayout Spacing="0">
                         <Label Text="🏪 Крамниці" FontAttributes="Bold" FontSize="{StaticResource F3}" />
                         <Label Text="за ким стежимо" Style="{StaticResource Caption}" />
                     </VerticalStackLayout>
@@ -116,8 +117,8 @@
                                                          холодильник) сідають чисто — жодних білих наліпок
                                                          на пастелі, вигляд уніфікований (як «Популярні
                                                          розділи»). Впіймано прогоном 2026-07-25. -->
-                                                    <Grid ColumnDefinitions="1.6*,1*" Padding="12,10,8,10"
-                                                          ColumnSpacing="5">
+                                                    <Grid ColumnDefinitions="1.6*,1*" Padding="12,8,8,8"
+                                                          ColumnSpacing="4">
                                                         <!-- Ширша текстова колонка + шрифт 12: односкладові
                                                              довгі назви («Кондиціонери», «Холодильники»)
                                                              WordWrap НЕ переносить (нема пробілу), тож мусять
@@ -134,7 +135,7 @@
                                                                FontAttributes="Bold" LineBreakMode="WordWrap"
                                                                HorizontalOptions="Fill" VerticalOptions="Center" />
                                                         <Border Grid.Column="1" BackgroundColor="{AppThemeBinding Light={StaticResource ThumbBgLight}, Dark={StaticResource ThumbBgDark}}"
-                                                                StrokeThickness="0" Padding="5" Margin="0,2"
+                                                                StrokeThickness="0" Padding="4" Margin="0,2"
                                                                 VerticalOptions="Fill"
                                                                 StrokeShape="RoundRectangle 12">
                                                             <Image Source="{Binding Cat.ImageUrl}"
@@ -159,7 +160,7 @@
                         <Label Text="Нещодавно переглянуті" Style="{StaticResource H2}"
                                Padding="16,8,16,0" />
                         <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
-                            <HorizontalStackLayout Padding="16,0" Spacing="10"
+                            <HorizontalStackLayout Padding="16,0" Spacing="8"
                                                    BindableLayout.ItemsSource="{Binding Recent}">
                                 <BindableLayout.ItemTemplate>
                                     <DataTemplate x:DataType="models:Discount">
@@ -175,7 +176,13 @@
                                             <VerticalStackLayout Spacing="6">
                                                 <Border HeightRequest="72" Padding="6"
                                                         Style="{StaticResource Thumb}">
-                                                    <Image Source="{Binding ImageUrl}" Aspect="AspectFit" />
+                                                    <Grid>
+                                                        <ctl:GlyphView GlyphKey="{Binding Glyph}" IsVisible="{Binding NoImage}"
+                                                                       HeightRequest="30" WidthRequest="30"
+                                                                       HorizontalOptions="Center" VerticalOptions="Center"
+                                                                       GlyphColor="{AppThemeBinding Light={StaticResource IndicatorLight}, Dark={StaticResource IndicatorDark}}" />
+                                                        <Image Source="{Binding ImageUrl}" Aspect="AspectFit" />
+                                                    </Grid>
                                                 </Border>
                                                 <Label Text="{Binding Title}" Style="{StaticResource Caption}"
                                                        FontSize="{StaticResource F1}" MaxLines="2" LineBreakMode="TailTruncation" />
@@ -193,11 +200,11 @@
                         <Label Text="Популярні моделі" Style="{StaticResource H2}"
                                Padding="16,8,16,0" />
                         <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
-                            <HorizontalStackLayout Padding="16,0" Spacing="10"
+                            <HorizontalStackLayout Padding="16,0" Spacing="8"
                                                    BindableLayout.ItemsSource="{Binding Popular}">
                                 <BindableLayout.ItemTemplate>
                                     <DataTemplate x:DataType="models:Discount">
-                                        <Border WidthRequest="140" Style="{StaticResource Card}" Padding="10">
+                                        <Border WidthRequest="140" Style="{StaticResource Card}" Padding="8">
                                             <Border.Behaviors>
                                                 <beh:PressFeedback />
                                             </Border.Behaviors>
@@ -209,7 +216,13 @@
                                             <VerticalStackLayout Spacing="8">
                                                 <Border HeightRequest="86" Padding="8"
                                                         Style="{StaticResource Thumb}">
-                                                    <Image Source="{Binding ImageUrl}" Aspect="AspectFit" />
+                                                    <Grid>
+                                                        <ctl:GlyphView GlyphKey="{Binding Glyph}" IsVisible="{Binding NoImage}"
+                                                                       HeightRequest="34" WidthRequest="34"
+                                                                       HorizontalOptions="Center" VerticalOptions="Center"
+                                                                       GlyphColor="{AppThemeBinding Light={StaticResource IndicatorLight}, Dark={StaticResource IndicatorDark}}" />
+                                                        <Image Source="{Binding ImageUrl}" Aspect="AspectFit" />
+                                                    </Grid>
                                                 </Border>
                                                 <Label Text="{Binding Title}" Style="{StaticResource Caption}"
                                                        MaxLines="2" LineBreakMode="TailTruncation" />
@@ -226,9 +239,9 @@
                     <!-- «Популярні розділи»: картки з фото + лінки топ-категорій -->
                     <VerticalStackLayout Spacing="8" IsVisible="{Binding HasPopularSections}">
                         <Label Text="Популярні розділи" Style="{StaticResource H2}"
-                               Padding="16,10,16,0" />
+                               Padding="16,8,16,0" />
                         <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
-                            <HorizontalStackLayout Padding="16,0" Spacing="10"
+                            <HorizontalStackLayout Padding="16,0" Spacing="8"
                                                    BindableLayout.ItemsSource="{Binding PopularSections}">
                                 <BindableLayout.ItemTemplate>
                                     <DataTemplate x:DataType="vm:SectionCard">
@@ -241,15 +254,15 @@
                                                         IsVisible="{Binding HasImage}">
                                                     <Image Source="{Binding ImageUrl}" Aspect="AspectFit" />
                                                 </Border>
-                                                <VerticalStackLayout Padding="14,10,14,12" Spacing="7">
+                                                <VerticalStackLayout Padding="12,8,12,12" Spacing="6">
                                                     <Label Text="{Binding Title}" FontAttributes="Bold"
                                                            FontSize="{StaticResource F3}" />
                                                     <FlexLayout Wrap="Wrap" JustifyContent="Start"
                                                                 BindableLayout.ItemsSource="{Binding Cats}">
                                                         <BindableLayout.ItemTemplate>
                                                             <DataTemplate x:DataType="models:Category">
-                                                                <Label Text="{Binding Name}" FontSize="12.5"
-                                                                       Margin="0,0,14,7"
+                                                                <Label Text="{Binding Name}" FontSize="{StaticResource F1}"
+                                                                       Margin="0,0,12,6"
                                                                        TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}">
                                                                     <Label.GestureRecognizers>
                                                                         <TapGestureRecognizer
@@ -270,7 +283,7 @@
                     </VerticalStackLayout>
 
                     <!-- вхід у повний каталог (171 категорія живе там, не на головній) -->
-                    <Border Style="{StaticResource Card}" Margin="16,10" Padding="14,12"
+                    <Border Style="{StaticResource Card}" Margin="16,8" Padding="12,12"
                             StrokeShape="RoundRectangle 12">
                         <Border.Behaviors>
                             <beh:PressFeedback />

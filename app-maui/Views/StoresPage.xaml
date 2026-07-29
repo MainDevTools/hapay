@@ -17,7 +17,7 @@
 
     <Grid RowDefinitions="Auto,*">
 
-        <VerticalStackLayout Grid.Row="0" Padding="14,10" Spacing="6">
+        <VerticalStackLayout Grid.Row="0" Padding="12,8" Spacing="6">
             <!-- Це НЕ рейтинг — і сказати це треба до того, як людина побачить числа.
                  Мітка стосується окремої знижки, а не продавця (T12). -->
             <Label Text="Тут лише факти наших спостережень: скільки товарів бачимо і скільки знижок. Це не рейтинг чесності — мітка стосується окремої знижки, а не крамниці."
@@ -31,7 +31,7 @@
             <CollectionView ItemsSource="{Binding Items}">
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:Store">
-                        <Border Style="{StaticResource Card}" Padding="14,12" Margin="12,4">
+                        <Border Style="{StaticResource Card}" Padding="12,12" Margin="12,4">
                             <Border.Behaviors>
                                 <beh:PressFeedback />
                             </Border.Behaviors>
@@ -40,7 +40,7 @@
                                     Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenStoreCommand}"
                                     CommandParameter="{Binding .}" />
                             </Border.GestureRecognizers>
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                 <VerticalStackLayout Grid.Column="0" Spacing="2">
                                     <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="{StaticResource F3}" />
                                     <Label Text="{Binding DiscountsLine}" Style="{StaticResource Caption}" />

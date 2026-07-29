@@ -15,7 +15,7 @@
 
     <Grid RowDefinitions="Auto,*,Auto">
 
-        <VerticalStackLayout Grid.Row="0" Padding="14,10" Spacing="6">
+        <VerticalStackLayout Grid.Row="0" Padding="12,8" Spacing="6">
             <Picker ItemsSource="{Binding ActionFilters}" SelectedItem="{Binding ActionFilter}"
                     FontSize="{StaticResource F3}" />
             <Label Text="{Binding TotalText}" Style="{StaticResource Caption}" />
@@ -48,7 +48,7 @@
             </CollectionView>
         </RefreshView>
 
-        <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Padding="14,8"
+        <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Padding="12,8"
               IsVisible="{Binding HasPages}">
             <Button Text="←" Command="{Binding PrevPageCommand}" WidthRequest="52"
                     HeightRequest="36" FontSize="{StaticResource F3}" />

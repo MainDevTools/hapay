@@ -16,7 +16,7 @@
 
     <Grid RowDefinitions="Auto,*,Auto">
 
-        <VerticalStackLayout Grid.Row="0" Padding="14,10" Spacing="8">
+        <VerticalStackLayout Grid.Row="0" Padding="12,8" Spacing="8">
             <!-- вхід у метрики й журнал: на телефоні їм тісно поруч зі списком -->
             <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                 <Button Text="Метрики" Command="{Binding OpenMetricsCommand}"
@@ -88,26 +88,26 @@
                                 <!-- дії; «Роль»/«Видалити» лише повному адміну (сервер гейтить теж) -->
                                 <FlexLayout Wrap="Wrap" JustifyContent="Start" Margin="0,4,0,0">
                                     <Button Text="{Binding BanActionText}" FontSize="{StaticResource F1}"
-                                            Padding="10,2" HeightRequest="32" Margin="0,0,6,4"
+                                            Padding="8,2" HeightRequest="32" Margin="0,0,6,4"
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.ToggleBanCommand}"
                                             CommandParameter="{Binding .}" />
-                                    <Button Text="Роль" FontSize="{StaticResource F1}" Padding="10,2"
+                                    <Button Text="Роль" FontSize="{StaticResource F1}" Padding="8,2"
                                             HeightRequest="32" Margin="0,0,6,4"
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.ChangeRoleCommand}"
                                             CommandParameter="{Binding .}"
                                             IsVisible="{Binding Source={x:Reference Page}, Path=BindingContext.CanChangeRoles}" />
-                                    <Button Text="Підтвердити email" FontSize="{StaticResource F1}" Padding="10,2"
+                                    <Button Text="Підтвердити email" FontSize="{StaticResource F1}" Padding="8,2"
                                             HeightRequest="32" Margin="0,0,6,4"
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.VerifyUserCommand}"
                                             CommandParameter="{Binding .}"
                                             IsVisible="{Binding CanVerify}" />
-                                    <Button Text="Скинути пароль" FontSize="{StaticResource F1}" Padding="10,2"
+                                    <Button Text="Скинути пароль" FontSize="{StaticResource F1}" Padding="8,2"
                                             HeightRequest="32" Margin="0,0,6,4"
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.SendResetCommand}"
                                             CommandParameter="{Binding .}" />
                                     <!-- незворотна дія: контурна, не залита — щоб не стояла
                                          врівень зі звичайними й не тиснулась навмання -->
-                                    <Button Text="Видалити" FontSize="{StaticResource F1}" Padding="10,2"
+                                    <Button Text="Видалити" FontSize="{StaticResource F1}" Padding="8,2"
                                             HeightRequest="32" Margin="0,0,6,4"
                                             BackgroundColor="Transparent" BorderWidth="1"
                                             TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}"
@@ -123,7 +123,7 @@
             </CollectionView>
         </RefreshView>
 
-        <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Padding="14,8"
+        <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Padding="12,8"
               IsVisible="{Binding HasPages}">
             <Button Text="←" Command="{Binding PrevPageCommand}" WidthRequest="52"
                     HeightRequest="36" FontSize="{StaticResource F3}" />

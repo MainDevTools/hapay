@@ -17,7 +17,7 @@
 
     <Grid RowDefinitions="Auto,*">
 
-        <VerticalStackLayout Grid.Row="0" Padding="14,10" Spacing="8">
+        <VerticalStackLayout Grid.Row="0" Padding="12,8" Spacing="8">
             <Label Text="Це не оголошення крамниць, а різниця між двома нашими вимірами. Знижку можна намалювати — зниження ціни ми бачимо самі."
                    Style="{StaticResource Caption}" />
 
@@ -45,7 +45,7 @@
             <CollectionView ItemsSource="{Binding Items}">
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:MeasuredDrop">
-                        <Border Style="{StaticResource Card}" Padding="12,10" Margin="12,4">
+                        <Border Style="{StaticResource Card}" Padding="12,8" Margin="12,4">
                             <Border.Behaviors>
                                 <beh:PressFeedback />
                             </Border.Behaviors>
@@ -54,7 +54,7 @@
                                     Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenDropCommand}"
                                     CommandParameter="{Binding .}" />
                             </Border.GestureRecognizers>
-                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                                 <Border Grid.Column="0" Style="{StaticResource Thumb}">
                                     <Image Source="{Binding ImageUrl}" Aspect="AspectFit" />
                                 </Border>
@@ -64,7 +64,7 @@
                                     <Label Text="{Binding Store}" Style="{StaticResource Caption}" />
                                     <Label Text="{Binding WhenText}" Style="{StaticResource Caption}" />
                                 </VerticalStackLayout>
-                                <VerticalStackLayout Grid.Column="2" HorizontalOptions="End" Spacing="1">
+                                <VerticalStackLayout Grid.Column="2" HorizontalOptions="End" Spacing="0">
                                     <!-- PillDiscount — стиль BORDER (пігулка-контейнер),
                                          а не Label: почеплений на Label він валить
                                          застосунок InvalidCastException у

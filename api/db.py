@@ -339,7 +339,7 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
         ),
         ev AS (
             SELECT l.store_product_id, sp.title, sp.url, sp.image_url, sp.variant_note, sp.match_key,
-                   s.name AS store, sp.source_id, sp.first_seen_at,
+                   s.name AS store, sp.source_id, sp.first_seen_at, c.slug AS category_slug,
                    l.current_kop, l.old_declared_kop,
                    de.discount_event_id, de.declared_pct, de.verified_pct,
                    COALESCE(de.badge_state, 'none') AS badge_state,
@@ -362,8 +362,8 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
         best AS (   -- одна картка на групу (MPN): найдешевша, знижкова пріоритетно
             SELECT DISTINCT ON (gkey)
                    gkey, store_product_id, title, url, image_url, variant_note, match_key, store,
-                   source_id, first_seen_at, current_kop, old_declared_kop, declared_pct,
-                   verified_pct, badge_state, discount_event_id, shown_pct
+                   source_id, first_seen_at, category_slug, current_kop, old_declared_kop,
+                   declared_pct, verified_pct, badge_state, discount_event_id, shown_pct
             FROM ev {narrow_sql}
             -- `used` ПЕРШИМ: уцінене/відновлене не може представляти групу, поки в ній
             -- є чиста пропозиція. Інакше картка бере в уціненого і назву, і фото, і ціну:
@@ -399,6 +399,7 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
             FROM ev WHERE NOT used {alt_scope}GROUP BY gkey
         )
         SELECT b.store_product_id, b.title, b.url, b.image_url, b.variant_note, b.store,
+               b.category_slug,
                b.current_kop, b.old_declared_kop, b.declared_pct, b.verified_pct, b.badge_state,
                (b.discount_event_id IS NOT NULL) AS has_discount,
                ch.kop AS cheaper_kop, ch.store AS cheaper_store,

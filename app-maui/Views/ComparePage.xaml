@@ -39,8 +39,8 @@
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenProductCommand}"
                                             CommandParameter="{Binding .}" />
                                     </Border.GestureRecognizers>
-                                    <VerticalStackLayout Spacing="5">
-                                        <Border HeightRequest="80" Padding="5" Style="{StaticResource Thumb}">
+                                    <VerticalStackLayout Spacing="4">
+                                        <Border HeightRequest="80" Padding="4" Style="{StaticResource Thumb}">
                                             <Image Source="{Binding ImageUrl}" Aspect="AspectFit"
                                                    AutomationProperties.IsInAccessibleTree="False" />
                                         </Border>
@@ -68,11 +68,11 @@
                 </Border>
 
                 <!-- таблиця характеристик: рядок = атрибут, колонки = товари -->
-                <VerticalStackLayout Spacing="0" IsVisible="{Binding HasSpecs}" Margin="0,10,0,0"
+                <VerticalStackLayout Spacing="0" IsVisible="{Binding HasSpecs}" Margin="0,8,0,0"
                                      BindableLayout.ItemsSource="{Binding SpecRows}">
                     <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="models:SpecRow">
-                            <HorizontalStackLayout Spacing="8" Padding="0,7">
+                            <HorizontalStackLayout Spacing="8" Padding="0,6">
                                 <Label Text="{Binding Name}" WidthRequest="104" FontSize="{StaticResource F1}"
                                        FontAttributes="Bold" LineBreakMode="WordWrap"
                                        VerticalOptions="Center" />

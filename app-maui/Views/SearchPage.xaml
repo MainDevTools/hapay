@@ -4,6 +4,7 @@
     x:Name="Page"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:ctl="clr-namespace:Hapay.Controls"
     xmlns:beh="clr-namespace:Hapay.Behaviors"
     xmlns:vm="clr-namespace:Hapay.ViewModels"
     xmlns:models="clr-namespace:Hapay.Models"
@@ -20,14 +21,14 @@
         </Border>
 
         <ScrollView Grid.Row="1">
-            <VerticalStackLayout Padding="12,0,12,24" Spacing="10">
+            <VerticalStackLayout Padding="12,0,12,24" Spacing="8">
 
                 <!-- історія запитів (порожнє поле): рядки з видаленням -->
                 <VerticalStackLayout Spacing="2" IsVisible="{Binding ShowHistory}"
                                      BindableLayout.ItemsSource="{Binding History}">
                     <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="x:String">
-                            <Grid ColumnDefinitions="Auto,*,Auto" Padding="4,10" ColumnSpacing="10">
+                            <Grid ColumnDefinitions="Auto,*,Auto" Padding="4,8" ColumnSpacing="8">
                                 <Grid.GestureRecognizers>
                                     <TapGestureRecognizer
                                         Command="{Binding Source={x:Reference Page}, Path=BindingContext.PickHistoryCommand}"
@@ -37,7 +38,7 @@
                                        AutomationProperties.IsInAccessibleTree="False" />
                                 <Label Grid.Column="1" Text="{Binding .}" FontSize="{StaticResource F3}"
                                        VerticalOptions="Center" LineBreakMode="TailTruncation" />
-                                <Label Grid.Column="2" Text="✕" FontSize="{StaticResource F3}" Padding="10,0"
+                                <Label Grid.Column="2" Text="✕" FontSize="{StaticResource F3}" Padding="8,0"
                                        Style="{StaticResource Caption}" VerticalOptions="Center"
                                        SemanticProperties.Description="Видалити запит з історії">
                                     <Label.GestureRecognizers>
@@ -58,7 +59,7 @@
                                 BindableLayout.ItemsSource="{Binding CategoryMatches}">
                         <BindableLayout.ItemTemplate>
                             <DataTemplate x:DataType="models:Category">
-                                <Border Style="{StaticResource Card}" Padding="10,4"
+                                <Border Style="{StaticResource Card}" Padding="8,4"
                                         Margin="0,0,6,6" StrokeShape="RoundRectangle 12">
                                     <Border.Behaviors>
                                         <beh:PressFeedback />
@@ -101,11 +102,17 @@
                                             Command="{Binding Source={x:Reference Page}, Path=BindingContext.OpenProductCommand}"
                                             CommandParameter="{Binding .}" />
                                     </Border.GestureRecognizers>
-                                    <Grid ColumnDefinitions="44,*,Auto" ColumnSpacing="10">
+                                    <Grid ColumnDefinitions="44,*,Auto" ColumnSpacing="8">
                                         <Border Grid.Column="0" Style="{StaticResource Thumb}"
-                                                WidthRequest="44" HeightRequest="44" Padding="3">
-                                            <Image Source="{Binding ImageUrl}" Aspect="AspectFit"
+                                                WidthRequest="44" HeightRequest="44" Padding="2">
+                                                                                        <Grid>
+                                                <ctl:GlyphView GlyphKey="{Binding Glyph}" IsVisible="{Binding NoImage}"
+                                                               HeightRequest="22" WidthRequest="22"
+                                                               HorizontalOptions="Center" VerticalOptions="Center"
+                                                               GlyphColor="{AppThemeBinding Light={StaticResource IndicatorLight}, Dark={StaticResource IndicatorDark}}" />
+                                                <Image Source="{Binding ImageUrl}" Aspect="AspectFit"
                                                    AutomationProperties.IsInAccessibleTree="False" />
+                                            </Grid>
                                         </Border>
                                         <Label Grid.Column="1" Text="{Binding Title}" FontSize="{StaticResource F2}"
                                                MaxLines="2" LineBreakMode="TailTruncation"
