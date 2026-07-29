@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Hapay.Views.HowPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:Hapay.ViewModels"
+    x:DataType="vm:HowViewModel"
+    Title="Як ми перевіряємо">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="16">
+
+            <Label Style="{StaticResource H1}"
+                   Text="Ми не віримо цінникам на слово" />
+            <Label Style="{StaticResource Body}" FontSize="{StaticResource F4}"
+                   TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}"
+                   Text="Щодня записуємо ціни самі й порівнюємо заявлену «стару» ціну з тим, що бачили насправді." />
+
+            <Border Style="{StaticResource Card}" Padding="16">
+                <VerticalStackLayout Spacing="8">
+                    <Label Style="{StaticResource H2}" Text="Правило, за яким рахуємо" />
+                    <Label Style="{StaticResource Body}"
+                           Text="Закон України №3153-IX каже, що чесна «стара» ціна — це найнижча ціна за останні 30 днів, а не будь-яка ціна, яка колись була. Саме це ми й перевіряємо." />
+                    <Label Style="{StaticResource Body}"
+                           Text="Тобто якщо крамниця пише «було 20 000, стало 15 000», а за 30 днів ми самі бачили цей товар за 15 500 — знижка не 25%, а 3%." />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Padding="16">
+                <VerticalStackLayout Spacing="12">
+                    <Label Style="{StaticResource H2}" Text="Що означають мітки" />
+                    <VerticalStackLayout Spacing="4">
+                        <Label Style="{StaticResource Body}" FontAttributes="Bold" Text="🛡 знижка перевірена" />
+                        <Label Style="{StaticResource Caption}"
+                               Text="Заявлена «стара» ціна збігається з нашою історією: ціна справді нижча за все, що ми бачили за 30 днів." />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Spacing="4">
+                        <Label Style="{StaticResource Body}" FontAttributes="Bold" Text="⚠ «стара» ціна завищена" />
+                        <Label Style="{StaticResource Caption}"
+                               Text="За 30 днів такої «старої» ціни ми не бачили — знижка виглядає більшою, ніж вона є." />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Spacing="4">
+                        <Label Style="{StaticResource Body}" FontAttributes="Bold" Text="без мітки" />
+                        <Label Style="{StaticResource Caption}"
+                               Text="Історії ще замало, щоб щось стверджувати. Це не докір крамниці — це чесна межа наших даних." />
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Ринковий зріз. ⚠ Поки вибірка мала — ЖОДНОГО відсотка: «половина знижок
+                 накачані» на вибірці 138 було б рівно тією накачаною знижкою, яку ми
+                 ловимо в крамниць. Сервер віддає `confident`, і тут це поважається
+                 буквально: два різні блоки, а не один із порожнім числом. -->
+            <Border Style="{StaticResource Card}" Padding="16" IsVisible="{Binding HasMarket}">
+                <VerticalStackLayout Spacing="8">
+                    <Label Style="{StaticResource H2}" Text="Скільки ми вже змогли перевірити" />
+                    <Label Style="{StaticResource Body}" IsVisible="{Binding Market.Confident}"
+                           Text="{Binding Market.ConfidentText}" />
+                    <Label Style="{StaticResource Body}" IsVisible="{Binding Market.NotConfident}"
+                           Text="{Binding Market.SampleText}" />
+                    <Label Style="{StaticResource Caption}" IsVisible="{Binding Market.NotConfident}"
+                           Text="{Binding Market.BreakdownText}" />
+                    <Label Style="{StaticResource Caption}" IsVisible="{Binding Market.NotConfident}"
+                           Text="{Binding Market.SilenceText}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Padding="16">
+                <VerticalStackLayout Spacing="8">
+                    <Label Style="{StaticResource H2}" Text="Чого ми НЕ стверджуємо" />
+                    <Label Style="{StaticResource Body}"
+                           Text="Ми не оцінюємо чесність крамниць і не складаємо рейтингів. Мітка стосується однієї конкретної знижки, а не продавця." />
+                    <Label Style="{StaticResource Body}"
+                           Text="Ми не бачимо ціну щосекунди. Між нашими вимірами ціна могла змінюватись — і ми цього не фіксували." />
+                    <Label Style="{StaticResource Body}"
+                           Text="Ми не отримуємо грошей від крамниць за позиції у списку." />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Padding="16">
+                <VerticalStackLayout Spacing="8">
+                    <Label Style="{StaticResource H2}" Text="Звідки дані" />
+                    <Label Style="{StaticResource Body}"
+                           Text="З публічних сторінок українських крамниць. Зберігаємо лише факти: ціну, назву, посилання, час спостереження й технічні характеристики з провенансом. Описи товарів не зберігаємо. Фотографії не копіюємо — показуємо посилання на оригінал." />
+                </VerticalStackLayout>
+            </Border>
+
+            <Button Text="Перевірити, що ми не переписуємо історію"
+                    Command="{Binding OpenVerifyCommand}" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

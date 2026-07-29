@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Hapay.Views.VerifyPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:Hapay.ViewModels"
+    xmlns:models="clr-namespace:Hapay.Models"
+    x:DataType="vm:VerifyViewModel"
+    Title="Перевірка записів">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="16">
+
+            <Label Style="{StaticResource H1}"
+                   Text="Як перевірити, що ми не переписуємо історію" />
+            <Label Style="{StaticResource Body}" FontSize="{StaticResource F4}"
+                   TextColor="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}"
+                   Text="Ми кажемо, що записи цін незмінні. Це легко сказати — тому нижче спосіб перевірити це без довіри до нас." />
+
+            <Border Style="{StaticResource Card}" Padding="16">
+                <VerticalStackLayout Spacing="8">
+                    <Label Style="{StaticResource H2}" Text="Що ми робимо щодоби" />
+                    <Label Style="{StaticResource Body}"
+                           Text="Наприкінці кожної доби беремо всі спостереження за цінами за цей день, будуємо з них дерево Меркла й записуємо його корінь. Корінь кожної доби «зшивається» з попереднім у ланцюжок." />
+                    <Label Style="{StaticResource Body}"
+                           Text="Якщо змінити хоч один запис заднім числом — зміниться корінь тієї доби, а разом із ним усі наступні ланки. Тихо підмінити ціну неможливо." />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Цей блок мусить бути в застосунку так само, як на сайті: доказ без
+                 переліку власних меж — це реклама, а не доказ. -->
+            <Border Style="{StaticResource Card}" Padding="16">
+                <VerticalStackLayout Spacing="8">
+                    <Label Style="{StaticResource H2}" Text="⚠ Чого це НЕ доводить" />
+                    <Label Style="{StaticResource Body}"
+                           Text="Якби корені жили лише в нашій базі, ми теоретично могли б перерахувати весь ланцюг після підміни. Тому вони щодня виносяться в публічний репозиторій — підробка означала б переписування публічної історії git, а це видно." />
+                    <Label Style="{StaticResource Body}"
+                           Text="І ще чесно: печатка доводить незмінність НАШИХ записів, а не те, що крамниця показувала саме цю ціну. Ми ручаємось за виміряне, не за побачене кимось іншим." />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Style="{StaticResource H2}" Text="Печатки" />
+
+            <ActivityIndicator IsRunning="{Binding Loading}" IsVisible="{Binding Loading}"
+                               HorizontalOptions="Center" />
+            <Label Style="{StaticResource Caption}" IsVisible="{Binding Empty}"
+                   Text="Перша печатка зʼявиться наприкінці цієї доби: печатка ставиться лише на ПОВНУ добу, інакше вона була б хибною за побудовою." />
+            <Label Style="{StaticResource Caption}" IsVisible="{Binding HasError}"
+                   Text="{Binding Error, StringFormat='Не вдалося завантажити: {0}'}" />
+
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Seals}" Spacing="8">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="models:DaySeal">
+                        <Border Style="{StaticResource Card}" Padding="12">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Style="{StaticResource Body}" FontAttributes="Bold"
+                                       Text="{Binding HeadText}" />
+                                <Label Style="{StaticResource Caption}" Text="корінь" />
+                                <!-- Моноширинний і з переносом будь-де: хеш — це рядок,
+                                     який людина звіряє символ за символом, а не читає. -->
+                                <Label Style="{StaticResource Caption}" FontFamily="Monospace"
+                                       LineBreakMode="CharacterWrap" Text="{Binding MerkleRoot}" />
+                                <Label Style="{StaticResource Caption}" Text="ланцюжок" />
+                                <Label Style="{StaticResource Caption}" FontFamily="Monospace"
+                                       LineBreakMode="CharacterWrap" Text="{Binding Chain}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

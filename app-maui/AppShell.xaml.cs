@@ -40,5 +40,9 @@ public partial class AppShell : Shell
         Routing.RegisterRoute(nameof(LoginPage), typeof(LoginPage));
         Routing.RegisterRoute(nameof(ProfilePage), typeof(ProfilePage));
         Routing.RegisterRoute(nameof(WatchlistPage), typeof(WatchlistPage));
+        // S34: доказовість і канонічна модель більше не вимагають виходу в браузер.
+        Routing.RegisterRoute(nameof(HowPage), typeof(HowPage));
+        Routing.RegisterRoute(nameof(VerifyPage), typeof(VerifyPage));
+        Routing.RegisterRoute(nameof(ModelPage), typeof(ModelPage));
     }
 }

@@ -151,6 +151,15 @@
                     <TapGestureRecognizer Command="{Binding ExplainBadgesCommand}" />
                 </Label.GestureRecognizers>
             </Label>
+            <!-- Канонічна модель: та сама річ в інших крамницях. Показуємо лише коли
+                 модель справді є (артикул звірено) — інакше це посилання в нікуди. -->
+            <Label Text="⇄ Ця сама модель в інших крамницях" FontSize="{StaticResource F1}"
+                   IsVisible="{Binding HasModel}"
+                   TextColor="{AppThemeBinding Light={StaticResource BrandLight}, Dark={StaticResource BrandDark}}">
+                <Label.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding OpenModelCommand}" />
+                </Label.GestureRecognizers>
+            </Label>
 
             <!-- «Де купити» (T15/§17.5): той самий товар (mpn) у крамницях, від найдешевшої.
                  Видно лише коли є ≥2 крамниці — інакше блок не додає нічого. -->

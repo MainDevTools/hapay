@@ -94,6 +94,7 @@ def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, o
         WITH ev AS (
             SELECT de.discount_event_id, sp.store_product_id, sp.title, sp.url, sp.image_url,
                    sp.variant_note, sp.match_key, s.name AS store, c.slug AS category_slug,
+                   pr.product_id,
                    de.current_kop, de.old_declared_kop, de.reference_kop,
                    de.declared_pct, de.verified_pct, de.badge_state, de.computed_at,
                    COALESCE(sp.match_key, 'sp:' || sp.store_product_id) AS gkey
@@ -101,18 +102,23 @@ def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, o
             JOIN store_product sp USING (store_product_id)
             JOIN source s USING (source_id)
             JOIN category c ON c.category_id = sp.category_id
+            -- канонічна модель (S30): щоб клієнт міг ЗІ СТРІЧКИ повести на «ту саму річ
+            -- в інших крамницях». Доти product_id віддавала лише картка товару, тож
+            -- екран моделі в застосунку існував, але дійти до нього було нікуди.
+            LEFT JOIN product pr ON pr.match_key = sp.match_key
             WHERE {' AND '.join(where)}
         ),
         best AS (   -- одна картка на групу: представляє найдешевша (в наявності пріоритетно)
             SELECT DISTINCT ON (gkey)
                    discount_event_id, store_product_id, title, url, image_url, variant_note,
-                   match_key, store, category_slug, current_kop, old_declared_kop,
+                   match_key, store, category_slug, product_id, current_kop, old_declared_kop,
                    reference_kop, declared_pct, verified_pct, badge_state, computed_at
             FROM ev
             ORDER BY gkey, current_kop, badge_state
         )
         SELECT b.discount_event_id, b.store_product_id, b.title, b.url, b.image_url,
-               b.variant_note, b.store, b.category_slug, b.current_kop, b.old_declared_kop,
+               b.variant_note, b.store, b.category_slug, b.product_id,
+               b.current_kop, b.old_declared_kop,
                b.reference_kop, b.declared_pct, b.verified_pct, b.badge_state,
                {_PROMO_COL}
                CASE WHEN b.match_key IS NULL THEN 1
@@ -340,6 +346,7 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
         ev AS (
             SELECT l.store_product_id, sp.title, sp.url, sp.image_url, sp.variant_note, sp.match_key,
                    s.name AS store, sp.source_id, sp.first_seen_at, c.slug AS category_slug,
+                   pr.product_id,
                    l.current_kop, l.old_declared_kop,
                    de.discount_event_id, de.declared_pct, de.verified_pct,
                    COALESCE(de.badge_state, 'none') AS badge_state,
@@ -355,6 +362,7 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
             JOIN store_product sp USING (store_product_id)
             JOIN source s USING (source_id)
             JOIN category c ON c.category_id = sp.category_id
+            LEFT JOIN product pr ON pr.match_key = sp.match_key
             LEFT JOIN discount_event de
                    ON de.store_product_id = l.store_product_id AND de.ended_at IS NULL
             WHERE {' AND '.join(base)}
@@ -362,7 +370,7 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
         best AS (   -- одна картка на групу (MPN): найдешевша, знижкова пріоритетно
             SELECT DISTINCT ON (gkey)
                    gkey, store_product_id, title, url, image_url, variant_note, match_key, store,
-                   source_id, first_seen_at, category_slug, current_kop, old_declared_kop,
+                   source_id, first_seen_at, category_slug, product_id, current_kop, old_declared_kop,
                    declared_pct, verified_pct, badge_state, discount_event_id, shown_pct
             FROM ev {narrow_sql}
             -- `used` ПЕРШИМ: уцінене/відновлене не може представляти групу, поки в ній
@@ -399,7 +407,7 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
             FROM ev WHERE NOT used {alt_scope}GROUP BY gkey
         )
         SELECT b.store_product_id, b.title, b.url, b.image_url, b.variant_note, b.store,
-               b.category_slug,
+               b.category_slug, b.product_id,
                b.current_kop, b.old_declared_kop, b.declared_pct, b.verified_pct, b.badge_state,
                (b.discount_event_id IS NOT NULL) AS has_discount,
                ch.kop AS cheaper_kop, ch.store AS cheaper_store,

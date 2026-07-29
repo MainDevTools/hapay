@@ -60,6 +60,11 @@ public class Discount
     /// Ключ вектора для плитки товару БЕЗ фото (S32). Рахує taxonomy.glyph_key —
     /// розділ живе лише там, тож сайт і застосунок не мають групувати по-різному.
     [JsonPropertyName("glyph")] public string? Glyph { get; set; }
+    /// Канонічна модель (S30): той самий артикул у кількох крамницях. null — коли
+    /// товар не має ключа звірки; таких у базі приблизно половина, і це нормально.
+    [JsonPropertyName("product_id")] public int? ProductId { get; set; }
+    /// Скільки крамниць продають цю саму модель (картка товару).
+    [JsonPropertyName("group_stores")] public int? GroupStores { get; set; }
 
     // --- похідні для XAML-байндингу ---
     /// Малюємо графік лише там, де є що малювати. Той самий поріг, що на сайті.
@@ -819,4 +824,101 @@ public class PriceLow
         $"За {Days} дн. наших спостережень ({Measurements} вимірів з {FirstDay}) "
         + $"найнижча ціна була {Money.Grn(LowKop!.Value)}"
         + (string.IsNullOrEmpty(LowDay) ? "." : $" — {LowDay}.");
+}
+
+// ── доказовість і моделі в застосунку (S34) ──────────────────────────────────────
+// Ці три речі жили ЛИШЕ на сайті: «як перевіряємо», щоденна печатка спостережень і
+// канонічна модель (16 286 штук). Тобто найсильніше твердження продукту — «ми не
+// переписуємо історію, ось доказ» — вимагало вийти з застосунку в браузер.
+
+/// Ринковий зріз: скільки заявлених знижок ми змогли перевірити (/api/market).
+public class MarketIndex
+{
+    [JsonPropertyName("days")] public int Days { get; set; }
+    [JsonPropertyName("declared_total")] public int DeclaredTotal { get; set; }
+    [JsonPropertyName("sample_n")] public int SampleN { get; set; }
+    [JsonPropertyName("pumped")] public int Pumped { get; set; }
+    [JsonPropertyName("verified")] public int Verified { get; set; }
+    [JsonPropertyName("min_sample")] public int MinSample { get; set; }
+    /// ⚠ false = вибірки замало для висновку. Клієнт ЗОБОВʼЯЗАНИЙ у цьому разі
+    /// показати сирі лічильники без відсотка: «половина знижок накачані» на вибірці
+    /// 138 було б рівно тією накачаною знижкою, яку ми ловимо в крамниць (S31).
+    [JsonPropertyName("confident")] public bool Confident { get; set; }
+    [JsonPropertyName("pumped_pct")] public int? PumpedPct { get; set; }
+
+    [JsonIgnore] public string SampleText =>
+        $"Крамниці заявили {Money.N(DeclaredTotal)} знижок за {Days} днів. Ми змогли перевірити {Money.N(SampleN)}."
+            .Replace('\u00A0', ' ');
+    [JsonIgnore] public string BreakdownText =>
+        $"Серед перевірених: {Money.N(Verified)} підтверджених, {Money.N(Pumped)} із завищеною «старою» ціною."
+            .Replace('\u00A0', ' ');
+    [JsonIgnore] public string SilenceText =>
+        $"Відсотка не називаємо навмисно — на такій вибірці (потрібно щонайменше {Money.N(MinSample)}) "
+        + "це була б наша власна накачана знижка. Число зʼявиться, коли даних вистачить.";
+    [JsonIgnore] public string ConfidentText =>
+        $"За {Days} днів ми перевірили {Money.N(SampleN)} заявлених знижок. У {PumpedPct}% із них "
+        + "«стара» ціна виявилась вищою за все, що ми бачили за попередні 30 днів.";
+    [JsonIgnore] public bool NotConfident => !Confident;
+}
+
+/// Одна добова печатка спостережень (/api/verify).
+public class DaySeal
+{
+    [JsonPropertyName("day")] public string Day { get; set; } = "";
+    [JsonPropertyName("rows_n")] public int RowsN { get; set; }
+    [JsonPropertyName("merkle_root")] public string MerkleRoot { get; set; } = "";
+    [JsonPropertyName("chain")] public string Chain { get; set; } = "";
+
+    [JsonIgnore] public string HeadText => $"{Day} · {Money.N(RowsN)} спостережень".Replace('\u00A0', ' ');
+}
+
+public class VerifyInfo
+{
+    [JsonPropertyName("format")] public string? Format { get; set; }
+    [JsonPropertyName("seals")] public List<DaySeal> Seals { get; set; } = new();
+}
+
+/// Канонічна модель: усі сторінки крамниць під одним артикулом (/api/model/{id}).
+/// ⚠ Бейджі лишаються ПОСТОРІНКОВИМИ: закон говорить про мінімум за 30 днів у ЦЬОГО
+/// продавця, тож «модельного» вердикту не існує.
+public class ModelOffer
+{
+    [JsonPropertyName("store_product_id")] public int StoreProductId { get; set; }
+    [JsonPropertyName("title")] public string Title { get; set; } = "";
+    [JsonPropertyName("store")] public string Store { get; set; } = "";
+    [JsonPropertyName("current_kop")] public int CurrentKop { get; set; }
+    [JsonPropertyName("badge_state")] public string? BadgeState { get; set; }
+
+    [JsonIgnore] public string PriceText => Money.Grn(CurrentKop);
+    [JsonIgnore] public bool IsBest { get; set; }
+    [JsonIgnore] public string BestText => IsBest ? "найдешевше" : "";
+    /// Мова міток скопійована ДОСЛІВНО з інших моделей цього ж файлу: два різні
+    /// формулювання одного стану — це те, з чого починається розходження поверхонь.
+    [JsonIgnore] public string? Badge => BadgeState switch
+    {
+        "verified" or "verified_provisional" => "🛡 знижка перевірена",
+        "pumped" => "⚠ «стара» ціна завищена",
+        _ => null,
+    };
+    [JsonIgnore] public bool HasBadge => Badge is not null;
+    [JsonIgnore] public string BadgeLine => Badge ?? "";
+}
+
+public class ModelCard
+{
+    [JsonPropertyName("product_id")] public int ProductId { get; set; }
+    [JsonPropertyName("title")] public string Title { get; set; } = "";
+    [JsonPropertyName("category")] public string? Category { get; set; }
+    [JsonPropertyName("image_url")] public string? ImageUrl { get; set; }
+    [JsonPropertyName("min_kop")] public int? MinKop { get; set; }
+    [JsonPropertyName("max_kop")] public int? MaxKop { get; set; }
+    [JsonPropertyName("stores_n")] public int StoresN { get; set; }
+    [JsonPropertyName("offers")] public List<ModelOffer> Offers { get; set; } = new();
+
+    [JsonIgnore] public bool NoImage => string.IsNullOrEmpty(ImageUrl);
+    [JsonIgnore] public string RangeText =>
+        MinKop is int lo
+            ? (MaxKop is int hi && hi > lo ? $"від {Money.Grn(lo)} до {Money.Grn(hi)}" : Money.Grn(lo))
+            : "—";
+    [JsonIgnore] public string StoresText => $"у {StoresN} крамницях";
 }

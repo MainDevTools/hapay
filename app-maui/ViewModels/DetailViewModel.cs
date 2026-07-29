@@ -13,7 +13,16 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
     private readonly ApiService _api;
     private readonly AuthService _auth;
 
-    [ObservableProperty] private Discount? _item;
+    // NotifyPropertyChangedFor: HasModel — похідна від Item, і без цього рядка вона
+    // порахувалась би ОДИН раз при створенні VM (тобто на порожньому товарі) і
+    // більше ніколи. Посилання просто не зʼявилось би, і ніщо про це не сказало б.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasModel))]
+    private Discount? _item;
+
+    /// Модель показуємо лише там, де артикул звірено: приблизно половина бази
+    /// ключа не має, і посилання «в інших крамницях» вело б у порожню сторінку.
+    public bool HasModel => Item?.ProductId is int p && p > 0;
     [ObservableProperty] private bool _watchBusy;
     [ObservableProperty] private string? _watchNote;   // результат дії — коротко, у картці
     [ObservableProperty] private bool _isWatched;      // вже у відстеженні
@@ -191,17 +200,22 @@ public partial class DetailViewModel : ObservableObject, IQueryAttributable
 
     /// «ⓘ Як ми перевіряємо знижки» — прозорість детекції (юр-плюс: формулювання
     /// фактологічні, суголосні бейджам §5.4; «чесність крамниці» не оцінюємо).
+    ///
+    /// ⚠ З S34 це ПОВНА СТОРІНКА, а не DisplayAlert. Метод продукту — не примітка
+    /// на пів екрана: у ньому правило закону, межі наших даних, ринковий зріз і вихід
+    /// на доказ незмінності записів. Алерт не дає ні прокрутки, ні посилань.
     [RelayCommand]
-    private async Task ExplainBadges() => await Shell.Current.DisplayAlert(
-        "Як ми перевіряємо знижки",
-        "Ми щодня зберігаємо ціни крамниць і звіряємо кожну знижку з правилом " +
-        "закону №3153-IX: чесна «стара ціна» — це найнижча ціна за останні 30 днів.\n\n" +
-        "✓ підтверджена — заявлена стара ціна збігається з нашою історією цін\n" +
-        "· заявлена — історії ще замало, щоб перевірити\n" +
-        "⚠ завищена — за 30 днів такої «старої» ціни ми не бачили\n\n" +
-        "🏆 Наш вибір — відкрита формула з ціни, перевірки знижок і самовивозу " +
-        "(складники — в блоці вибору). Крамниці не платять за позиції.",
-        "Зрозуміло");
+    private async Task ExplainBadges() =>
+        await Shell.Current.GoToAsync(nameof(Views.HowPage));
+
+    /// Перехід на канонічну модель: та сама річ в інших крамницях (S34). Доти
+    /// 16 286 моделей були доступні лише на сайті.
+    [RelayCommand]
+    private async Task OpenModel()
+    {
+        if (Item?.ProductId is int pid && pid > 0)
+            await Shell.Current.GoToAsync($"{nameof(Views.ModelPage)}?id={pid}");
+    }
 
     /// Цільова ціна (S29): «сповісти, коли впаде до X». Порожньо = будь-яке зниження,
     /// тобто стара поведінка — нікого не змушуємо називати число.

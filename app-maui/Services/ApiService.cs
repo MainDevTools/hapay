@@ -44,6 +44,23 @@ public class ApiService
         return await _http.GetFromJsonAsync<List<Discount>>(url, _json, ct) ?? new();
     }
 
+    // ── доказовість і моделі (S34) ──────────────────────────────────────────────
+    // Три публічні ендпоінти, які доти читав лише сайт. Без них найсильніше
+    // твердження продукту («не переписуємо історію, ось доказ») вимагало вийти
+    // з застосунку в браузер.
+
+    /// Ринковий зріз: скільки заявлених знижок ми змогли перевірити.
+    public async Task<MarketIndex?> MarketAsync(int days = 30, CancellationToken ct = default) =>
+        await _http.GetFromJsonAsync<MarketIndex>($"{Base}/api/market?days={days}", _json, ct);
+
+    /// Печатки спостережень: корінь Меркла кожної доби + ланцюжок.
+    public async Task<VerifyInfo?> VerifyChainAsync(CancellationToken ct = default) =>
+        await _http.GetFromJsonAsync<VerifyInfo>($"{Base}/api/verify", _json, ct);
+
+    /// Канонічна модель: усі сторінки крамниць під одним артикулом.
+    public async Task<ModelCard?> ModelAsync(int productId, CancellationToken ct = default) =>
+        await _http.GetFromJsonAsync<ModelCard>($"{Base}/api/model/{productId}", _json, ct);
+
     /// УСІ товари (не лише знижки) — повний прайс-агрегатор. onlyDiscounts=true → лише знижкові.
     public async Task<List<Discount>> ProductsAsync(
         string? category = null, string? q = null, string sort = "discount", int page = 0,
