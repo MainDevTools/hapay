@@ -69,6 +69,8 @@ jobs:
         run: python tests/test_sqlsafe.py
       - name: "webguard — мертвий Mini App, неоголошені токени, порядок @media"
         run: python tests/test_webguard.py
+      - name: "merkle — доказ ламається від підміни (інакше печатка декоративна)"
+        run: python tests/test_merkle.py
 
       # ── підключено 2026-07-26: 25 тестів існували, але в CI не значились ────────
       # Тобто зелений CI нічого про них не казав. Усі прогнано локально перед

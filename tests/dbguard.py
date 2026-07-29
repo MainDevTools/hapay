@@ -23,7 +23,7 @@ import sys
 # product_spec; тоді ж виявлено, що S9-таблиці мали ту саму діру, приховану раннім
 # збоєм CI). Повноту стереже test_dbguard::test_reset_covers_all_migrated_tables.
 _TABLES = ("alert_sent", "alert_log", "ops_alert", "watchlist",
-           "product", "discount_event", "price_snapshot",
+           "day_seal", "product", "discount_event", "price_snapshot",
            "scan_run", "http_cache", "canary", "spec_attr", "product_spec",
            "store_product", "source_category_map", "category",
            "delivery_rule", "store_network", "choice_weights", "source",
