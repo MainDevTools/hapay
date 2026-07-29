@@ -163,7 +163,10 @@
     background-size:200% 100%;animation:sh 1.3s infinite;border-radius:8px}
   @keyframes sh{to{background-position:-200% 0}}
   .empty{text-align:center;padding:56px 24px;color:var(--muted)}
-  .empty .ic{font-size:40px;opacity:.5;margin-bottom:10px}
+  /* Значок порожнього стану малює тепер SVG (див. блок S33 нижче), тож ні font-size,
+     ні opacity тут більше не потрібні — і саме вони лишались діяти, коли я вважав
+     їх «прибраними»: нове правило нижче їх просто не перекривало, бо не оголошувало. */
+  .empty .ic{margin-bottom:12px;line-height:0}
   .empty .t{font-weight:650;color:var(--fg);margin-bottom:4px}
   .morewrap{text-align:center;padding:4px 12px 36px}
   .morebtn{background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:var(--radius-s);
@@ -708,9 +711,9 @@ h1.feedtitle{font-size:var(--f5);line-height:1.25;letter-spacing:-.02em;margin:2
 
 /* ── значки порожніх станів ──────────────────────────────────────────────────────
    Було font-size:40px + емодзі. Тепер вектор (ICONS у app.js), розмір задає SVG.
-   opacity прибрано: --faint уже приглушений, а .5 поверх нього робив значок
-   схожим на недомальований елемент, а не на навмисно тихий. */
-.empty .ic{margin-bottom:12px;line-height:0}
+   Без opacity: --faint уже приглушений, а .5 поверх нього робила значок схожим на
+   недомальований елемент, а не на навмисно тихий (заміряно на живому: 0.5 і далі
+   діяла, бо це правило її не оголошувало — тепер її прибрано в самому джерелі). */
 .empty .ic svg{width:46px;height:46px;color:var(--faint)}
 
 /* ── третя колонка на дуже широкому екрані ───────────────────────────────────────
