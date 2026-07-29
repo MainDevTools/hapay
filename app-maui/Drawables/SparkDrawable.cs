@@ -47,6 +47,14 @@ public sealed class SparkDrawable : IDrawable
         float Y(long v) => hi == lo ? rect.Height / 2f
                                     : pad + (float)((1 - (v - lo) / range) * h);
 
+        // Рамка 30-денного вікна. Заміряно на емуляторі: без неї товар, у якого є
+        // виміри лише за 5 діб із 30, малювався коротким відрізком посеред порожнечі
+        // й читався як випадкова риска, а не як графік. Лінія знизу каже, скільки
+        // вікна ми ПОКРИЛИ — і це те саме твердження, що «стежимо N днів із 30».
+        canvas.StrokeColor = LineColor.WithAlpha(0.28f);
+        canvas.StrokeSize = 1f;
+        canvas.DrawLine(pad, rect.Height - pad, rect.Width - pad, rect.Height - pad);
+
         var path = new PathF();
         path.MoveTo(X(pts[0][0]), Y(pts[0][1]));
         for (int i = 1; i < pts.Count; i++)

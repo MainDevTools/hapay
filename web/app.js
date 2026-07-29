@@ -317,8 +317,14 @@ function sparkMini(pts, days){
   const label = hi===lo
     ? `Наша ціна не змінювалась: ${grn(lo)}`
     : `Наші виміри: від ${grn(lo)} до ${grn(hi)}`;
+  /* Рамка 30-денного вікна. Без неї товар із вимірами лише за пʼять діб малювався
+     коротким відрізком посеред порожнечі й читався як випадкова риска, а не як
+     графік (побачено на емуляторі застосунку, де та сама логіка). Лінія знизу
+     показує, скільки вікна ми ПОКРИЛИ — те саме твердження, що «стежимо N із 30». */
   return `<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}"
-    ><title>${esc(label)}</title><path d="${d}" fill="none" stroke="currentColor"
+    ><title>${esc(label)}</title><line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}"
+    stroke="currentColor" stroke-width="1" opacity=".28" vector-effect="non-scaling-stroke"/
+    ><path d="${d}" fill="none" stroke="currentColor"
     stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"
     vector-effect="non-scaling-stroke"/></svg>`;
 }
