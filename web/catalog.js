@@ -33,8 +33,8 @@ function card(d){
       <div class="prices">
         <span class="now">${grn(d.current_kop)}</span>
         ${d.old_declared_kop?`<span class="old">${grn(d.old_declared_kop)}</span>`:''}
+        ${sparkMini(d.spark, 30)}
       </div>
-      ${sparkMini(d.spark, 30)}
       ${d.offers_n>1?`<div class="offers">Всі пропозиції (${d.offers_n})</div>`:''}
       <a class="buy" href="${href}">Порівняти ціни</a>
       ${cmpButton(d.store_product_id)}
