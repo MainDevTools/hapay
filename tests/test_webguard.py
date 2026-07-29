@@ -255,7 +255,13 @@ def test_single_h1_per_document():
         if page in _INTERNAL:
             continue
         n = len(re.findall(r"<h1[\s>]", _code(page)))
-        assert n <= 1, f"{page}: {n} тегів <h1> на одну сторінку"
+        # login/unsubscribe малюють КІЛЬКА взаємовиключних екранів в одному файлі —
+        # у DOM одночасно живе рівно один. Решта — строго один заголовок.
+        many_screens = page in {"login.html", "unsubscribe.html"}
+        assert n >= 1, (
+            f"{page}: жодного <h1>. Доти його роль мовчки грав бренд у шапці — тобто "
+            f"кожна сторінка сайту «називалась» однаково.")
+        assert n == 1 or many_screens, f"{page}: {n} тегів <h1> на одну сторінку"
 
 
 # ── 7. публічна сторінка живе у спільній системі ─────────────────────────────────

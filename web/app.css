@@ -60,6 +60,13 @@
     -webkit-font-smoothing:antialiased}
   a{color:inherit}
   .app{max-width:540px;margin:0 auto;position:relative}
+  /* Заголовок сторінки. Стоїть ТУТ, на початку, свідомо: це типове значення, яке
+     сторінка з власним характером (hero, форма, стрічка) мусить мати змогу перекрити
+     звичайним правилом нижче — @media й порядок у файлі вже коштували двох помилок.
+     До 2026-07-29 правила не існувало взагалі: 30px, які ми бачили, були браузерним
+     2em від тіла 15px, тобто випадковим числом. */
+  .app h1{font-size:clamp(24px,3.4vw,31px);line-height:1.15;letter-spacing:-.03em;
+    font-weight:750;margin:0 0 10px}
 
   /* header */
   header{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 86%,transparent);
@@ -325,7 +332,7 @@ a.brand{text-decoration:none;color:inherit}
 /* ── головна ── */
 .hero{padding:36px 0 20px}
 .hero-copy{text-align:center}
-.hero h2{font-size:clamp(26px,4vw,38px);line-height:1.15;margin:0 0 12px;letter-spacing:-.03em}
+.hero h1{font-size:clamp(26px,4vw,38px);line-height:1.15;margin:0 0 12px;letter-spacing:-.03em}
 .hero p{color:var(--muted);font-size:var(--f4);max-width:640px;margin:0 auto 22px;
   line-height:1.5}
 .hero .acts{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
@@ -372,7 +379,7 @@ a.brand{text-decoration:none;color:inherit}
 
 .sec{margin:36px 0 0}
 .sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
-.sec-h h2{margin:0;font-size:var(--f5);letter-spacing:-.02em}
+.sec-h h2,.sec-h h1{margin:0;font-size:var(--f5);letter-spacing:-.02em}
 .sec-h a{color:var(--muted);text-decoration:none;font-size:var(--f3);font-weight:600;
   display:inline-block;padding:5px 0}      /* 22px висоти було нижче за поріг цілі 24×24 */
 .sec-h a:hover{color:var(--fg)}
@@ -401,7 +408,7 @@ a.brand{text-decoration:none;color:inherit}
 /* ── форми (вхід, реєстрація) ── */
 .form{max-width:400px;margin:6vh auto 40px;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--radius);padding:26px 26px 24px;box-shadow:var(--shadow)}
-.form h2{margin:0 0 4px;font-size:var(--f5);letter-spacing:-.02em}
+.form h1{margin:0 0 4px;font-size:var(--f5);letter-spacing:-.02em}
 .form .lead{color:var(--muted);font-size:var(--f3);margin:0 0 18px;line-height:1.45}
 .form label{display:block;font-size:var(--f2);font-weight:600;color:var(--muted);margin:14px 0 5px}
 .form input{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--line);
@@ -430,11 +437,8 @@ a.brand{text-decoration:none;color:inherit}
 
 /* ── сходинки читання (S32) ──────────────────────────────────────────────────────
    Заміряно 2026-07-29 на /how: h1 30px → .lead 15px → текст 15px. Тобто після
-   заголовка сторінка ставала пласкою — два рівні з трьох виглядали одним рівнем.
-   Причина в тому, що заголовка сторінки НЕ ІСНУВАЛО в CSS: 30px були браузерним
-   2em від тіла 15px, тобто випадковим числом. Тепер крок видно: 31 → 21 → 17 → 15. */
-.app h1{font-size:clamp(24px,3.4vw,31px);line-height:1.15;letter-spacing:-.03em;
-  font-weight:750;margin:0 0 10px}
+   заголовка сторінка ставала пласкою: два рівні з трьох виглядали одним. Тепер
+   крок видно: 31 → 21 → 17 → 15 (сам h1 оголошено вище, біля .app). */
 .lead{color:var(--muted);font-size:var(--f4);line-height:1.55;max-width:64ch;margin:0 0 6px}
 .page p{line-height:1.6;max-width:68ch}
 
@@ -659,3 +663,9 @@ table.cmp-t tr:last-child th,table.cmp-t tr:last-child td{border-bottom:none}
   #list .cmp{margin-top:5px;padding:5px 9px}
   #list .skel{margin:0}
 }
+
+/* Заголовок стрічки каталогу. Свідомо в кеглі секції, а не сторінки: 31px над
+   щільним списком зʼїли б рівно ту щільність, заради якої стрічку й переробляли.
+   Текст ставить crumbs() — він називає ТЕ, що зараз у стрічці (категорія/розділ). */
+.feedtitle{font-size:var(--f5);line-height:1.25;letter-spacing:-.02em;margin:2px 0 10px}
+@media (max-width:999px){ .feedtitle{margin:2px 16px 8px} }

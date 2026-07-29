@@ -14,7 +14,7 @@
     background:#fff;border:1px solid var(--line);object-fit:contain;padding:10px}
   /* коли фото немає, .pic — це <div> зі значком: центруємо його */
   .phead .pic.ph{display:flex;align-items:center;justify-content:center}
-  .phead h2{margin:0 0 6px;font-size:var(--f5);line-height:1.25;letter-spacing:-.02em}
+  .phead h1{margin:0 0 6px;font-size:var(--f5);line-height:1.25;letter-spacing:-.02em}
   .pbuy{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:12px 0 4px}
   .pbuy .now{font-size:var(--f6)}
   .offer{display:flex;align-items:center;justify-content:space-between;gap:12px;
@@ -93,7 +93,7 @@ async function load(){
     ${me.image_url ? `<img class="pic" src="${esc(me.image_url)}" alt="${esc(me.title)}">`
                    : `<div class="pic ph">${PH_SVG}</div>`}
     <div>
-      <h2>${esc(me.title)}</h2>
+      <h1>${esc(me.title)}</h1>
       <div class="meta"><b>${esc(me.store||'')}</b>${me.variant_note?' · '+esc(me.variant_note):''}</div>
       ${me.product_id ? `<div class="meta" style="margin-top:4px">
         <a href="/model/${me.product_id}">Ця сама модель в інших крамницях →</a></div>` : ''}

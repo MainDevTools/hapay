@@ -27,14 +27,14 @@ renderFooter();
    без скриптів, а це рівно та людина, яка вже роздратована листами. */
 const state = document.getElementById('out').textContent.trim();
 document.getElementById('out').innerHTML = state === 'ok'
-  ? `<h2>Готово — листів про ціни більше не буде</h2>
+  ? `<h1>Готово — листів про ціни більше не буде</h1>
      <div class="sub">Ми вимкнули сповіщення про зниження для вашого акаунта.
        Стеження лишилось: ціни видно в кабінеті, а застосунок і далі показує
        сповіщення на пристрої.</div>
      <div class="actions">
        <a class="btn btn-ghost" href="/me">До кабінету</a>
        <a class="btn btn-ghost" href="/">На головну</a></div>`
-  : `<h2>Посилання недійсне</h2>
+  : `<h1>Посилання недійсне</h1>
      <div class="sub">Можливо, воно застаріло або скопійоване не повністю.
        Вимкнути листи можна в кабінеті — там же, де стеження.</div>
      <div class="gap-m"><a class="btn btn-main" href="/me">До кабінету</a></div>`;

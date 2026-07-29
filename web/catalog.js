@@ -147,6 +147,15 @@ function syncUrl(){
   history.replaceState(null, '', s ? '/catalog?' + s : '/catalog');
 }
 
+/* Заголовок стрічки + крихти з одного місця: обидва відповідають на «де я»,
+   і розійтись вони не мають права. До 2026-07-29 у каталогу не було <h1> зовсім —
+   його роль мовчки грав бренд у шапці, тобто кожна сторінка сайту «називалась»
+   однаково. */
+function feedTitle(label){
+  const t = document.getElementById('feedttl');
+  if (t) t.textContent = label;
+}
+
 function crumbs(){
   const c = CATS.find(x => x.slug === cat);
   const items = [{href:'/', label:'Головна'}];
@@ -161,6 +170,7 @@ function crumbs(){
     items.push({label:SECT});
   } else items.push({label:'Знижки'});
   renderCrumbs(items);
+  feedTitle(items[items.length - 1].label);
 }
 
 function setCat(slug){

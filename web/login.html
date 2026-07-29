@@ -32,7 +32,7 @@ function say(text, kind){
 
 function draw(){
   if (mode === 'login') F.innerHTML = `
-    <h2>Вхід</h2>
+    <h1>Вхід</h1>
     <p class="lead">Акаунт потрібен, щоб стежити за ціною товару й отримувати сповіщення
       про зниження.</p>
     <label for="e">Email</label><input id="e" type="email" autocomplete="username">
@@ -43,7 +43,7 @@ function draw(){
     <div class="alt"><a href="?m=forgot">Забув пароль</a></div>`;
 
   else if (mode === 'register') F.innerHTML = `
-    <h2>Реєстрація</h2>
+    <h1>Реєстрація</h1>
     <p class="lead">Потрібні лише email і пароль. Далі надішлемо лист і попросимо увійти — так ми не підказуємо стороннім, які адреси в нас зареєстровані.</p>
     <label for="e">Email</label><input id="e" type="email" autocomplete="username">
     <label for="p">Пароль</label><input id="p" type="password" autocomplete="new-password"
@@ -53,7 +53,7 @@ function draw(){
     <div class="alt">Вже є акаунт? <a href="?m=login">Увійти</a></div>`;
 
   else if (mode === 'forgot') F.innerHTML = `
-    <h2>Відновлення пароля</h2>
+    <h1>Відновлення пароля</h1>
     <p class="lead">Надішлемо код на пошту. Введи його разом із новим паролем.</p>
     <label for="e">Email</label><input id="e" type="email" autocomplete="username">
     <button class="btn btn-main" id="go">Надіслати код</button>
@@ -61,7 +61,7 @@ function draw(){
     <div class="alt"><a href="?m=reset">Код уже маю</a> · <a href="?m=login">Увійти</a></div>`;
 
   else if (mode === 'reset') F.innerHTML = `
-    <h2>Новий пароль</h2>
+    <h1>Новий пароль</h1>
     <p class="lead">Введи email, код із листа та новий пароль.</p>
     <label for="e">Email</label><input id="e" type="email" autocomplete="username">
     <label for="c">Код із листа</label><input id="c" inputmode="numeric" autocomplete="one-time-code">
