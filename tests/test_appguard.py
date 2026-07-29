@@ -136,6 +136,49 @@ def test_scale_is_declared_once():
     assert not dup, f"крок оголошено двічі: {dup}"
 
 
+# ── 6. Command="{Binding XxxCommand}" мусить мати згенеровану команду ────────────
+_CMD = re.compile(r'Command="\{Binding\s+([A-Za-z_][\w]*)Command[^}]*\}"')
+_VM_ATTR = re.compile(r"\[RelayCommand[^\]]*\]\s*(?:\n\s*\[[^\]]*\]\s*)*"
+                      r"(?:public|private|internal|protected|static|async|\s)*"
+                      r"(?:Task|void|Task<[^>]+>)\s+([A-Za-z_]\w*)\s*\(")
+
+
+def test_command_bindings_exist():
+    """Байндинг на неіснуючу команду не падає — він мовчить.
+
+    Двічі за 2026-07-29: спершу `ReloadCommand` (метод `ReloadAsync` не мав
+    атрибута `[RelayCommand]`, тож генератор нічого не створив), до того
+    `showError(..., loadVerified)` на сайті. Обидва виглядали правильно в диффі,
+    обидва малювались правильно на екрані, обидва не робили НІЧОГО на дотик.
+
+    CommunityToolkit зрізає суфікс `Async`: `LoadAsync` → `LoadAsyncCommand`?
+    Ні — `LoadAsyncCommand` лишається `LoadAsyncCommand`, а `Load` → `LoadCommand`.
+    Тому шукаємо і точну назву, і назву з `Async`."""
+    vm_dir = os.path.join(APP, "ViewModels")
+    known = set()
+    for f in sorted(os.listdir(vm_dir)):
+        if not f.endswith(".cs"):
+            continue
+        for m in _VM_ATTR.finditer(_read(os.path.join(vm_dir, f))):
+            name = m.group(1)
+            known.add(name)
+            if name.endswith("Async"):
+                known.add(name[:-len("Async")])
+
+    bad = []
+    for p in _views():
+        src = _read(p)
+        for m in _CMD.finditer(src):
+            name = m.group(1)
+            # Path=BindingContext.XxxCommand теж сюди потрапляє — це та сама перевірка
+            name = name.rsplit(".", 1)[-1]
+            if name not in known:
+                line = src[:m.start()].count("\n") + 1
+                bad.append(f"{os.path.basename(p)}:{line} {{Binding {name}Command}} — "
+                           f"жодна ViewModel не оголошує [RelayCommand] {name}")
+    assert not bad, "\n".join(bad)
+
+
 def _main():
     fns = [v for k, v in sorted(globals().items())
            if k.startswith("test_") and callable(v)

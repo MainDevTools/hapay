@@ -135,9 +135,10 @@ public class ApiService
     /// ВИМІРЯНІ зниження цін (S28) — не плутати з `DropsAsync`, який про watchlist.
     /// `order`: fresh (щойно виміряні) або deep (найбільші).
     public async Task<DropsResult?> MeasuredDropsAsync(int days = 1, string order = "fresh",
+                                                       int page = 0,
                                                        CancellationToken ct = default) =>
         await _http.GetFromJsonAsync<DropsResult>(
-            $"{Base}/api/drops?days={days}&order={order}", _json, ct);
+            $"{Base}/api/drops?days={days}&order={order}&page={page}", _json, ct);
 
     /// Самостійне видалення акаунта (вимога Google Play: шлях у застосунку + веб-адреса).
     /// Незворотно; сервер віддає 400 з поясненням, якщо це останній активний адмін.

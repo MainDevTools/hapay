@@ -771,6 +771,8 @@ public class MeasuredDrop
     [JsonPropertyName("store_product_id")] public int StoreProductId { get; set; }
     [JsonPropertyName("title")] public string Title { get; set; } = "";
     [JsonPropertyName("image_url")] public string? ImageUrl { get; set; }
+    /// Гліф замість порожньої плитки: третина стрічки приходить без фото.
+    [JsonIgnore] public bool NoImage => string.IsNullOrEmpty(ImageUrl);
     [JsonPropertyName("store")] public string Store { get; set; } = "";
     [JsonPropertyName("category")] public string Category { get; set; } = "";
     [JsonPropertyName("current_kop")] public int CurrentKop { get; set; }

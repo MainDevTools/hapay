@@ -4,6 +4,7 @@
     x:Name="Page"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:ctl="clr-namespace:Hapay.Controls"
     xmlns:beh="clr-namespace:Hapay.Behaviors"
     xmlns:vm="clr-namespace:Hapay.ViewModels"
     xmlns:models="clr-namespace:Hapay.Models"
@@ -39,10 +40,21 @@
             <Label Text="{Binding ErrorMessage}"
                    TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}"
                    IsVisible="{Binding ErrorMessage, Converter={StaticResource NotEmpty}}" />
+            <!-- Помилка без виходу — глухий кут: заміряно 2026-07-29, кнопки
+                 «повторити» не було НІ на сайті, ні в застосунку. Та сама дія, що
+                 привела до помилки, має бути доступна одним дотиком. -->
+            <Button Text="Спробувати ще раз" Command="{Binding LoadCommand}"
+                    Margin="12,0,12,8" HorizontalOptions="Center"
+                    IsVisible="{Binding ErrorMessage, Converter={StaticResource NotEmpty}}" />
         </VerticalStackLayout>
 
         <RefreshView Grid.Row="1" IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefreshCommand}">
-            <CollectionView ItemsSource="{Binding Items}">
+            <!-- Той самий патерн, що вже працює в HomePage: поріг у пʼять карток
+                 і команда дозавантаження. Доти екран показував рівно перші 50
+                 позицій назавжди, хоча сервер віддає сторінки. -->
+            <CollectionView ItemsSource="{Binding Items}"
+                            RemainingItemsThreshold="5"
+                            RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}">
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:MeasuredDrop">
                         <Border Style="{StaticResource Card}" Padding="12,8" Margin="12,4">
@@ -55,8 +67,23 @@
                                     CommandParameter="{Binding .}" />
                             </Border.GestureRecognizers>
                             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                                <Border Grid.Column="0" Style="{StaticResource Thumb}">
-                                    <Image Source="{Binding ImageUrl}" Aspect="AspectFit" />
+                                <!-- ⚠ РОЗМІР ОБОВʼЯЗКОВИЙ. Колонка «Auto» сама по собі
+                                     розтягується під натуральний розмір картинки, і
+                                     фото товару на 1000px розпирало картку на весь
+                                     екран — один товар на екран замість десятка.
+                                     Побачено на кадрі емулятора 2026-07-29; у HomePage
+                                     розмір стояв від початку, тут його не було. -->
+                                <Border Grid.Column="0" Style="{StaticResource Thumb}"
+                                        WidthRequest="64" HeightRequest="64" Padding="4"
+                                        VerticalOptions="Start">
+                                    <Grid>
+                                        <ctl:GlyphView GlyphKey="box" IsVisible="{Binding NoImage}"
+                                                       HeightRequest="28" WidthRequest="28"
+                                                       HorizontalOptions="Center" VerticalOptions="Center"
+                                                       GlyphColor="{AppThemeBinding Light={StaticResource IndicatorLight}, Dark={StaticResource IndicatorDark}}" />
+                                        <Image Source="{Binding ImageUrl}" Aspect="AspectFit"
+                                               AutomationProperties.IsInAccessibleTree="False" />
+                                    </Grid>
                                 </Border>
                                 <VerticalStackLayout Grid.Column="1" Spacing="2">
                                     <Label Text="{Binding Title}" FontSize="{StaticResource F3}" MaxLines="2"

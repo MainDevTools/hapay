@@ -198,6 +198,12 @@
             <Label Text="{Binding ErrorMessage}" Margin="4,0"
                    TextColor="{AppThemeBinding Light={StaticResource DiscountLight}, Dark={StaticResource DiscountDark}}"
                    IsVisible="{Binding ErrorMessage, Converter={StaticResource NotEmpty}}" />
+            <!-- Помилка без виходу — глухий кут: заміряно 2026-07-29, кнопки
+                 «повторити» не було НІ на сайті, ні в застосунку. Та сама дія, що
+                 привела до помилки, має бути доступна одним дотиком. -->
+            <Button Text="Спробувати ще раз" Command="{Binding RefreshCommand}"
+                    Margin="12,0,12,8" HorizontalOptions="Center"
+                    IsVisible="{Binding ErrorMessage, Converter={StaticResource NotEmpty}}" />
         </VerticalStackLayout>
 
         <!-- стрічка -->
