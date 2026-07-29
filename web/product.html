@@ -80,7 +80,7 @@ async function load(){
   // у загальний список, з якого людина сюди не приходила.
   renderCrumbs([
     {href:'/', label:'Головна'},
-    {href:'/catalog', label:'Знижки'},
+    {href:'/catalog', label:'Каталог'},
     ...(me.category_slug
         ? [{href:'/catalog?c=' + encodeURIComponent(me.category_slug),
             label: me.category || me.category_slug}] : []),

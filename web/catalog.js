@@ -3,12 +3,20 @@
    щоб та сама логіка не жила у двох місцях. */
 /* <button aria-pressed>, а не <div onclick>: чіп — це перемикач фільтра, і з клавіатури
    до нього треба потрапляти Tab-ом, а читач екрана мусить казати, увімкнений він чи ні. */
+/* Чіп «Лише знижки» — окремий зріз, а не badge: сервер розрізняє «є знижка взагалі»
+   (only_discounts) і «знижка з таким вердиктом» (badge). Тримати це одним параметром
+   означало б вигадати п'ятий стан бейджа, якого в БД немає. */
 function renderChips(){
   const c = document.getElementById('chips'); c.innerHTML='';
   BADGES.forEach(b=>{
-    const on = b.k===badge;
+    const on = b.k==='sale' ? (onlyDiscounts && !badge) : (b.k===badge && !onlyDiscounts);
     const chip=el(`<button type="button" class="chip ${on?'on':''}" aria-pressed="${on}">${b.label}</button>`);
-    chip.onclick=()=>{ badge=b.k; renderChips(); syncUrl(); load(); }; c.appendChild(chip); });
+    chip.onclick=()=>{
+      if (b.k==='sale'){ onlyDiscounts=true; badge=''; }
+      else { badge=b.k; onlyDiscounts=false; }
+      renderChips(); syncUrl(); load();
+    };
+    c.appendChild(chip); });
 }
 
 function card(d){
@@ -65,17 +73,25 @@ async function load(reset=true){
   const list=document.getElementById('list');
   if(reset){ page=0; skeleton(6); }
   try{
+    /* ⚠ /api/products, а НЕ /api/discounts (S34). Заміряно 2026-07-29: у базі
+       59 445 товарів, знижку має 28 504 — тобто стрічка сайту показувала 48%
+       бази, а решта 30 941 товару була недосяжна взагалі: ані категорією, ані
+       пошуком, ані фільтром ціни. При цьому їхні сторінки працювали й лежали в
+       sitemap — з пошуковика зайти можна, з нашої ж головної ні.
+       Знижковий зріз нікуди не подівся: він тепер чіп, а не єдиний режим. */
     const p=new URLSearchParams({sort,page});
-    if(badge)p.set('badge',badge); if(cat)p.set('category',cat); if(query)p.set('q',query);
+    if(badge)p.set('badge',badge);
+    if(onlyDiscounts)p.set('only_discounts','1');
+    if(cat)p.set('category',cat); if(query)p.set('q',query);
     if(!cat && SECT)p.set('section',SECT);
     if(PRICE.min!=null)p.set('price_min',PRICE.min);          // копійки (інв. A)
     if(PRICE.max!=null)p.set('price_max',PRICE.max);
-    const data=await api('/api/discounts?'+p.toString());
+    const data=await api('/api/products?'+p.toString());
     if(reset) list.innerHTML='';
     if(!data.length){
       if(reset) list.innerHTML=`<div class="empty"><div class="ic">${query?icon('search'):icon('tag')}</div>
         <div class="t">${query?'Нічого не знайдено':'Поки порожньо'}</div>
-        <div>${query?'Спробуй іншу назву.':'Колектор ще накопичує знижки.'}</div></div>`;
+        <div>${query?'Спробуй іншу назву.':'Колектор ще накопичує товари цієї категорії.'}</div></div>`;
       setMore(false); return;
     }
     data.forEach(d=>list.appendChild(card(d)));
@@ -139,7 +155,7 @@ const PRICE = {
 function syncUrl(){
   const p = new URLSearchParams();
   if (cat) p.set('c', cat); else if (SECT) p.set('s', SECT);
-  if (badge) p.set('b', badge);
+  if (badge) p.set('b', badge); else if (onlyDiscounts) p.set('b', 'sale');
   if (query) p.set('q', query);
   if (PRICE.min != null) p.set('pmin', Math.round(PRICE.min/100));   // в адресі — гривні
   if (PRICE.max != null) p.set('pmax', Math.round(PRICE.max/100));
@@ -160,15 +176,15 @@ function crumbs(){
   const c = CATS.find(x => x.slug === cat);
   const items = [{href:'/', label:'Головна'}];
   if (c) {
-    items.push({href:'/catalog', label:'Знижки'});
+    items.push({href:'/catalog', label:'Каталог'});
     // розділ у крихтах — робоче посилання на сам розділ, а не мертвий підпис
     if (c.section) items.push({href:'/catalog?s=' + encodeURIComponent(c.section),
                                label:c.section});
     items.push({label:c.name});
   } else if (SECT) {
-    items.push({href:'/catalog', label:'Знижки'});
+    items.push({href:'/catalog', label:'Каталог'});
     items.push({label:SECT});
-  } else items.push({label:'Знижки'});
+  } else items.push({label:'Каталог'});
   renderCrumbs(items);
   feedTitle(items[items.length - 1].label);
 }

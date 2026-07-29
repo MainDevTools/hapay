@@ -30,13 +30,16 @@
       <div class="controls">
         <select id="cat" aria-label="Категорія"><option value="">Усі категорії</option></select>
         <select id="sort" aria-label="Сортування">
-          <option value="verified">Наше зниження</option>
           <option value="discount">Заявлена знижка</option>
+          <option value="cheap">Спершу дешевші</option>
+          <option value="expensive">Спершу дорожчі</option>
+          <option value="popular">Популярні моделі</option>
+          <option value="cheaper">Де дешевше в іншій крамниці</option>
           <option value="new">Найновіші</option>
         </select>
       </div>
     </div>
-    <h1 id="feedttl" class="feedtitle">Знижки</h1>
+    <h1 id="feedttl" class="feedtitle">Каталог</h1>
     <div id="qwatch"></div>
     <div id="pricef-m"></div>
     <main id="list"></main>
@@ -78,7 +81,11 @@ if (IN_TG) {
 const _p = new URLSearchParams(location.search);
 if (_p.get('c')) cat = _p.get('c');
 if (_p.get('q')) query = _p.get('q');
-if (_p.get('b') && BADGES.some(x => x.k === _p.get('b'))) badge = _p.get('b');
+// `b=sale` — не бейдж, а зріз «лише знижки» (S34): у БД такого стану немає, тож
+// він живе окремим прапорцем, але в адресі ділить параметр із бейджами — інакше
+// довелось би пояснювати людині різницю між ?b= і ?only=.
+if (_p.get('b') === 'sale') onlyDiscounts = true;
+else if (_p.get('b') && BADGES.some(x => x.k === _p.get('b'))) badge = _p.get('b');
 const _sect = _p.get('s') || '';   // розділ (набір категорій); категорія має пріоритет
 // ціна в адресі — у ГРИВНЯХ (людині доводиться її читати), в API — копійки
 const _money = v => { const n = parseInt(v, 10);

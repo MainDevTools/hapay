@@ -56,7 +56,7 @@ async function load(){
     return;
   }
   document.title = `${m.title} — ціни в ${m.stores_n} крамницях — Хапай`;
-  renderCrumbs([{href:'/', label:'Головна'}, {href:'/catalog', label:'Знижки'},
+  renderCrumbs([{href:'/', label:'Головна'}, {href:'/catalog', label:'Каталог'},
     ...(m.category_slug ? [{href:'/catalog?c=' + encodeURIComponent(m.category_slug),
                             label: m.category || m.category_slug}] : []),
     {label: m.title}]);
