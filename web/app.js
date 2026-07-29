@@ -52,6 +52,30 @@ const PH_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
   <circle cx="8.5" cy="9.5" r="1.6"/><path d="M21 15.5l-5-5-5 5-3-3-5 5"/></svg>`;
 const PH_HTML = `<div class="ph">${PH_SVG}</div>`;
 
+/* ── гліф за розділом (S32) ───────────────────────────────────────────────────────
+   Той самий значок «немає картинки» на третині стрічки читався як зламана сторінка.
+   Тепер плитка каже хоч щось про товар. Ключ рахує сервер (taxonomy.glyph_key) —
+   розділ живе лише там, і два клієнти не мають групувати товари по-різному.
+   Вектор, не емодзі: причина та сама, що й у PH_SVG вище. */
+const GLYPHS = {
+  device:   `<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/>`,
+  camera:   `<path d="M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="12.5" r="3.2"/>`,
+  appliance:`<rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="14" r="4"/><path d="M8 6.5h2"/>`,
+  tool:     `<path d="M15.5 3.5a5 5 0 0 0-6.1 6.6L3.7 15.8a2 2 0 0 0 2.8 2.8l5.7-5.7a5 5 0 0 0 6.6-6.1l-3 3-2.6-.7-.7-2.6 3-3z"/>`,
+  car:      `<path d="M3 16h18v-3.2a2 2 0 0 0-.5-1.3L18 8H6l-2.5 3.5A2 2 0 0 0 3 12.8V16z"/><circle cx="7.5" cy="16" r="1.4"/><circle cx="16.5" cy="16" r="1.4"/>`,
+  pet:      `<circle cx="8" cy="8" r="1.8"/><circle cx="12" cy="6.5" r="1.8"/><circle cx="16" cy="8" r="1.8"/><path d="M12 11c-3 0-5 2.2-5 4.4 0 1.7 1.3 2.6 2.8 2.6h4.4c1.5 0 2.8-.9 2.8-2.6C17 13.2 15 11 12 11z"/>`,
+  health:   `<rect x="3" y="7" width="18" height="12" rx="2.5"/><path d="M12 10.5v5M9.5 13h5"/>`,
+  toy:      `<circle cx="7.5" cy="7" r="2.2"/><circle cx="16.5" cy="7" r="2.2"/><circle cx="12" cy="13.5" r="5.6"/>`,
+  sport:    `<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c3 4.5 3 12.5 0 17M12 3.5c-3 4.5-3 12.5 0 17"/>`,
+  watch:    `<circle cx="12" cy="12" r="4.8"/><path d="M9 7.2 9.5 3h5l.5 4.2M9 16.8 9.5 21h5l.5-4.2"/>`,
+  box:      `<path d="M12 3 3.5 7.5v9L12 21l8.5-4.5v-9L12 3z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/>`,
+};
+function phHtml(key){
+  return `<div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+    >${GLYPHS[key] || GLYPHS.box}</svg></div>`;
+}
+
 const el = h => { const d=document.createElement('div'); d.innerHTML=h.trim(); return d.firstElementChild; };
 const esc = s => (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function pct(d){ if(d.old_declared_kop && d.current_kop < d.old_declared_kop)
@@ -169,7 +193,7 @@ function renderHeader(active, opts){
   // «Перейти до вмісту» — перше, на що потрапляє Tab: інакше клавіатурі доводиться
   // проходити всю шапку й фільтри перед кожним переглядом стрічки.
   h.innerHTML = `<a class="skip" href="#list">Перейти до вмісту</a><div class="hrow">
-    <a class="brand" href="/"><h1>Хапай</h1><span class="sub">знижки проти історії цін</span></a>
+    <a class="brand" href="/"><span class="wordmark">Хапай</span><span class="sub">знижки проти історії цін</span></a>
     <nav class="nav">${nav.map(([href,label]) =>
       `<a href="${href}" class="${active===href?'on':''}">${label}</a>`).join('')}</nav>
     ${opts.search ? `<div class="searchwrap">
@@ -247,6 +271,37 @@ function renderFooter(){
 /* Графік = головне твердження продукту (T12), тому малюємо РІВНО те, що виміряли:
    сходинки (не інтерполяція — вона вигадує ціни, яких не існувало), вісь X за реальними
    датами (щоб прогалини було видно), точки завжди, пунктир там, де вимірів не було. */
+
+/* ── мікрографік у картці стрічки (S32) ──────────────────────────────────────────
+   Наша єдина унікальна річ — власна історія цін — доти була невидима, доки людина
+   не відкриє товар. 64×20 у рядку переносять її на першу поверхню.
+
+   Це НЕ зменшена копія графіка зі сторінки товару. Там ми показуємо провенанс:
+   точки вимірів, пунктир на прогалинах, лінію 30-денної бази. Тут на це немає
+   пікселів, і кожна з тих деталей стала б шумом — тому тут лише ФОРМА, а
+   твердження лишається на сторінці товару, куди веде картка.
+
+   Що ЗБЕРЕЖЕНО з тієї логіки й чому: сходинки замість інтерполяції (пряма між
+   двома вимірами вигадує ціни, яких не було — T12) і вісь X за реальними зсувами
+   діб (прогалина лишається прогалиною, а не стискається в рівний крок). */
+function sparkMini(pts, days){
+  if(!pts || pts.length < 3) return '';       // менше трьох діб — це не лінія, а відрізок
+  const W=64, H=20, pad=2, span=Math.max(days-1, 1);
+  const ys=pts.map(p=>p[1]);
+  const lo=Math.min(...ys), hi=Math.max(...ys);
+  const X=d=>(pad+(W-2*pad)*Math.min(Math.max(d,0),span)/span).toFixed(1);
+  const Y=v=>(hi===lo ? H/2 : pad+(H-2*pad)*(1-(v-lo)/(hi-lo))).toFixed(1);
+  let d=`M${X(pts[0][0])} ${Y(pts[0][1])}`;
+  for(let i=1;i<pts.length;i++)
+    d+=` L${X(pts[i][0])} ${Y(pts[i-1][1])} L${X(pts[i][0])} ${Y(pts[i][1])}`;
+  const label = hi===lo
+    ? `Наша ціна не змінювалась: ${grn(lo)}`
+    : `Наші виміри: від ${grn(lo)} до ${grn(hi)}`;
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}"
+    ><title>${esc(label)}</title><path d="${d}" fill="none" stroke="currentColor"
+    stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"
+    vector-effect="non-scaling-stroke"/></svg>`;
+}
 
 function sparkline(points, refKop, W, H){
   if(points.length<2) return '<div class="prov">Замало вимірів для графіка — історія ще накопичується.</div>';

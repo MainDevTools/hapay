@@ -66,7 +66,11 @@
     backdrop-filter:saturate(1.4) blur(12px);-webkit-backdrop-filter:saturate(1.4) blur(12px);
     padding:12px 16px 10px;border-bottom:1px solid var(--line)}
   .brand{display:flex;align-items:baseline;gap:8px;margin:0 0 10px}
-  .brand h1{margin:0;font-size:var(--f5);font-weight:750;letter-spacing:-.02em}
+  /* ⚠ Було <h1>Хапай</h1> — тобто на КОЖНІЙ сторінці з власним заголовком жило два h1
+     (заміряно 2026-07-29 на 11 сторінках). Це не лише семантика: 21px бренду й 30px
+     заголовка сперечались за один рівень ієрархії, і сторінка не мала однієї головної
+     думки. Бренд — це підпис поверхні, а не заголовок документа. */
+  .brand .wordmark{font-size:var(--f5);font-weight:750;letter-spacing:-.02em}
   .brand .sub{color:var(--faint);font-size:var(--f1);font-weight:500}
   /* Підписи категорій довші за сортування (напр. «Амуніція (нашийники, повідці) (7)» ≈ 215px) і
      не влазять у пів-рядка навіть на максимальній ширині колонки (540px → ≈209px тексту): лічильник
@@ -127,8 +131,13 @@
   .meta{color:var(--faint);font-size:var(--f1);font-weight:500;margin-bottom:auto}
   .meta b{color:var(--muted);font-weight:600}
   .prices{display:flex;align-items:baseline;gap:8px;margin:7px 0 8px}
-  .now{font-weight:750;font-size:var(--f4);letter-spacing:-.02em}
-  .old{color:var(--faint);text-decoration:line-through;font-size:var(--f2)}
+  /* tabular-nums: у стрічці ціни стоять одна під одною, і пропорційні цифри роблять
+     стовпчик рваним — «1 111» вужче за «8 888» на тому ж кеглі. Число — головний
+     елемент цієї сторінки, воно мусить читатись стовпчиком. */
+  .now{font-weight:750;font-size:var(--f4);letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums}
+  .old{color:var(--faint);text-decoration:line-through;font-size:var(--f2);
+    font-variant-numeric:tabular-nums}
   .unit{color:var(--faint);font-size:var(--f1);margin-left:auto;white-space:nowrap}
   /* Колір НЕ кодує стан (T12): зелень/бурштин були останнім вердиктом у видимому шарі —
      «схвалено» / «увага, погано». Усі стани однаково нейтральні; розрізняють СЛОВА. */
@@ -188,6 +197,10 @@
   .body{grid-area:b}
   .pricebox{grid-area:p;display:flex;flex-direction:column;gap:2px}
   .offers{color:var(--muted);font-size:var(--f1);font-weight:600}
+  /* Мікрографік історії. НЕЙТРАЛЬНИЙ (--faint), не зелений: зелена лінія в кожному
+     рядку зробила б зі стрічки стіну кольору й почала б сперечатися з ціною, яка
+     тут головна. Плюс акцент у нас — колір дії, а це не дія. */
+  .spark{width:64px;height:20px;display:block;color:var(--faint);margin:3px 0 1px}
   /* Кнопка й підвал — лише на десктопі. Правила «сховати» мусять стояти ДО медіа-запиту:
      @media не додає специфічності, тож однакове селектором правило, написане нижче,
      перемогло б показ (саме на це я й наступив 2026-07-26 — підвал не з'являвся). */
@@ -247,7 +260,6 @@
     header{padding:14px 0 12px}
     .hrow{display:flex;align-items:center;gap:28px}
     .brand{margin:0;flex:0 0 auto;flex-direction:column;align-items:flex-start;gap:1px}
-    .brand h1{font-size:var(--f5)}
     .searchwrap{margin:0;flex:1 1 auto;max-width:560px}
     .search{padding:11px 14px 11px 40px;font-size:var(--f3)}
     .controls{flex-direction:row;flex:0 0 auto;gap:8px;margin-left:auto}
@@ -416,6 +428,80 @@ a.brand{text-decoration:none;color:inherit}
    сторінки (.app / .app.wide), а .page лише тримає вертикальні відступи. */
 .page{margin:20px 0 40px}
 
+/* ── сходинки читання (S32) ──────────────────────────────────────────────────────
+   Заміряно 2026-07-29 на /how: h1 30px → .lead 15px → текст 15px. Тобто після
+   заголовка сторінка ставала пласкою — два рівні з трьох виглядали одним рівнем.
+   Причина в тому, що заголовка сторінки НЕ ІСНУВАЛО в CSS: 30px були браузерним
+   2em від тіла 15px, тобто випадковим числом. Тепер крок видно: 31 → 21 → 17 → 15. */
+.app h1{font-size:clamp(24px,3.4vw,31px);line-height:1.15;letter-spacing:-.03em;
+  font-weight:750;margin:0 0 10px}
+.lead{color:var(--muted);font-size:var(--f4);line-height:1.55;max-width:64ch;margin:0 0 6px}
+.page p{line-height:1.6;max-width:68ch}
+
+/* Розділ сторінки-читання БЕЗ коробки. Заміряно там же: пʼять .panel поспіль тримали
+   62% площі одним фоном, одним радіусом, одним падінгом. Коробка, що обіймає все,
+   не виділяє нічого. Ритм тексту тримають відступ і волосяна лінія; коробка лишається
+   за тим, що справді окреме, — див. .panel (живий блок) і .note (застереження). */
+.blk{margin:30px 0}
+.blk+.blk{border-top:1px solid var(--line);padding-top:26px}
+.blk h2{font-size:var(--f5);line-height:1.25;letter-spacing:-.02em;margin:0 0 10px}
+.blk h3{font-size:var(--f4);margin:18px 0 6px}
+.blk p{margin:0 0 12px}
+.blk p:last-child{margin-bottom:0}
+
+/* Виноска-застереження — єдине, що мусить вирізнятись із суцільного тексту.
+   Смуга ліворуч нейтральна (--muted), не червона: колір у видимому шарі не оцінює (T12). */
+.note{background:var(--surface);border:1px solid var(--line);
+  border-left:3px solid var(--muted);border-radius:var(--radius-s);
+  padding:16px 18px;margin:26px 0}
+.note h2{font-size:var(--f4);margin:0 0 8px;letter-spacing:0}
+.note p{margin:0 0 10px}
+.note p:last-child{margin-bottom:0}
+
+/* ── дрібні класи замість інлайну ────────────────────────────────────────────────
+   57 інлайн-стилів на 12 сторінках (заміряно 2026-07-29). Найчастіший — ряд кнопок
+   під текстом: сім разів, чотири різні margin-top (10/12/14/16/18/22). Доки кожна
+   сторінка вигадує ритм наново, будь-яке твердження про «вигляд сайту» протухає
+   на наступній сторінці. */
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.actions.center{justify-content:center}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+/* Вертикальний ритм між блоками — ТРИ кроки, не шість випадкових (було 10/12/14/16/18/22). */
+.gap-s{margin-top:10px}
+.gap-m{margin-top:14px}
+.gap-l{margin-top:22px}
+.gap-left{margin-left:8px}
+/* Підпис поля поза .form — та сама форма, що й у .form label (був інлайн на двох сторінках). */
+.flabel{display:block;font-size:var(--f2);font-weight:600;color:var(--muted);margin:0 0 5px}
+.solid-danger{background:var(--red);border-color:var(--red);color:#fff}
+.hint{color:var(--muted);font-size:var(--f2);line-height:1.55;margin-top:10px}
+.hint.tight{margin-top:6px}
+/* Довга назва в рядку стану: обрізаємо, а не ламаємо рядок навпіл. */
+.trunc{max-width:220px;display:inline-block;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;vertical-align:bottom}
+.flat{position:static;box-shadow:none}
+.accent{color:var(--accent)}
+.sk.l-title{height:13px;width:80%}
+.sk.l-meta{height:11px;width:45%}
+.sk.l-price{height:18px;width:55%;margin-top:6px}
+.sk.l-badge{height:20px;width:40%;border-radius:8px}
+
+/* ── документи (конфіденційність, умови, підтримка) ──────────────────────────────
+   ⚠ Ці три сторінки до 2026-07-29 не підключали app.css узагалі: кожна несла власну
+   копію системи з акцентом #512BD4 (фіолетовий зі шаблону MAUI), тілом 16px/1.6 і
+   власним темним фоном #101114 — і при цьому лінкувалась із підвалу КОЖНОЇ сторінки.
+   Тобто «Конфіденційність» відкривала візуально інший сайт. */
+.doc h2{font-size:var(--f4);margin:30px 0 8px}
+.doc p,.doc li{line-height:1.65;max-width:68ch}
+.doc ul{padding-left:22px;margin:10px 0}
+.doc li{margin:5px 0}
+.doc a{color:var(--accent)}
+.doc code{background:var(--surface);border:1px solid var(--line);border-radius:6px;
+  padding:1px 5px;font-size:var(--f2)}
+.docsub{color:var(--muted);font-size:var(--f2);margin:0 0 22px}
+.docfoot{margin-top:38px;padding-top:20px;border-top:1px solid var(--line);
+  color:var(--muted);font-size:var(--f2)}
+
 /* ── кабінет ── */
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
   padding:20px 22px;margin-bottom:16px}
@@ -549,3 +635,27 @@ table.cmp-t tr:last-child th,table.cmp-t tr:last-child td{border-bottom:none}
       display:inline-block;padding:5px 0}
     .foot a:hover{color:var(--fg)}
   }
+
+/* ───────────── щільність стрічки на широкому екрані (S32) ─────────────
+   Заміряно 2026-07-29 @1440×900, темна тема: рядок 960×149 в ОДНУ колонку — тобто
+   5 товарів на екран, а назва товару розтягувалась на 76 символів (комфортна межа
+   рядка — 75, і це для ПРОЗИ; назва — не проза, її сканують, а не читають). Праворуч
+   від контенту при цьому лишалось 17px, тобто ширину ми вже витратили — просто на
+   порожнечу всередині рядка.
+
+   Дві колонки повертають назві людську довжину й піднімають видиме з 5 до ~14.
+
+   Поріг 1240, а не 1000: нижче нього колонка контенту (мінус 280px бічної) дає менш
+   ніж 460px на картку, і ціновий блок починає переносити число — а число тут головне.
+   Тому вузький десктоп лишається на перевіреному одноколонковому рядку. */
+@media (min-width:1240px){
+  #list{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+  #list .card{margin:0;grid-template-columns:72px 1fr 150px;gap:0 14px;padding:12px 14px}
+  #list .thumb{width:72px;height:72px;flex-basis:72px}
+  #list .title{-webkit-line-clamp:2}
+  /* Ціна лишається найгучнішим елементом і у вужчій картці: --f5, як у широкому рядку. */
+  #list .now{font-size:var(--f5)}
+  #list .buy{margin-top:6px;padding:7px 12px}
+  #list .cmp{margin-top:5px;padding:5px 9px}
+  #list .skel{margin:0}
+}

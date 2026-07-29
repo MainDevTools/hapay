@@ -61,11 +61,11 @@ function draw(){
     box.innerHTML = `<h2>Як видалити</h2>
       <div class="sub">Щоб видалити акаунт одним натисканням, увійдіть — ми маємо
         переконатися, що це ваш акаунт.</div>
-      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+      <div class="actions">
         <a class="btn btn-main" href="/login">Увійти й видалити</a>
         <a class="btn btn-ghost" href="mailto:support@hapay.today?subject=%D0%92%D0%B8%D0%B4%D0%B0%D0%BB%D0%B5%D0%BD%D0%BD%D1%8F%20%D0%B0%D0%BA%D0%B0%D1%83%D0%BD%D1%82%D0%B0">Написати нам</a>
       </div>
-      <div class="sub" style="margin-top:12px">Не пам'ятаєте пароль —
+      <div class="sub gap-s">Не пам'ятаєте пароль —
         <a href="/login?m=forgot">відновіть доступ</a> або напишіть із адреси акаунта:
         ми виконаємо запит вручну протягом 30 днів.</div>`;
     return;
@@ -73,12 +73,11 @@ function draw(){
   box.innerHTML = `<h2>Видалити акаунт ${esc(AUTH.email)}</h2>
     <div class="sub">Введіть <b>ВИДАЛИТИ</b> у поле нижче, щоб підтвердити. Це захист
       від випадкового натискання, а не бюрократія.</div>
-    <label for="cf" style="display:block;font-size:var(--f2);font-weight:600;
-      color:var(--muted);margin:14px 0 5px">Підтвердження</label>
-    <input id="cf" class="search" style="max-width:240px;display:inline-block"
+    <label for="cf" class="flabel">Підтвердження</label>
+    <input id="cf" class="search trunc"
            autocomplete="off" placeholder="ВИДАЛИТИ">
-    <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn btn-main" id="go" style="background:var(--red);border-color:var(--red)">
+    <div class="actions">
+      <button class="btn btn-main solid-danger" id="go">
         Видалити назавжди</button>
       <a class="btn btn-ghost" href="/me">Скасувати</a>
     </div>`;
@@ -92,7 +91,7 @@ function draw(){
       document.getElementById('act').innerHTML =
         `<h2>Акаунт видалено</h2><div class="sub">Обліковий запис і список відстеження
          стерто. Дякуємо, що були з нами.</div>
-         <div style="margin-top:14px"><a class="btn btn-ghost" href="/">На головну</a></div>`;
+         <div class="gap-m"><a class="btn btn-ghost" href="/">На головну</a></div>`;
       say('Готово. Акаунт більше не існує.', 'ok');
     }catch(e){ say(e.message, 'err'); }
   };

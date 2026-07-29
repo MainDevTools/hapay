@@ -42,7 +42,7 @@
 <div class="page">
   <div id="msg" class="msg"></div>
   <div id="head" class="phead"><!--SUMMARY--></div>
-  <div class="panel" id="hist" style="margin-top:22px"></div>
+  <div class="panel gap-l" id="hist"></div>
   <div class="panel" id="offers"></div>
   <div class="panel" id="specs" hidden></div>
 </div>
@@ -100,21 +100,19 @@ async function load(){
       <div class="pbuy">
         <span class="now">${grn(me.current_kop)}</span>
         ${me.old_declared_kop?`<span class="old">${grn(me.old_declared_kop)}</span>`:''}
-        ${off?`<span class="off" style="position:static;box-shadow:none">−${off}%</span>`:''}
+        ${off?`<span class="off flat">−${off}%</span>`:''}
       </div>
       ${bt ? `<span class="badge"><span class="dot"></span>${bt}</span>` : ''}
-      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <div class="actions">
         <a class="btn btn-main" href="${esc(me.url)}" target="_blank" rel="noopener">Відкрити в крамниці →</a>
         <button class="btn btn-ghost" id="watch">Стежити за ціною</button>
       </div>
-      <div id="watchbox" hidden style="margin-top:10px">
-        <label for="tgt" style="display:block;font-size:var(--f2);font-weight:600;
-          color:var(--muted);margin-bottom:5px">Сповістити, коли ціна впаде до (₴)</label>
-        <input id="tgt" class="search" inputmode="numeric" placeholder="необовʼязково"
-               style="max-width:220px;display:inline-block">
-        <button class="mini" id="watchgo" style="margin-left:8px">Стежити</button>
+      <div id="watchbox" hidden class="gap-s">
+        <label for="tgt" class="flabel">Сповістити, коли ціна впаде до (₴)</label>
+        <input id="tgt" class="search trunc" inputmode="numeric" placeholder="необовʼязково">
+        <button class="mini gap-left" id="watchgo">Стежити</button>
       </div>
-      <div id="low" class="prov" style="margin-top:10px"></div>
+      <div id="low" class="prov"></div>
     </div>`;
 
   /* Цільова ціна (S29): «повідом, коли впаде нижче X». Досі ми сповіщали про будь-яке
@@ -250,7 +248,7 @@ async function loadSpecs(){
     box.innerHTML = `<h2>Характеристики</h2>
       <div class="specs">${s.attrs.map(a =>
         `<div class="sr"><span class="k">${esc(a.name)}</span><span>${esc(a.value)}</span></div>`).join('')}</div>
-      <div class="prov" style="margin-top:12px">Джерело: картка ${esc(s.store)}${
+      <div class="prov">Джерело: картка ${esc(s.store)}${
         s.collected_day ? ', ' + esc(s.collected_day) : ''}.</div>`;
   }catch(e){}
 }

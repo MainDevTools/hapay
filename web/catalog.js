@@ -15,9 +15,13 @@ function card(d){
   const off = pct(d);
   const bt = BADGE_TEXT[d.badge_state];   // undefined = мітки нема (як у застосунку)
   const href = '/product/' + d.store_product_id;
+  // Гліф за розділом рахує сервер; на биту картинку падаємо в ТОЙ САМИЙ гліф, а не
+  // в загальний значок «немає фото» — інакше плитка стрибала б між двома виглядами.
+  const gk = d.glyph || 'box';
+  const ph = phHtml(gk);
   const c = el(`<div class="card">
     <div class="thumb">
-      ${d.image_url?`<img src="${esc(d.image_url)}" loading="lazy" alt="${esc(d.title)}" onerror="this.outerHTML=PH_HTML">`:PH_HTML}
+      ${d.image_url?`<img src="${esc(d.image_url)}" loading="lazy" alt="${esc(d.title)}" onerror="this.outerHTML=phHtml('${gk}')">`:ph}
       ${off?`<span class="off">−${off}%</span>`:''}
     </div>
     <div class="body">
@@ -30,6 +34,7 @@ function card(d){
         <span class="now">${grn(d.current_kop)}</span>
         ${d.old_declared_kop?`<span class="old">${grn(d.old_declared_kop)}</span>`:''}
       </div>
+      ${sparkMini(d.spark, 30)}
       ${d.offers_n>1?`<div class="offers">Всі пропозиції (${d.offers_n})</div>`:''}
       <a class="buy" href="${href}">Порівняти ціни</a>
       ${cmpButton(d.store_product_id)}

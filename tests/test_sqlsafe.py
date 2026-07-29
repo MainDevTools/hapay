@@ -101,6 +101,7 @@ def test_new_builders_no_stray_percent():
     _check(_sql_of(db.query_watch_hits), "query_watch_hits")
     _check(_sql_of(db.refresh_models), "refresh_models")
     _check(_sql_of(db.users_for_alerts), "users_for_alerts")
+    _check(_sql_of(db.spark_series, [1, 2]), "spark_series")
 
 
 def test_other_builders_no_stray_percent():

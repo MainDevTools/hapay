@@ -94,8 +94,8 @@ async function loadTop(){
   list.innerHTML = '';
   for(let i=0;i<3;i++) list.appendChild(el(
     `<div class="skel"><div class="s-img sk"></div><div class="s-body">
-      <div class="sk" style="height:13px;width:80%"></div><div class="sk" style="height:11px;width:45%"></div>
-      <div class="sk" style="height:18px;width:55%;margin-top:6px"></div></div></div>`));
+      <div class="sk l-title"></div><div class="sk l-meta"></div>
+      <div class="sk l-price"></div></div></div>`));
   try{
     // ⚠ Було sort=discount — найгучніші ЗАЯВЛЕНІ знижки, тобто за визначенням
     // неперевірені: заміряно 0 із 6 карток із міткою. Вітрина сайту про перевірку
@@ -180,7 +180,7 @@ async function loadHeroExample(){
           <div class="t">${esc(d.title)}</div>
           <div class="p"><span class="now">${grn(d.current_kop)}</span>
             ${d.old_declared_kop ? `<span class="old">${grn(d.old_declared_kop)}</span>` : ''}
-            ${off ? `<span class="off" style="position:static;box-shadow:none">−${off}%</span>` : ''}
+            ${off ? `<span class="off flat">−${off}%</span>` : ''}
           </div>
         </div>
       </div>
@@ -207,7 +207,7 @@ async function loadDrops(){
             <div class="t">${esc(d.title)}</div>
             <div class="p"><span class="now">${grn(d.current_kop)}</span>
               <span class="old">${grn(d.was_kop)}</span>
-              <span class="off" style="position:static;box-shadow:none">−${d.drop_pct}%</span></div>
+              <span class="off flat">−${d.drop_pct}%</span></div>
             <div class="cap">${esc(d.store||'')} · подешевшав на <b>${grn(d.drop_kop)}</b>
               за нашими вимірами</div>
           </div>

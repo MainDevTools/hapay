@@ -115,9 +115,9 @@ async function load(more){
   if (!more){ PAGE = 0; list.innerHTML = '';
     for(let i=0;i<4;i++) list.appendChild(el(
       `<div class="skel"><div class="s-img sk"></div><div class="s-body">
-        <div class="sk" style="height:13px;width:80%"></div>
-        <div class="sk" style="height:11px;width:45%"></div>
-        <div class="sk" style="height:18px;width:55%;margin-top:6px"></div></div></div>`)); }
+        <div class="sk l-title"></div>
+        <div class="sk l-meta"></div>
+        <div class="sk l-price"></div></div></div>`)); }
   try{
     const r = await api(`/api/drops?days=${DAYS}&page=${PAGE}&order=${ORDER}`);
     if (!more){ list.innerHTML = ''; renderSummary(r.summary); }

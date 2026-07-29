@@ -57,7 +57,7 @@ async function load(){
       <div class="stat"><div class="n">${nfmt(s.verified)}</div><div class="l">пройшли перевірку</div></div>
       <div class="stat"><div class="n">${nfmt(s.pumped)}</div><div class="l">«стара» ціна завищена</div></div>
     </div>
-    <div class="prov" style="margin-top:12px">Числа — з наших спостережень, не з даних
+    <div class="prov">Числа — з наших спостережень, не з даних
       крамниці${upd ? `; останнє оновлення — ${esc(upd)}` : ''}.
       <b>Це не оцінка продавця:</b> мітка стосується окремої знижки, а не крамниці, і
       «без мітки» означає лише те, що історії ще замало. <a href="/how">Як ми
@@ -65,7 +65,7 @@ async function load(){
 
   const cats = (s.categories || []).filter(c => c.n > 0);
   out.innerHTML = `
-    <div style="margin:18px 0;display:flex;gap:10px;flex-wrap:wrap">
+    <div class="actions">
       <a class="btn btn-main" href="/catalog?q=${encodeURIComponent(s.name)}">Знижки цієї крамниці</a>
       <a class="btn btn-ghost" href="${esc(s.base_url)}" target="_blank" rel="nofollow noopener">Сайт крамниці →</a>
     </div>

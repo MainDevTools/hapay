@@ -93,7 +93,7 @@ def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, o
     sql = f"""
         WITH ev AS (
             SELECT de.discount_event_id, sp.store_product_id, sp.title, sp.url, sp.image_url,
-                   sp.variant_note, sp.match_key, s.name AS store,
+                   sp.variant_note, sp.match_key, s.name AS store, c.slug AS category_slug,
                    de.current_kop, de.old_declared_kop, de.reference_kop,
                    de.declared_pct, de.verified_pct, de.badge_state, de.computed_at,
                    COALESCE(sp.match_key, 'sp:' || sp.store_product_id) AS gkey
@@ -106,14 +106,14 @@ def list_discounts(conn, category=None, badge=None, sort="verified", limit=50, o
         best AS (   -- одна картка на групу: представляє найдешевша (в наявності пріоритетно)
             SELECT DISTINCT ON (gkey)
                    discount_event_id, store_product_id, title, url, image_url, variant_note,
-                   match_key, store, current_kop, old_declared_kop, reference_kop,
-                   declared_pct, verified_pct, badge_state, computed_at
+                   match_key, store, category_slug, current_kop, old_declared_kop,
+                   reference_kop, declared_pct, verified_pct, badge_state, computed_at
             FROM ev
             ORDER BY gkey, current_kop, badge_state
         )
         SELECT b.discount_event_id, b.store_product_id, b.title, b.url, b.image_url,
-               b.variant_note, b.store, b.current_kop, b.old_declared_kop, b.reference_kop,
-               b.declared_pct, b.verified_pct, b.badge_state,
+               b.variant_note, b.store, b.category_slug, b.current_kop, b.old_declared_kop,
+               b.reference_kop, b.declared_pct, b.verified_pct, b.badge_state,
                {_PROMO_COL}
                CASE WHEN b.match_key IS NULL THEN 1
                     ELSE (SELECT count(DISTINCT sp2.source_id)
@@ -144,6 +144,44 @@ def product_history(conn, store_product_id: int, days: int = 90):
         GROUP BY day ORDER BY day"""
     with conn.cursor(row_factory=dict_row) as cur:
         return cur.execute(sql, (store_product_id, days)).fetchall()
+
+
+# Мікрографік у картці стрічки: рівно те саме вікно, що й статутне правило (§5).
+SPARK_DAYS = 30
+# Менше трьох діб — це не лінія, а випадковий відрізок. Краще не малювати нічого, ніж
+# намалювати «форму», якої ми не вимірювали (той самий принцип, що й мовчання
+# ринкового зрізу на малій вибірці, S31).
+SPARK_MIN_DAYS = 3
+
+
+def spark_series(conn, store_product_ids, days: int = SPARK_DAYS):
+    """Денні мінімуми для мікрографіків у стрічці — ОДНИМ запитом на всю сторінку.
+
+    Повертає {store_product_id: [[зсув_доби, копійки], …]}, зсув рахується від
+    початку вікна, тож клієнт малює вісь X за РЕАЛЬНИМИ датами: прогалина в даних
+    лишається прогалиною, а не стискається в рівний крок.
+
+    Джерело — сирий `price_snapshot` (інв. A), той самий, з якого рахується
+    `reference_kop`; фільтр `in_stock` збігається з `product_history`, щоб число в
+    картці й число на сторінці товару не розходились."""
+    ids = [int(i) for i in store_product_ids]
+    if not ids:
+        return {}
+    sql = """
+        SELECT store_product_id,
+               ((seen_at AT TIME ZONE 'Europe/Kyiv')::date
+                 - (now() AT TIME ZONE 'Europe/Kyiv')::date + %s - 1) AS d,
+               min(price_now_kop) AS min_kop
+        FROM price_snapshot
+        WHERE store_product_id = ANY(%s) AND in_stock
+          AND seen_at > now() - make_interval(days => %s)
+        GROUP BY store_product_id, d
+        ORDER BY store_product_id, d"""
+    out: dict[int, list] = {}
+    with conn.cursor() as cur:
+        for pid, d, kop in cur.execute(sql, (days, ids, days)).fetchall():
+            out.setdefault(pid, []).append([int(d), int(kop)])
+    return {k: v for k, v in out.items() if len(v) >= SPARK_MIN_DAYS}
 
 
 def product_specs(conn, store_product_id: int):

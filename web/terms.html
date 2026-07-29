@@ -4,25 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!--SEO-->
-<style>
-  :root{--bg:#f4f5f7;--surface:#fff;--fg:#14161a;--muted:#6b7280;--line:#e6e8ec;--accent:#512BD4}
-  @media (prefers-color-scheme:dark){:root{--bg:#101114;--surface:#191b1f;--fg:#f0f2f5;--muted:#9aa0a6;--line:#2a2d33;--accent:#ac99ea}}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
-  .wrap{max-width:720px;margin:0 auto;padding:32px 20px 64px}
-  h1{font-size:26px;margin:0 0 4px}
-  h2{font-size:19px;margin:32px 0 8px}
-  .sub{color:var(--muted);margin:0 0 24px;font-size:14px}
-  a{color:var(--accent)}
-  ul{padding-left:22px}
-  .note{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:20px 0;font-size:14px;color:var(--muted)}
-  .foot{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:14px}
-</style>
+<link rel="stylesheet" href="/s/app.css">
 </head>
 <body>
-<div class="wrap">
+<div class="app narrow">
+<header id="hdr"></header>
+<nav id="crumbs" hidden></nav>
+
+<div class="page doc">
   <h1>Умови використання</h1>
-  <p class="sub">Застосунок «Хапай» · hapay.today · Чинні з 19 липня 2026 р.</p>
+  <p class="docsub">Застосунок «Хапай» · hapay.today · Чинні з 19 липня 2026 р.</p>
 
   <p>Користуючись застосунком «Хапай», ви погоджуєтесь із цими умовами.</p>
 
@@ -67,11 +58,21 @@
     текст із законодавством України та вимогами сторів перед публікацією.
   </div>
 
-  <div class="foot">
+  <div class="docfoot">
     Оператор сервісу: ФОП [реквізити — заповнити] · Контакт:
     <a href="mailto:support@hapay.today">support@hapay.today</a><br>
     <a href="/privacy">Політика конфіденційності</a> · <a href="/support">Підтримка</a>
   </div>
 </div>
+
+<div id="ftr"></div>
+</div>
+
+<script src="/s/app.js"></script>
+<script>
+renderHeader('');
+renderFooter();
+renderCrumbs([{href:'/', label:'Головна'}, {label:'Умови використання'}]);
+</script>
 </body>
 </html>

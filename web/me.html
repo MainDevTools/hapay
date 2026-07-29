@@ -52,13 +52,13 @@ async function loadMe(){
       ${u.email_verified ? '' : `
       <div class="row"><div><div class="t">Підтвердження пошти</div>
         <div class="s">Без нього не вийде відновити пароль, якщо забудеш.</div></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="btnrow">
           <button class="mini" id="resend">Надіслати код</button>
           <button class="mini" id="entercode">Ввести код</button></div></div>
       <div id="codebox" hidden style="padding:10px 0">
-        <input id="code" class="search" style="max-width:200px;display:inline-block"
+        <input id="code" class="search trunc"
                inputmode="numeric" placeholder="код із листа" autocomplete="one-time-code">
-        <button class="mini" id="okcode" style="margin-left:8px">Підтвердити</button>
+        <button class="mini gap-left" id="okcode">Підтвердити</button>
       </div>`}`;
 
     document.getElementById('out').onclick = () => { AUTH.out(); location.href = '/'; };
@@ -103,7 +103,7 @@ async function loadWatch(){
       box.innerHTML = `<h2>Стеження</h2>
         <div class="sub">Поки порожньо. Відкрий товар і натисни «Стежити за ціною» —
           повідомимо, коли подешевшає.</div>
-        <div style="margin-top:14px"><a class="mini" href="/catalog">До знижок</a></div>`;
+        <div class="gap-m"><a class="mini" href="/catalog">До знижок</a></div>`;
       return;
     }
     box.innerHTML = `<h2>Стеження</h2><div class="sub">${plu(items.length,'запис','записи','записів')}</div>`
@@ -111,7 +111,7 @@ async function loadWatch(){
         const name = esc(w.title || w.query_text || ('#' + (w.ref_id ?? '')));
         const price = w.current_kop != null ? grn(w.current_kop) : '';
         const delta = w.delta_kop ? (w.delta_kop < 0
-          ? `<span class="s" style="color:var(--accent)">↓ ${grn(-w.delta_kop)} від додавання</span>`
+          ? `<span class="s accent">↓ ${grn(-w.delta_kop)} від додавання</span>`
           : `<span class="s">↑ ${grn(w.delta_kop)} від додавання</span>`) : '';
         const link = w.kind === 'store_product' && w.ref_id
           ? `<a class="mini" href="/product/${w.ref_id}">Відкрити</a>` : '';
@@ -124,7 +124,7 @@ async function loadWatch(){
             <div class="t">${name}</div>
             <div class="s">${KIND[w.kind] || w.kind}${price ? ' · ' + price : ''}</div>
             ${goal}${delta}
-          </div><div style="display:flex;gap:8px;flex-wrap:wrap">
+          </div><div class="btnrow">
             ${link}<button class="mini" data-goal="${w.watchlist_id}"
               data-cur="${w.target_kop || ''}">Ціль</button>
             <button class="mini danger" data-del="${w.watchlist_id}">Прибрати</button>
@@ -166,7 +166,7 @@ async function loadDrops(){
         <div class="s">${grn(x.current_kop)} · дешевше на ${grn(x.drop_kop)}</div></div>
         ${x.store_product_id ? `<a class="mini" href="/product/${x.store_product_id}">Відкрити</a>` : ''}
       </div>`).join('')
-      + `<div style="margin-top:12px"><button class="mini" id="ackall">Зрозуміло</button></div>`;
+      + `<div class="gap-s"><button class="mini" id="ackall">Зрозуміло</button></div>`;
     document.getElementById('ackall').onclick = async () => {
       try{
         await api('/api/me/watchlist/drops/ack', {method:'POST',

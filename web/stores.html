@@ -48,7 +48,7 @@ async function load(){
         <span>${esc(r.name)}</span>
         <span class="n">${nfmt(r.discounts)} ${r.discounts === 1 ? 'знижка' : 'знижок'}</span>
       </a>`).join('') + `</div>
-      <div class="prov" style="margin-top:16px">Усього крамниць: ${live.length}.
+      <div class="prov">Усього крамниць: ${live.length}.
         Числа — з нашої бази спостережень і змінюються після кожного збору.</div>`;
   }catch(e){
     out.innerHTML = `<div class="empty"><div class="ic">⚠️</div>

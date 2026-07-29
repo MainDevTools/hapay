@@ -24,7 +24,7 @@ from api import email as qemail
 from api import seo as qseo
 from api.initdata import verify_init_data, check_auth_age, InitDataError
 from detection.runner import detect_pass
-from taxonomy import SECTION_ORDER
+from taxonomy import SECTION_ORDER, glyph_key
 import merkle
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -458,8 +458,21 @@ def discounts(category: str | None = None, section: str | None = None,
               price_max: int | None = Query(None, ge=0),
               conn=Depends(get_conn)):
     _check_badge(badge); _check_section(section)
-    return qdb.list_discounts(conn, category, badge, sort, limit=50, offset=page * 50, q=q,
+    rows = qdb.list_discounts(conn, category, badge, sort, limit=50, offset=page * 50, q=q,
                               price_min=price_min, price_max=price_max, section=section)
+    # Мікрографік історії просто в стрічці (S32): наша єдина унікальна річ — власні
+    # виміри — доти була невидима, доки людина не відкриє товар. Один запит на всю
+    # сторінку, не 50. Товари з надто короткою історією тут просто відсутні —
+    # клієнт малює графік лише там, де є що малювати.
+    if rows:
+        series = qdb.spark_series(conn, [r["store_product_id"] for r in rows])
+        for r in rows:
+            r["spark"] = series.get(r["store_product_id"], [])
+            # Гліф плитки для товарів без фото. Розділ живе лише в taxonomy (у БД його
+            # нема), тож і ключ вектора рахуємо там — інакше сайт і застосунок
+            # групували б однакові товари під різними значками.
+            r["glyph"] = glyph_key(r.get("category_slug") or "")
+    return rows
 
 
 @app.get("/api/products")
