@@ -519,7 +519,24 @@ def products(category: str | None = None, section: str | None = None,
                              section=section,
                              price_min=price_min, price_max=price_max,
                              only_discounts=only_discounts, badge=badge)
+    # ── одруківка більше не глухий кут (S35) ────────────────────────────────────
+    # Заміряно: «ноутбк» давало 0, «ноутбук» — 50. Схожість вмикаємо ЛИШЕ коли
+    # точний пошук не знайшов нічого: інакше «айфон» приносив би «айфон-чохол»
+    # поперед самих айфонів. І лише на першій сторінці — порожня друга сторінка
+    # це кінець списку, а не привід підмінити запит.
+    fuzzy = False
+    if q and not rows and page == 0:
+        rows = qdb.list_products(conn, category, sort, limit=50, offset=0, q=q, fuzzy=True,
+                                 section=section,
+                                 price_min=price_min, price_max=price_max,
+                                 only_discounts=only_discounts, badge=badge)
+        fuzzy = bool(rows)
     _attach_visuals(conn, rows)
+    if fuzzy:
+        # Клієнт МУСИТЬ сказати людині, що показує схоже, а не знайдене: мовчазна
+        # підміна запиту — це відповідь на питання, якого не ставили.
+        for r in rows:
+            r["fuzzy"] = True
     return rows
 
 

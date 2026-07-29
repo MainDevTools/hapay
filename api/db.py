@@ -8,7 +8,7 @@ import math
 
 from psycopg import errors
 from psycopg.rows import dict_row
-from search import search_patterns
+from search import search_patterns, expand_for_trgm
 from taxonomy import category_ui, slugs_in_section, SECTION_ORDER, SECTION_SLUG
 
 # сортування — без de.-префікса: колонки беруться з CTE `best` (див. list_discounts)
@@ -279,7 +279,7 @@ _HOLLOW_MIN_PEERS = 2     # одна крамниця — ще не ринок
 _HOLLOW_SAME_PRICE = 1.02  # «та сама ціна» = у межах +2%: копійчані розбіжності не рахуємо
 
 
-def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=None,
+def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=None, fuzzy=False,
                   section=None,
                   price_min=None, price_max=None, only_discounts=False, badge=None):
     """УСІ товари (не лише знижкові), остання відома ціна кожного, MPN-дедуп як стрічка.
@@ -308,7 +308,15 @@ def list_products(conn, category=None, sort="discount", limit=50, offset=0, q=No
     # звужувальні — лише для ВИБОРУ картки, не для пошуку дешевшої пропозиції
     narrow: list[str] = []
     if q:
-        narrow.append("title ILIKE ANY(%s)"); params.append(search_patterns(q))
+        if fuzzy:
+            # ⚠ ЗАПАСНИЙ шлях (S35), вмикається лише коли точний пошук дав нуль.
+            # Робити його основним не можна: «айфон» почав би приносити
+            # «айфон-чохол-тримач» поперед самих айфонів — схожість рядків не знає,
+            # що таке товар.
+            narrow.append("title %% ANY(%s)")          # %% — літерал `%` для psycopg
+            params.append(expand_for_trgm(q))
+        else:
+            narrow.append("title ILIKE ANY(%s)"); params.append(search_patterns(q))
     if price_min is not None:
         narrow.append("current_kop >= %s"); params.append(price_min)
     if price_max is not None:

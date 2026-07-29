@@ -51,9 +51,15 @@ def _check(sqls, label):
     for sql in sqls:
         if not isinstance(sql, str):
             continue
-        for m in _STRAY.finditer(sql):
+        # ⚠ Спершу ГАСИМО пари `%%`, і лише тоді шукаємо блукаючі. Інакше в
+        # екранованому відсотку помічається ДРУГИЙ символ: він же не має після себе
+        # ні `s`, ні `%`. Виявлено 2026-07-29, коли `%%` уперше знадобився по-справжньому
+        # (оператор схожості pg_trgm) — доти жоден запит його не містив, тож
+        # запобіжник роками був зелений із хибної причини.
+        probe = sql.replace("%%", "  ")
+        for m in _STRAY.finditer(probe):
             around = sql[max(0, m.start() - 60):m.start() + 20].replace("\n", " ")
-            raise AssertionError(f"{label}: блукаючий «%» → …{around}…")
+            raise AssertionError(f"{label}: блукаючий «%» -> ...{around}...")
 
 
 def test_list_products_no_stray_percent():
@@ -102,6 +108,12 @@ def test_new_builders_no_stray_percent():
     _check(_sql_of(db.refresh_models), "refresh_models")
     _check(_sql_of(db.users_for_alerts), "users_for_alerts")
     _check(_sql_of(db.spark_series, [1, 2]), "spark_series")
+    # ⚠ fuzzy-гілка містить ЛІТЕРАЛЬНИЙ `%` (оператор схожості pg_trgm), який у
+    # psycopg треба подвоювати. Саме той клас помилки, що зламав /api/drops 28.07,
+    # лише цього разу `%` не в коментарі, а в самому операторі.
+    _check(_sql_of(db.list_products, q="ноутбк", fuzzy=True), "list_products(fuzzy)")
+    _check(_sql_of(db.list_products, q="ноутбк", fuzzy=True, category="tv"),
+           "list_products(fuzzy+category)")
 
 
 def test_other_builders_no_stray_percent():
