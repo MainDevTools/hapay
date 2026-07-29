@@ -1645,3 +1645,43 @@ def snapshot_for_proof(conn, price_snapshot_id: int):
             "       in_stock, seen_at, seen_at::date AS day "
             "  FROM price_snapshot WHERE price_snapshot_id = %s",
             (price_snapshot_id,)).fetchone()
+
+
+# Скільки перевірених подій потрібно, щоб узагалі називати відсоток. 1000 — не
+# статистична істина, а свідомо консервативний поріг: на 116 подіях різниця між 45% і
+# 60% — це шум, а публікація такого числа коштувала б нам саме тієї репутації, заради
+# якої продукт існує. 🧭 Величина під людським ревʼю (інваріант C).
+MARKET_MIN_SAMPLE = 1000
+
+
+def market_index(conn, days: int = 30):
+    """Ринковий зріз: скільки заявлених знижок ми змогли ПЕРЕВІРИТИ і що побачили.
+
+    ⚠ Головне тут — `sample_n` і `confident`. На 2026-07-28 перевірених подій було 116,
+    з них 62 із завищеною старою ціною. «53% знижок накачані» на вибірці 116 — це рівно
+    та накачана знижка, яку ми ловимо в крамниць, тож поки вибірка мала, число
+    показуємо як СИРИЙ ЛІЧИЛЬНИК, без відсотка й без висновку.
+
+    Поріг — параметр, а не істина: він під людським ревʼю (інваріант C)."""
+    row = conn.execute(
+        "SELECT count(*) FILTER (WHERE reference_kop IS NOT NULL)::int AS checked,"
+        "       count(*) FILTER (WHERE badge_state = 'pumped')::int AS pumped,"
+        "       count(*) FILTER (WHERE badge_state IN "
+        "              ('verified','verified_provisional'))::int AS verified,"
+        "       count(*)::int AS declared_total "
+        "  FROM discount_event "
+        " WHERE ended_at IS NULL AND computed_at > now() - make_interval(days => %s)",
+        (days,)).fetchone()
+    checked, pumped, verified, total = row
+    return {
+        "days": days,
+        "declared_total": total,
+        "sample_n": checked,
+        "pumped": pumped,
+        "verified": verified,
+        "min_sample": MARKET_MIN_SAMPLE,
+        # Висновок робимо, лише коли вибірка це дозволяє. Інакше віддаємо факти й
+        # мовчимо — так само, як мовчимо про товар, у якого замало історії.
+        "confident": checked >= MARKET_MIN_SAMPLE,
+        "pumped_pct": (round(100 * pumped / checked) if checked >= MARKET_MIN_SAMPLE else None),
+    }

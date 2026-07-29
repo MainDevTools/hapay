@@ -291,6 +291,16 @@ def api_model(product_id: int, conn=Depends(get_conn)):
     return m
 
 
+@app.get("/api/market")
+def api_market(days: int = Query(30, ge=1, le=365), conn=Depends(get_conn)):
+    """Ринковий зріз: скільки заявлених знижок ми змогли перевірити (S31).
+
+    ⚠ `confident=false` означає «вибірки замало для висновку» — і клієнти зобовʼязані
+    в цьому разі показувати сирі лічильники без відсотка. Опублікувати «половина знижок
+    накачані» на вибірці 116 було б рівно тією накачаною знижкою, яку ми ловимо."""
+    return qdb.market_index(conn, days)
+
+
 @app.get("/api/verify")
 def api_verify(conn=Depends(get_conn)):
     """Печатки діб: корінь Меркла + ланцюжок (S31).

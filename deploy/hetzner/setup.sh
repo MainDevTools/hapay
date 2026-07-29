@@ -290,6 +290,30 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
+# ── щоденна печатка спостережень (S31) ───────────────────────────────────────────
+# 01:20 UTC: доба вже закрита, а якір у публічному репозиторії забирає корені о 01:40.
+# Ідемпотентний: запечатана доба пропускається, перезапечатування неможливе (тригер).
+cat > /etc/systemd/system/hapay-seal.service <<EOF
+[Unit]
+Description=Хапай — печатка спостережень доби
+After=network-online.target
+[Service]
+Type=oneshot
+User=$APP_USER
+WorkingDirectory=$REPO_DIR
+EnvironmentFile=$ENV_FILE
+ExecStart=$VENV/bin/python seal.py
+EOF
+cat > /etc/systemd/system/hapay-seal.timer <<'EOF'
+[Unit]
+Description=Хапай — печатка доби, щоночі
+[Timer]
+OnCalendar=*-*-* 01:20:00
+Persistent=true
+[Install]
+WantedBy=timers.target
+EOF
+
 systemctl daemon-reload
 systemctl enable --now hapay-api.service
 systemctl enable --now hapay-collect-server.timer
@@ -298,7 +322,7 @@ systemctl enable --now hapay-collect-server.timer
 # 25.07, машина не перезавантажувалась із 18.07 — і нічний бекап НЕ виконався ЖОДНОГО
 # разу. Останній дамп був той, що запустили руками під час налаштування, тобто база
 # з незамінною append-only історією три доби жила без бекапу.
-systemctl enable --now hapay-backup.timer hapay-mail.timer hapay-health.timer
+systemctl enable --now hapay-backup.timer hapay-mail.timer hapay-health.timer hapay-seal.timer
 systemctl enable hapay-collect.timer
 
 log "9/9 Caddy (TLS + зворотний проксі на 127.0.0.1:8080)"
