@@ -117,12 +117,18 @@ public partial class ModelViewModel : ObservableObject, IQueryAttributable
             var m = await _api.ModelAsync(ProductId);
             Card = m;
             Offers.Clear();
+            var list = m?.Offers ?? new();
             var best = m?.MinKop;
-            foreach (var o in m?.Offers ?? new())
+            // ⚠ Якщо ВСІ крамниці тримають ту саму ціну, позначки «найдешевше» немає:
+            // побачено на кадрі — вона стояла в усіх пʼятьох рядках і не вирізняла
+            // нічого. Це та сама логіка, що AllSamePrice у стрічці: слово, яке
+            // обіцяє вибір там, де вибору немає, гірше за мовчання.
+            var allSame = list.Count > 1 && best is int mn && list.All(x => x.CurrentKop == mn);
+            foreach (var o in list)
             {
                 // «найдешевше» позначаємо ПІСЛЯ завантаження, а не в моделі: ознака
                 // стосується набору, а не самої пропозиції.
-                o.IsBest = best is int b && o.CurrentKop == b;
+                o.IsBest = !allSame && best is int b && o.CurrentKop == b;
                 Offers.Add(o);
             }
             Ready = m is not null;
