@@ -1,0 +1,7 @@
+{
+ "chain": "c9c2b661a2a21f02bc62539f316b3a4e64c37db840b7c1cc7064e25890774f16",
+ "day": "2026-10-14",
+ "format": "merkle-sha256-v1",
+ "merkle_root": "a0e03b5f6e9e63a7c797abf46f0d0bf894ac97aa6b0e0eb16181c9cbe1aaebca",
+ "rows_n": 13818
+}
